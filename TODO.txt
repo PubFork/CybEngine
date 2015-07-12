@@ -1,0 +1,56 @@
+logger:
+ * Remove LogPolicyOperation, keep only a copyHistory option to Logger::AddPolicy().
+ * Change Logger::AddPolicy args, logger->AddPolicy( std::make_unique<LogPolicy_Stdout>(), true ) looks ugly.
+ * Rename the LogPolicy_* to something more sane.
+ 
+ intrusive_list:
+  * Iteration is ugly, maybe make is compatable to c+++11 range based iteration for ( auto node : list ) {...}
+ 
+ allocator:
+  * Fix aligned allocation for LinearAllocator::Allocate().
+  
+  command:
+   * Make DrawCommand smaller by replacing the transform matrix with a matrix handle allocated in the driver 
+  
+  driver_gl:
+   * make ProgramGL::Create() cache non-predefined uniforms.
+ 
+ serializer:
+  * Make a parser for JSON like format. General idea (or just use XML or JSON, don't know yet)
+  
+  Configuration = {
+		maxVertexBuffers = 1024
+		maxIndexBuffer  = 1024
+		maxVertexLayouts = 64
+		maxShaderPrograms = 64
+		maxDrawCalls = 1024
+		
+		logHistorySize = 64
+		logDefaultFormat = "[%L]: %m"
+		logPolicies = [
+			{
+				type = "stdout"
+				debug = false
+				info = true
+				warning = true
+				error = true
+			}
+			{
+				type = "file"
+				filename = "output.txt"
+				format = "%t [%L] %F@%f(%l): %m"
+				debug = true
+				info = true
+				warning = true
+				error = true
+			}
+		]
+
+		video {
+			width = 800
+			height = 600
+			vsync = true
+		}
+		
+		arrayValues = [ 1, 2, 3, 4 ]
+  }

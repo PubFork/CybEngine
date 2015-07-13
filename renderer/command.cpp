@@ -9,13 +9,13 @@ DrawCommand::DrawCommand() {
 }
 
 void DrawCommand::Clear() {
-	numVertices   = UINT32_MAX;
-	startVertex   = 0;
-	numIndices    = INDEX_MAX;
-	startIndex    = 0;
-	vertexBuffer  = INVALID_HANDLE;
-	indexBuffer   = INVALID_HANDLE;
-	shaderProgram = INVALID_HANDLE;
+	numVertices         = UINT32_MAX;
+	startVertex         = 0;
+	numIndices          = INDEX_MAX;
+	startIndex          = 0;
+	vertexBuffer.index  = INVALID_HANDLE;
+	indexBuffer.index   = INVALID_HANDLE;
+	shaderProgram.index = INVALID_HANDLE;
 	listNode.Clear();
 }
 

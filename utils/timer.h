@@ -21,6 +21,7 @@ public:
 	double m_frequency;
 	uint64_t m_offset;
 	uint64_t m_lastFrame;
+	uint64_t m_frameCount;
 	double m_frameTimeMs;
 	double m_timeSec;
 };

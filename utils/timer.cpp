@@ -58,7 +58,13 @@ double FrameTimer::Frame() {
 	m_timeSec     = static_cast<double>( now - m_offset ) / m_frequency;
 	m_lastFrame   = now;
 
+	m_frameCount;
+
 	return m_timeSec;
+}
+
+double FrameTimer::GetFrameTimeMs() const {
+	return m_frameTimeMs;
 }
 
 double FrameTimer::GetTimeSec() const {

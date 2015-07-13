@@ -90,7 +90,7 @@ VertexLayoutHandle VertexLayoutCache::Find( uint32_t hash ) const {
 		return it->second;
 	}
 
-	return INVALID_HANDLE;
+	return VertexLayoutHandle( INVALID_HANDLE );
 }
 
 void VertexLayoutCache::Add( VertexBufferHandle vertexBuffer, VertexLayoutHandle vertexLayout, uint32_t hash ) {
@@ -105,7 +105,7 @@ VertexLayoutHandle VertexLayoutCache::Release( VertexBufferHandle vertexBuffer )
 	if ( IsValid( vertexLayout ) ) {
 		m_refereceCount[vertexLayout.index]--;
 		if ( m_refereceCount[vertexLayout.index] != 0 ) {
-			return INVALID_HANDLE;
+			return VertexLayoutHandle( INVALID_HANDLE );
 		}
 	}
 

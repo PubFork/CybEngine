@@ -43,12 +43,14 @@ void Renderer::DestroyCommandBuffer( CommandBuffer *cbuf ) {
 }
 
 VertexBufferHandle Renderer::CreateVertexBuffer( const MemoryPtr mem, const VertexLayout &layout ) {
-	VertexBufferHandle bufferHandle = m_vertexBuffers.Alloc();
+	VertexBufferHandle bufferHandle( m_vertexBuffers.Alloc() );
+
 	if ( IsValid( bufferHandle ) ) {
-		// Create vertex layout
+		// Find/Create vertex layout
 		VertexLayoutHandle layoutHandle = m_vertexLayoutCache.Find( layout.hash );
 		if ( !IsValid( layoutHandle ) ) {
-			layoutHandle = m_vertexLayouts.Alloc();
+			VertexLayoutHandle temp( m_vertexLayouts.Alloc() );
+			layoutHandle = temp;
 			m_driver->CreateVertexLayout( layoutHandle, layout );
 		}
 
@@ -73,7 +75,8 @@ void Renderer::DestroyVertexBuffer( const VertexBufferHandle bufferHandle ) {
 }
 
 IndexBufferHandle Renderer::CreateIndexBuffer( const MemoryPtr mem ) {
-	IndexBufferHandle bufferHandle = m_indexBuffers.Alloc();
+	IndexBufferHandle bufferHandle( m_indexBuffers.Alloc() );
+
 	if ( IsValid( bufferHandle ) ) {
 		m_driver->CreateIndexBuffer( bufferHandle, mem );
 	}
@@ -89,7 +92,7 @@ void Renderer::DestroyIndexBuffer( const IndexBufferHandle bufferHandle ) {
 }
 
 ShaderProgramHandle Renderer::CreateProgram( const MemoryPtr vertexShaderMem, const MemoryPtr fragmentShaderMem ) {
-	ShaderProgramHandle handle = m_shaderPrograms.Alloc();
+	ShaderProgramHandle handle( m_shaderPrograms.Alloc() );
 
 	if ( IsValid( handle ) ) {
 		m_driver->CreateProgram( handle, vertexShaderMem, fragmentShaderMem );

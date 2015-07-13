@@ -8,8 +8,7 @@ static const uint32_t INVALID_HANDLE = UINT32_MAX;
 #define CREATE_HANDLE( name ) \
 	struct name { \
 		uint32_t index; \
-		name( uint32_t value = INVALID_HANDLE ) { index = value; } \
-		name &operator=( const uint32_t rhs ) { index = rhs; return *this; } \
+		explicit name( uint32_t value = INVALID_HANDLE ) { index = value; } \
 	}; \
 	inline bool IsValid( const name handle ) { return handle.index != INVALID_HANDLE; }
 

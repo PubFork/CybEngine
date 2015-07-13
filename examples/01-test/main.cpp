@@ -1,3 +1,4 @@
+#include <cstdio>	// snprintf
 #include <iostream>
 #include <memory>
 #include <GL/glew.h>
@@ -84,6 +85,7 @@ int main() {
 	}
 
 	glfwMakeContextCurrent( window );
+	glfwSwapInterval( 0 );
 	
 	// Create and initialize renderer driver
 	auto renderer = std::make_unique<cyb::Renderer>();
@@ -109,11 +111,15 @@ int main() {
 
 	//=========== Main loop
 	cyb::FrameTimer timer;
+	char titleBuffer[64];
 	while ( !glfwWindowShouldClose( window ) ) {
 		double frameTime = timer.Frame();
 
-#define CUBE_NUM_HORIZONTAL (80/3)
-#define CUBE_NUM_VERTICAL	(64/3)
+		_snprintf( titleBuffer, 64, "FrameTime: %.0fms", (float) timer.GetFrameTimeMs() );
+		glfwSetWindowTitle( window, titleBuffer );
+
+#define CUBE_NUM_HORIZONTAL (40*2)
+#define CUBE_NUM_VERTICAL	(32*2)
 		for ( uint16_t x = 0; x < CUBE_NUM_HORIZONTAL; x++ ) {
 			for ( uint16_t y = 0; y < CUBE_NUM_VERTICAL; y++ ) {
 				glm::mat4 rotate = glm::rotate( glm::mat4( 1.0f ), (float) ( frameTime + x*0.21 ), glm::vec3( 1.0f, 0.0f, 0.0f ) );

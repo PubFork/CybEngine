@@ -357,6 +357,7 @@ void RendererDriverGL::DestroyProgram( const ShaderProgramHandle handle ) {
 	m_shaderPrograms[handle.index].Destroy();
 }
 
+// UNUSED ATM
 static void UpdateUniforms( const ProgramGL &program, const glm::mat4 &model, const glm::mat4 &view, const glm::mat4 &proj ) {
 	uint16_t numUniforms = program.numPredefined;
 
@@ -403,30 +404,69 @@ void RendererDriverGL::Commit( const CommandBuffer *cbuf ) {
 
 	glBindVertexArray( m_vao );
 
+	DrawCommand currentState;
+	currentState.Clear();
+
+	glm::mat4 viewProj = cbuf->m_projMatrix * cbuf->m_viewMatrix;
+	glm::mat4 modelViewProj;
+
 	for ( const DrawCommand *draw = cbuf->DrawCommands().Next(); draw != nullptr; draw = draw->listNode.Next() ) {
-		if ( IsValid( draw->shaderProgram ) ) {
-			ProgramGL &shaderProgram = m_shaderPrograms[draw->shaderProgram.index];
-			glUseProgram( shaderProgram.id );
+		bool programChanged = false;
+
+		// Update shader program state
+		if ( currentState.shaderProgram.index != draw->shaderProgram.index ) {
+			glUseProgram( m_shaderPrograms[draw->shaderProgram.index].id );
+			currentState.shaderProgram = draw->shaderProgram;
+			programChanged = true;
+		}
+
+		// Update predefined uniforms
+		if ( IsValid( currentState.shaderProgram ) ) {
+			const ProgramGL &program = m_shaderPrograms[currentState.shaderProgram.index];
+			for ( uint16_t i = 0; i < program.numPredefined; i++ ) {
+				const UniformGL &uniform = program.predefined[i];
+
+				switch ( uniform.type ) {
+				case UniformGL::ModelView:
+					glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( viewProj ) );
+					break;
+
+				case UniformGL::ModelViewProj:
+					modelViewProj = viewProj * draw->transform;
+					glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( modelViewProj ) );
+					break;
+				}
+			}
+		}
+
+		// Update geometry buffers state
+		if ( programChanged || 
+			currentState.vertexBuffer.index != draw->vertexBuffer.index ||
+			currentState.indexBuffer.index != draw->indexBuffer.index ) {
+
+			currentState.vertexBuffer = draw->vertexBuffer;
+			currentState.indexBuffer = draw->indexBuffer;
 
 			if ( IsValid( draw->vertexBuffer ) ) {
 				const VertexBufferGL &vertexBuffer = m_vertexBuffers[draw->vertexBuffer.index];
-				const VertexLayout &layout = m_vertexLayouts[vertexBuffer.vertexLayout.index];
-
 				glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer.id );
-				shaderProgram.BindAttributes( layout );
-				UpdateUniforms( shaderProgram, draw->transform, cbuf->m_viewMatrix, cbuf->m_projMatrix );
+				m_shaderPrograms[draw->shaderProgram.index].BindAttributes( m_vertexLayouts[vertexBuffer.vertexLayout.index] );
+			}
+			
+			if ( IsValid( draw->indexBuffer ) ) {
+				glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexBuffers[draw->indexBuffer.index].id );
+			}
+		}
 
-				if ( IsValid( draw->indexBuffer ) ) {
-					const IndexBufferGL &indexBuffer = m_indexBuffers[draw->indexBuffer.index];
-					glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indexBuffer.id );
-
-					index_t numIndices = draw->numIndices;
-					if ( numIndices == INDEX_MAX ) {
-						numIndices = indexBuffer.size / sizeof( index_t );
-					}
-
-					glDrawElementsInstanced( GL_TRIANGLES, numIndices, INDEX_TYPE_GL, (void *) 0, 1 );
+		// Render current state
+		if ( IsValid( currentState.vertexBuffer ) ) {
+			if ( IsValid( currentState.indexBuffer ) ) {
+				index_t numIndices = draw->numIndices;
+				if ( numIndices == INDEX_MAX ) {
+					numIndices = m_indexBuffers[currentState.indexBuffer.index].size / sizeof( index_t );
 				}
+
+				glDrawElementsInstanced( GL_TRIANGLES, numIndices, INDEX_TYPE_GL, (void *) 0, 1 );
 			}
 		}
 	}

@@ -198,14 +198,32 @@ UniformGL::Enum GetPredefinedUniformEnum( const char *uniform ) {
 	return UniformGL::Count;
 }
 
+ProgramGL::ProgramGL() :
+	id( 0 ),
+	numPredefined( 0 ) {
+	memset( attributes, 0xff, sizeof( attributes ) );
+}
+
 void ProgramGL::Create( const ShaderGL &vertexShader, const ShaderGL &fragmentShader ) {
 	id = glCreateProgram();
 
-	glAttachShader( id, vertexShader.id );
-	glAttachShader( id, fragmentShader.id );
+	if ( vertexShader.id != 0 ) {
+		glAttachShader( id, vertexShader.id );
+	}
+
+	if ( fragmentShader.id != 0 ) {
+		glAttachShader( id, fragmentShader.id );
+	}
+
 	glLinkProgram( id );
-	glDetachShader( id, vertexShader.id );
-	glDetachShader( id, fragmentShader.id );
+
+	if ( vertexShader.id != 0 ) {
+		glDetachShader( id, vertexShader.id );
+	}
+
+	if ( fragmentShader.id != 0 ) {
+		glDetachShader( id, fragmentShader.id );
+	}
 
 	GLint linked = 0;
 	glGetProgramiv( id, GL_LINK_STATUS, &linked );
@@ -225,52 +243,53 @@ void ProgramGL::Create( const ShaderGL &vertexShader, const ShaderGL &fragmentSh
 
 	// Allocate a string capable of storing max length variable names
 	GLint max0, max1;
-	glGetProgramiv( id, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &max0 );
-	glGetProgramiv( id, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max1 );
+	glGetProgramInterfaceiv( id, GL_PROGRAM_INPUT, GL_MAX_NAME_LENGTH, &max0 );
+	glGetProgramInterfaceiv( id, GL_UNIFORM,       GL_MAX_NAME_LENGTH, &max1 );
 	uint32_t maxLength = std::max<GLint>( max0, max1 );
 	auto name = std::make_unique<char[]>( maxLength + 1 );
+
+	struct ResourceInfoGL {
+		GLenum type;
+		GLint  location;
+		GLint  num;
+	};
+	ResourceInfoGL resourceInfo;
+	const GLenum props[] = { GL_TYPE, GL_LOCATION, GL_ARRAY_SIZE };
+	const GLsizei propCount = sizeof( props ) / sizeof( props[0] );
 
 	// Load attributes
 	GLint attribCount = 0;
 	glGetProgramInterfaceiv( id, GL_PROGRAM_INPUT, GL_ACTIVE_RESOURCES, &attribCount );
-	memset( attributes, 0xff, sizeof( attributes ) );
 	while ( attribCount-- ) {
-		GLint size;
-		GLenum type;
-		glGetActiveAttrib( id, attribCount, maxLength, nullptr, &size, &type, &name[0] );
-		const GLint location = glGetAttribLocation( id, &name[0] );
+		glGetProgramResourceiv( id, GL_PROGRAM_INPUT, attribCount, propCount, props, propCount, NULL, (GLint *) &resourceInfo );
+		glGetProgramResourceName( id, GL_PROGRAM_INPUT, attribCount, maxLength, NULL, &name[0] );
 
-		const VertexAttribute::Enum attributeEnum = GetVertexAttributeEnum( name.get() );
-		if ( attributeEnum != VertexAttribute::Count ) {
-			attributes[attributeEnum] = location;
+		if ( resourceInfo.location != -1 ) {
+			const VertexAttribute::Enum attributeEnum = GetVertexAttributeEnum( name.get() );
+			attributes[attributeEnum] = resourceInfo.location;
+			CYB_DEBUG( "  layout( location = ", resourceInfo.location, " ) in ", GLEnumToString( resourceInfo.type ), " ", name.get() );
 		}
-
-		CYB_DEBUG( "  layout( location = ", location, " ) in ", GLEnumToString( type ), " ", name.get() );
 	}
 
 	// Load uniforms
 	GLint uniformCount = 0;
 	glGetProgramInterfaceiv( id, GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniformCount );
-	const GLenum props[] = { GL_TYPE, GL_LOCATION, GL_ARRAY_SIZE };
-	const GLsizei propCount = sizeof( props ) / sizeof( props[0] );
-	numPredefined = 0;
 	while ( uniformCount-- ) {
-		UniformGL uniformInfo = {};
-		glGetProgramResourceiv( id, GL_UNIFORM, uniformCount, propCount, props, propCount, nullptr, (GLint *) &uniformInfo );
-		glGetProgramResourceName( id, GL_UNIFORM, uniformCount, maxLength, nullptr, &name[0] );
+		glGetProgramResourceiv( id, GL_UNIFORM, uniformCount, propCount, props, propCount, NULL, (GLint *) &resourceInfo );
+		glGetProgramResourceName( id, GL_UNIFORM, uniformCount, maxLength, NULL, &name[0] );
 
 		const UniformGL::Enum uniformEnum = GetPredefinedUniformEnum( name.get() );
 		if ( uniformEnum != UniformGL::Count ) {
 			UniformGL &uniform = predefined[numPredefined];
 			uniform.type = uniformEnum;		// mapped to predefined enum type
-			uniform.location = uniformInfo.location;
-			uniform.num = uniformInfo.num;
+			uniform.location = resourceInfo.location;
+			uniform.num = resourceInfo.num;
 			numPredefined++;
 		} else {
 			// TODO: Cache non-predefined uniforms
 		}
 
-		CYB_DEBUG( "  layout( location = ", uniformInfo.location, " ) uniform ", GLEnumToString( uniformInfo.type ), " ", name.get() );
+		CYB_DEBUG( "  layout( location = ", resourceInfo.location, " ) uniform ", GLEnumToString( resourceInfo.type ), " ", name.get() );
 	}
 }
 
@@ -283,15 +302,104 @@ void ProgramGL::Destroy() {
 
 void ProgramGL::BindAttributes( const VertexLayout &layout ) {
 	for ( const auto &entry : layout.entries ) {
-		if ( entry.attribute != VertexAttribute::Count ) {
-			const uintptr_t offset = layout.offset[entry.attribute];
-			const GLint location = attributes[entry.attribute];
+		const GLint location = attributes[entry.attribute];
 
-			glEnableVertexAttribArray( location );
-			glVertexAttribPointer( location, entry.num, s_attributeType[entry.type], entry.normalized, layout.stride, (void *) offset );
+		if ( location != -1 ) {
+			if ( entry.attribute != VertexAttribute::Count ) {
+				const uintptr_t offset = layout.offset[entry.attribute];
+				const GLint location = attributes[entry.attribute];
+
+				glEnableVertexAttribArray( location );
+				glVertexAttribPointer( location, entry.num, s_attributeType[entry.type], entry.normalized, layout.stride, (void *) offset );
+			} else {
+				glDisableVertexAttribArray( location );
+			}
 		}
 	}
 }
+
+struct UniformGLUpdater {
+	UniformGLUpdater( const glm::mat4 &view, const glm::mat4 &proj ) :
+		m_view( view ),
+		m_proj( proj ) {
+		m_viewProj = m_proj * m_view;
+		m_invViewCached = false;
+		m_invProjCached = false;
+		m_invViewProjCached = false;
+	}
+
+	void UpdatePredefined( const ProgramGL &program, const glm::mat4 &model ) {
+		for ( uint16_t i = 0; i < program.numPredefined; i++ ) {
+			const UniformGL &uniform = program.predefined[i];
+
+			switch ( uniform.type ) {
+			case UniformGL::View:
+				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( m_view ) );
+				break;
+
+			case UniformGL::InvView:
+				if ( !m_invViewCached ) {
+					m_invView = glm::inverse( m_view );
+					m_invViewCached = true;
+				}
+				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( m_invView ) );
+				break;
+
+			case UniformGL::Proj:
+				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( m_proj ) );
+				break;
+
+			case UniformGL::InvProj:
+				if ( !m_invProjCached ) {
+					m_invView = glm::inverse( m_proj );
+					m_invProjCached = true;
+				}
+				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( m_invProj ) );
+				break;
+
+			case UniformGL::ViewProj:
+				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( m_viewProj ) );
+				break;
+
+			case UniformGL::InvViewProj:
+				if ( !m_invViewProjCached ) {
+					m_invViewProj = glm::inverse( m_viewProj );
+					m_invViewProjCached = true;
+				}
+
+				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( m_invViewProj ) );
+				break;
+
+			case UniformGL::Model:
+				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( model ) );
+				break;
+
+			case UniformGL::ModelView: {
+				const glm::mat4 modelView = m_view * model;
+				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( modelView ) );
+			} break;
+
+			case UniformGL::ModelViewProj: {
+				const glm::mat4 modelViewProj = m_viewProj * model;
+				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( modelViewProj ) );
+			} break;
+
+			default: CYB_CHECK( false, "Unknown uniform" );
+			}
+		}
+	}
+
+	const glm::mat4 &m_view;
+	glm::mat4 m_invView;
+	const glm::mat4 &m_proj;
+	glm::mat4 m_invProj;
+	glm::mat4 m_viewProj;
+	glm::mat4 m_invViewProj;
+
+	bool m_invViewCached;
+	bool m_invProjCached;
+	bool m_invViewProjCached;
+};
 
 void RendererDriverGL::Init() {
 	CYB_INFO( "Using OpenGL version ", glGetString( GL_VERSION ) );
@@ -357,23 +465,6 @@ void RendererDriverGL::DestroyProgram( const ShaderProgramHandle handle ) {
 	m_shaderPrograms[handle.index].Destroy();
 }
 
-// UNUSED ATM
-static void UpdateUniforms( const ProgramGL &program, const glm::mat4 &model, const glm::mat4 &view, const glm::mat4 &proj ) {
-	uint16_t numUniforms = program.numPredefined;
-
-	glm::mat4 modelViewProj = proj * view * model;
-
-	while ( numUniforms-- ) {
-		const UniformGL &uniform = program.predefined[numUniforms];
-
-		switch ( uniform.type ) {
-		case UniformGL::ModelViewProj:
-			glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( modelViewProj ) );
-			break;
-		}
-	}
-}
-
 static void ClearBuffers( const CommandBuffer *cbuf ) {
 	const uint32_t flags = cbuf->m_clearFlags;
 	GLbitfield clearBitFlags = 0;
@@ -404,43 +495,23 @@ void RendererDriverGL::Commit( const CommandBuffer *cbuf ) {
 
 	glBindVertexArray( m_vao );
 
+	UniformGLUpdater uniformUpdater( cbuf->m_viewMatrix, cbuf->m_projMatrix );
 	DrawCommand currentState;
 	currentState.Clear();
-
-	glm::mat4 viewProj = cbuf->m_projMatrix * cbuf->m_viewMatrix;
-	glm::mat4 modelViewProj;
 
 	for ( const DrawCommand *draw = cbuf->DrawCommands().Next(); draw != nullptr; draw = draw->listNode.Next() ) {
 		bool programChanged = false;
 
 		// Update shader program state
 		if ( currentState.shaderProgram.index != draw->shaderProgram.index ) {
-			glUseProgram( m_shaderPrograms[draw->shaderProgram.index].id );
 			currentState.shaderProgram = draw->shaderProgram;
+			GLuint id = IsValid( draw->shaderProgram ) ? m_shaderPrograms[draw->shaderProgram.index].id : 0;
+			glUseProgram( id );
 			programChanged = true;
 		}
 
-		// Update predefined uniforms
-		if ( IsValid( currentState.shaderProgram ) ) {
-			const ProgramGL &program = m_shaderPrograms[currentState.shaderProgram.index];
-			for ( uint16_t i = 0; i < program.numPredefined; i++ ) {
-				const UniformGL &uniform = program.predefined[i];
-
-				switch ( uniform.type ) {
-				case UniformGL::ModelView:
-					glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( viewProj ) );
-					break;
-
-				case UniformGL::ModelViewProj:
-					modelViewProj = viewProj * draw->transform;
-					glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( modelViewProj ) );
-					break;
-				}
-			}
-		}
-
 		// Update geometry buffers state
-		if ( programChanged || 
+		if ( programChanged ||
 			currentState.vertexBuffer.index != draw->vertexBuffer.index ||
 			currentState.indexBuffer.index != draw->indexBuffer.index ) {
 
@@ -452,21 +523,25 @@ void RendererDriverGL::Commit( const CommandBuffer *cbuf ) {
 				glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer.id );
 				m_shaderPrograms[draw->shaderProgram.index].BindAttributes( m_vertexLayouts[vertexBuffer.vertexLayout.index] );
 			}
-			
+
 			if ( IsValid( draw->indexBuffer ) ) {
 				glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexBuffers[draw->indexBuffer.index].id );
 			}
 		}
 
-		// Render current state
-		if ( IsValid( currentState.vertexBuffer ) ) {
-			if ( IsValid( currentState.indexBuffer ) ) {
-				index_t numIndices = draw->numIndices;
-				if ( numIndices == INDEX_MAX ) {
-					numIndices = m_indexBuffers[currentState.indexBuffer.index].size / sizeof( index_t );
-				}
+		// Render the current state
+		if ( IsValid( currentState.shaderProgram ) ) {
+			if ( IsValid( currentState.vertexBuffer ) ) {
+				uniformUpdater.UpdatePredefined( m_shaderPrograms[currentState.shaderProgram.index], draw->transform );
 
-				glDrawElementsInstanced( GL_TRIANGLES, numIndices, INDEX_TYPE_GL, (void *) 0, 1 );
+				if ( IsValid( currentState.indexBuffer ) ) {
+					index_t numIndices = draw->numIndices;
+					if ( numIndices == INDEX_MAX ) {
+						numIndices = m_indexBuffers[currentState.indexBuffer.index].size / sizeof( index_t );
+					}
+
+					glDrawElementsInstanced( GL_TRIANGLES, numIndices, INDEX_TYPE_GL, (void *) 0, 1 );
+				}
 			}
 		}
 	}

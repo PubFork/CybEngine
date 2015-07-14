@@ -51,13 +51,14 @@ struct UniformGL {
 };
 
 struct ProgramGL {
+	ProgramGL();
 	void Create( const ShaderGL &vertexShader, const ShaderGL &fragmentShader );
 	void Destroy();
 
 	void BindAttributes(const VertexLayout &layout);
 
 	GLuint id;
-	GLint attributes[VertexAttribute::Count];
+	GLint attributes[VertexAttribute::Count + 1];
 	UniformGL predefined[UniformGL::Count];
 	uint16_t numPredefined;
 };

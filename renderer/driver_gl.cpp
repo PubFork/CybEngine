@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <sstream>
+#include <iomanip>
 #include <glm/gtc/type_ptr.hpp>
 #include "core/interface.h"
 #include "core/config.h"
@@ -31,6 +33,31 @@ static const char *s_predefinedUniformNames[UniformGL::Count] = {
 	"u_model",
 	"u_modelView",
 	"u_modelViewProj"
+};
+
+struct ExtensionGL {
+	enum Enum {
+		ARB_debug_output,
+		ARB_program_interface_query,
+		ARB_timer_query,
+		ARB_uniform_buffer_object,
+		ATI_meminfo,
+		NVX_gpu_memory_info,
+		Count
+	};
+
+	const char *extension;
+	bool supported;
+	bool required;
+};
+
+static ExtensionGL s_extension[ExtensionGL::Count] = {
+	{ "GL_ARB_debug_output",            false, false },
+	{ "GL_ARB_program_interface_query", false, true },
+	{ "GL_ARB_timer_query",             false, false },
+	{ "GL_ARB_uniform_buffer_object",   false, false },
+	{ "GL_ATI_meminfo",                 false, false },
+	{ "GL_NVX_gpu_memory_info",         false, false }
 };
 
 struct RendererDriverGL : public IRendererDriver {
@@ -123,7 +150,7 @@ static const char *GLEnumToString( GLenum e ) {
 	return "Unknown";
 }
 
-void _stdcall DebugOutputProc( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar *message, GLvoid * /*userParam*/ ) {
+void _stdcall DebugOutputProc( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar *message, const void * /*userParam*/ ) {
 	CYB_DEBUG( "[", GLEnumToString( source ), "::", GLEnumToString( type ), "::", GLEnumToString( severity ), "::", id, "]: ", message );
 	//CYB_DEBUG( "Source=", GLEnumToString( source ), " Type=", GLEnumToString( type ), " Id=", id, " Severity=", GLEnumToString( severity ), " Message=", message );
 }
@@ -342,6 +369,7 @@ struct UniformGLUpdater {
 					m_invView = glm::inverse( m_view );
 					m_invViewCached = true;
 				}
+
 				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( m_invView ) );
 				break;
 
@@ -354,6 +382,7 @@ struct UniformGLUpdater {
 					m_invView = glm::inverse( m_proj );
 					m_invProjCached = true;
 				}
+
 				glUniformMatrix4fv( uniform.location, 1, GL_FALSE, glm::value_ptr( m_invProj ) );
 				break;
 
@@ -410,9 +439,39 @@ void RendererDriverGL::Init() {
 	CYB_FATAL( err == GLEW_OK, "Failed to initialize GLEW, ", glewGetErrorString( err ) );
 	CYB_INFO( "GLEW ", glewGetString( GLEW_VERSION ) );
 
-	glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
-	glDebugMessageCallbackARB( &DebugOutputProc, NULL );
-	//glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE );
+	/*
+	GLint numExtensions = 0;
+	glGetIntegerv( GL_NUM_EXTENSIONS, &numExtensions );
+	CYB_DEBUG( "Found ", numExtensions, " extensions:" );
+	for ( GLint i = 0; i < numExtensions; i++ ) {
+		const char *extension = (const char *) glGetStringi( GL_EXTENSIONS, i );
+		CYB_DEBUG( "  ", i, ") ", extension );
+	}
+	*/
+
+	bool missingRequiredExtensions = false;
+	for ( int i = 0; i < ExtensionGL::Count; i++ ) {
+		s_extension[i].supported = glewIsSupported( s_extension[i].extension ) != 0;
+
+		std::stringstream stream;
+		stream << std::setw( 32 ) << std::left << s_extension[i].extension;
+		if ( !s_extension[i].supported ) {
+			missingRequiredExtensions = s_extension[i].required ? true : missingRequiredExtensions;
+			stream << " [Missing]" << (s_extension[i].required ? " (required)" : "");
+		} else {
+			stream << " [Supported]";
+		}
+
+		CYB_DEBUG( stream.str() );
+	}
+
+	CYB_FATAL( !missingRequiredExtensions, "Required extensions(s) is missing fron OpenGL driver." );
+
+	if ( s_extension[ExtensionGL::ARB_debug_output].supported ) {
+		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
+		glDebugMessageCallbackARB( &DebugOutputProc, NULL );
+		//glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE );
+	}
 
 	glGenVertexArrays( 1, &m_vao );
 	glBindVertexArray( m_vao );

@@ -4,7 +4,7 @@ project( cyb )
 set( CMAKE_MODULE_PATH      ${CMAKE_CURRENT_SOURCE_DIR}/cmake )
 set( EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin )
 
-set( GLEW_LOCATION ${CMAKE_SOURCE_DIR}/../LIBS/glew-1.10.0 )
+set( GLEW_LOCATION ${CMAKE_SOURCE_DIR}/../LIBS/glew-1.12.0 )
 set( GLM_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../LIBS/glm )
 find_package( OpenGL )
 find_package( GLEW REQUIRED )

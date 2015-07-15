@@ -2,9 +2,11 @@ logger:
  * Remove LogPolicyOperation, keep only a copyHistory option to Logger::AddPolicy().
  * Change Logger::AddPolicy args, logger->AddPolicy( std::make_unique<LogPolicy_Stdout>(), true ) looks ugly.
  * Rename the LogPolicy_* to something more sane.
+ * Add support for io manipulators, like std::setw(), std::left, std::hex etc...
  
  intrusive_list:
-  * Iteration is ugly, maybe make is compatable to c+++11 range based iteration for ( auto node : list ) {...}
+  * Iteration is ugly, maybe make is compatable to c+++11 range based iterators:
+       for ( auto node : list ) {...}
  
  allocator:
   * Fix aligned allocation for LinearAllocator::Allocate().

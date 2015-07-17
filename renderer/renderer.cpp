@@ -15,8 +15,8 @@ void Renderer::Init() {
 
 void Renderer::Shutdown() {
 	// Destroy all command buffers still in list
-	while ( m_commandBuffers.Next() != nullptr ) {
-		DestroyCommandBuffer( m_commandBuffers.Next() );
+	while ( m_cbufList.Next() != nullptr ) {
+		DestroyCommandBuffer( m_cbufList.Next() );
 	}
 
 	// Shutdown driver
@@ -27,7 +27,7 @@ void Renderer::Shutdown() {
 
 CommandBuffer *Renderer::CreateCommandBuffer( size_t size ) {
 	CommandBuffer *cbuf = new CommandBuffer( size );
-	cbuf->m_listNode.AddToEnd( m_commandBuffers );
+	m_cbufList.PushBack( cbuf->m_cbufNode );
 
 	// Set default clear settings
 	cbuf->m_clearFlags = ClearFlags::Color | ClearFlags::Depth;
@@ -119,11 +119,11 @@ void Renderer::UpdateViewTransform( const glm::mat4 *view, const glm::mat4 *proj
 }
 
 void Renderer::Frame() {
-	for ( auto cbuf = m_commandBuffers.Next(); cbuf != nullptr; cbuf = cbuf->m_listNode.Next() ) {
+	for ( auto &cbuf : m_cbufList ) {
 		cbuf->m_viewMatrix = m_viewMatrix;
 		cbuf->m_projMatrix = m_projMatrix;
 
-		m_driver->Commit( cbuf );
+		m_driver->Commit( &cbuf );
 		cbuf->Reset();
 	}
 }

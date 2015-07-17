@@ -3,25 +3,29 @@
 namespace cyb {
 
 template <class T>
-class IntrusiveList {
+struct LinkedListNode;
+
+// Intrusive, circular, linked list
+template <class T>
+class LinkedList {
 public:
-	IntrusiveList() {
+	LinkedList() {
 		m_owner = nullptr;
 		m_head = this;
 		m_prev = this;
 		m_next = this;
 	}
 
-	~IntrusiveList() {
+	~LinkedList() {
 		Clear();
 	}
 
-	// Check if the list is empty.
+	// Check if the list is empty
 	bool IsEmpty() const { return m_head == this; }
 
 	// Get number of entries in the list
 	size_t Size() const {
-		IntrusiveList<T> *node;
+		LinkedList *node;
 		int numEntries = 0;
 
 		for ( node = m_head->m_next; node != m_head; node = node->m_next ) {
@@ -31,15 +35,14 @@ public:
 		return numEntries;
 	}
 
-	// Clears the list if it's the head node, else just removes
-	// the node from the.
+	// Clears the list if it's the head node, 
+	// else just removes the node from the list.
 	void Clear() {
 		if ( m_head == this ) {
 			while ( m_next != this ) {
 				m_next->Remove();
 			}
-		}
-		else {
+		} else {
 			Remove();
 		}
 	}
@@ -54,32 +57,25 @@ public:
 		m_next = this;
 	}
 
-	void InsertBefore( IntrusiveList &node ) {
-		Remove();
+	// Push a new node to the front
+	void PushFront( LinkedList &node ) {
+		node.Remove();
 
-		m_next         = &node;
-		m_prev         = node.m_prev;
-		node.m_prev    = this;
-		m_prev->m_next = this;
-		m_head         = node.m_head;
+		node.m_prev         = m_head;
+		node.m_next         = m_head->m_next;
+		m_head->m_next      = &node;
+		node.m_next->m_prev = &node;
+		node.m_head         = m_head;
 	}
 
-	void InsertAfter( IntrusiveList &node ) {
-		Remove();
+	void PushBack( LinkedList &node ) {
+		node.Remove(); 
 
-		m_prev         = &node;
-		m_next         = node.m_next;
-		node.m_next    = this;
-		m_next->m_prev = this;
-		m_head         = node.m_head;
-	}
-
-	void AddToEnd( IntrusiveList &node ) {
-		InsertBefore( *node.m_head );
-	}
-
-	void AddToFront( IntrusiveList &node ) {
-		InsertAfter( *node.m_head );
+		node.m_next         = m_head;
+		node.m_prev         = m_head->m_prev;
+		m_head->m_prev      = &node;
+		node.m_prev->m_next = &node;
+		node.m_head         = m_head;
 	}
 
 	T *Prev() const {
@@ -99,12 +95,9 @@ public:
 	}
 
 	T *Owner() const { return m_owner; }
+	void SetOwner( T *object ) { m_owner = object; }
 
-	void SetOwner( T *object ) {
-		m_owner = object;
-	}
-
-	IntrusiveList<T> *PrevNode() const {
+	LinkedList *PrevNode() const {
 		if ( m_prev == m_head ) {
 			return nullptr;
 		}
@@ -112,7 +105,7 @@ public:
 		return m_prev;
 	}
 
-	IntrusiveList<T> *NextNode() const {
+	LinkedList *NextNode() const {
 		if ( m_next == m_head ) {
 			return nullptr;
 		}
@@ -120,10 +113,44 @@ public:
 		return m_next;
 	}
 
+	//=========== c++11 range based iteration support:
+	template <class T>
+	class _iterator {
+	public:
+		_iterator( LinkedList<T> *node ) : m_node( node ) {}
+		~_iterator() = default;
+		_iterator &operator*() { return *this; }
+		T *operator->() { return m_node->m_owner; }
+		T *operator&() { return m_node->m_owner; }
+		const T *operator->() const { return m_node->m_owner; }
+
+		bool operator!=( const _iterator &it ) {
+			return m_node->m_head != it.m_node->m_head ||
+				   m_node->m_prev != it.m_node->m_prev ||
+				   m_node->m_next != it.m_node->m_next;
+		}
+
+		_iterator &operator++() {
+			m_node = m_node->m_next;
+			return *this;
+		}
+
+	private:
+		LinkedList<T> *m_node;
+	};
+
+	typedef _iterator<T> iterator;
+	typedef const _iterator<T> const_iterator;
+
+	iterator begin() { return iterator( m_head->m_next ); }
+	iterator end()   { return iterator( m_head ); }
+	const_iterator begin() const { return const_iterator( m_head->m_next ); }
+	const_iterator end()   const { return const_iterator( m_head ); }
+
 private:
-	IntrusiveList *m_head;
-	IntrusiveList *m_prev;
-	IntrusiveList *m_next;
+	LinkedList *m_head;
+	LinkedList *m_prev;
+	LinkedList *m_next;
 	T *m_owner;
 };
 

@@ -18,7 +18,7 @@ struct ClearFlags {
 
 struct DrawCommand {
 	DrawCommand();
-	~DrawCommand() = default;
+	virtual ~DrawCommand() = default;
 	void Clear();
 
 	uint32_t numVertices;
@@ -31,24 +31,23 @@ struct DrawCommand {
 	ShaderProgramHandle shaderProgram;
 	glm::mat4 transform;
 
-	IntrusiveList<DrawCommand> listNode;
+	LinkedList<DrawCommand> m_drawNode;
 };
 
 class CommandBuffer {
 public:
 	CommandBuffer( const size_t cbufSize );
-	~CommandBuffer() = default;
+	virtual ~CommandBuffer() = default;
 
 	DrawCommand *AddDrawCommand();
 	void Reset();
 
-	const IntrusiveList<DrawCommand> &DrawCommands() const { return m_drawCommands;  }
+	const LinkedList<DrawCommand> &DrawCommands() const { return m_drawList; }
 
 	void SetClearFlags( uint32_t flags );
 	void SetClearColor( float r, float g, float b, float a = 0.0f );
 	void SetClearDepth( float depth );
 	
-	IntrusiveList<CommandBuffer> m_listNode;
 	glm::mat4 m_viewMatrix;
 	glm::mat4 m_projMatrix;
 
@@ -57,8 +56,10 @@ public:
 	float m_clearDepth;
 	uint8_t m_clearStencil;
 
+	LinkedList<CommandBuffer> m_cbufNode;
+
 private:
-	IntrusiveList<DrawCommand> m_drawCommands;
+	LinkedList<DrawCommand> m_drawList;
 	std::unique_ptr<IAllocator> m_allocator;
 };
 

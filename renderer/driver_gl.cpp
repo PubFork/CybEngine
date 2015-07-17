@@ -558,7 +558,7 @@ void RendererDriverGL::Commit( const CommandBuffer *cbuf ) {
 	DrawCommand currentState;
 	currentState.Clear();
 
-	for ( const DrawCommand *draw = cbuf->DrawCommands().Next(); draw != nullptr; draw = draw->listNode.Next() ) {
+	for ( const auto &draw : cbuf->DrawCommands() ) {
 		bool programChanged = false;
 
 		// Update shader program state

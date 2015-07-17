@@ -31,7 +31,7 @@ public:
 	void Frame();
 
 private:
-	IntrusiveList<CommandBuffer> m_commandBuffers;
+	LinkedList<CommandBuffer> m_cbufList;
 
 	glm::mat4 m_viewMatrix;
 	glm::mat4 m_projMatrix;

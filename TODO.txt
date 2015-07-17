@@ -4,10 +4,6 @@ logger:
  * Rename the LogPolicy_* to something more sane.
  * Add support for io manipulators, like std::setw(), std::left, std::hex etc...
  
- intrusive_list:
-  * Iteration is ugly, maybe make is compatable to c+++11 range based iterators:
-       for ( auto node : list ) {...}
- 
  allocator:
   * Fix aligned allocation for LinearAllocator::Allocate().
   

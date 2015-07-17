@@ -66,18 +66,23 @@ static const unsigned short s_cubeIndices[] = {
 	2, 3, 6, 6, 3, 7
 };
 
+void glewErrorCallback( int error, const char *description ) {
+	CYB_ERROR( "GLEW error: ", description );
+}
+
 int main() {
 	cyb::g_logger->AddPolicy( std::make_unique<cyb::LogPolicy_Stdout>( nullptr ), cyb::LogPolicyOperation::CopyHistory );
 
 	//=========== Inititalize glfw & glew
+	glfwSetErrorCallback( glewErrorCallback );
 	if ( !glfwInit() ) {
 		return 1;
 	}
 
-	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
-	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 4 );
+	//glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+	//glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
+	//glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 	glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, 1 );
-	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 	GLFWwindow *window = glfwCreateWindow( 1024, 760, "cyb: 01-test", NULL, NULL );
 	if ( !window ) {
 		glfwTerminate();
@@ -118,8 +123,8 @@ int main() {
 		_snprintf( titleBuffer, 64, "FrameTime: %.0fms", (float) timer.GetFrameTimeMs() );
 		glfwSetWindowTitle( window, titleBuffer );
 
-#define CUBE_NUM_HORIZONTAL (40*1)
-#define CUBE_NUM_VERTICAL	(32*1)
+#define CUBE_NUM_HORIZONTAL (40*5)
+#define CUBE_NUM_VERTICAL	(32*5)
 		for ( uint16_t x = 0; x < CUBE_NUM_HORIZONTAL; x++ ) {
 			for ( uint16_t y = 0; y < CUBE_NUM_VERTICAL; y++ ) {
 				glm::mat4 rotate = glm::rotate( glm::mat4( 1.0f ), (float) ( frameTime + x*0.21 ), glm::vec3( 1.0f, 0.0f, 0.0f ) );

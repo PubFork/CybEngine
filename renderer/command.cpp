@@ -5,7 +5,7 @@
 namespace cyb {
 
 DrawCommand::DrawCommand() {
-	listNode.SetOwner( this );
+	m_drawNode.SetOwner( this );
 }
 
 void DrawCommand::Clear() {
@@ -16,25 +16,24 @@ void DrawCommand::Clear() {
 	vertexBuffer.index  = INVALID_HANDLE;
 	indexBuffer.index   = INVALID_HANDLE;
 	shaderProgram.index = INVALID_HANDLE;
-	listNode.Clear();
 }
 
 CommandBuffer::CommandBuffer( const size_t cbufSize ) {
+	m_cbufNode.SetOwner( this );
 	m_allocator = std::make_unique<LinearAllocator>( cbufSize );
-	m_listNode.SetOwner( this );
 }
 
 DrawCommand *CommandBuffer::AddDrawCommand() {
 	DrawCommand *draw = m_allocator->AllocateT<DrawCommand>();
 	CYB_CHECK( draw != nullptr, "Out of memory" );
 	draw->Clear();
-	draw->listNode.AddToEnd( m_drawCommands );
+	m_drawList.PushBack( draw->m_drawNode );
 
 	return draw;
 }
 
 void CommandBuffer::Reset() {
-	m_drawCommands.Clear();
+	m_drawList.Clear();
 	m_allocator->Reset();
 }
 

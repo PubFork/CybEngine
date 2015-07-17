@@ -525,22 +525,22 @@ void RendererDriverGL::DestroyProgram( const ShaderProgramHandle handle ) {
 }
 
 static void ClearBuffers( const CommandBuffer *cbuf ) {
-	const uint32_t flags = cbuf->m_clearFlags;
+	const uint32_t flags = cbuf->m_clear.m_flags;
 	GLbitfield clearBitFlags = 0;
 
-	if ( flags & ClearFlags::Color ) {
-		const float *rgba = cbuf->m_clearColor;
+	if ( flags & ClearSettings::ClearColor ) {
+		const float *rgba = cbuf->m_clear.m_color;
 		glClearColor( rgba[0], rgba[1], rgba[2], rgba[3] );
 		clearBitFlags |= GL_COLOR_BUFFER_BIT;
 	}
 
-	if ( flags & ClearFlags::Depth ) {
-		glClearDepth( cbuf->m_clearDepth );
+	if ( flags & ClearSettings::ClearDepth ) {
+		glClearDepth( cbuf->m_clear.m_depth );
 		clearBitFlags |= GL_DEPTH_BUFFER_BIT;
 	}
 
-	if ( flags & ClearFlags::Stencil ) {
-		glClearStencil( cbuf->m_clearStencil );
+	if ( flags & ClearSettings::ClearStencil ) {
+		glClearStencil( cbuf->m_clear.m_stencil );
 		clearBitFlags |= GL_STENCIL_BUFFER_BIT;
 	}
 
@@ -558,7 +558,7 @@ void RendererDriverGL::Commit( const CommandBuffer *cbuf ) {
 	DrawCommand currentState;
 	currentState.Clear();
 
-	for ( const auto &draw : cbuf->DrawCommands() ) {
+	for ( const auto &draw : cbuf->m_drawList ) {
 		bool programChanged = false;
 
 		// Update shader program state

@@ -7,13 +7,23 @@
 
 namespace cyb {
 
-struct ClearFlags {
-	enum Enum {
-		None    = 0x00,
-		Color   = 0x01,
-		Depth   = 0x02,
-		Stencil = 0x04
+struct ClearSettings {
+	enum Flags {
+		None = 0x00,
+		ClearColor = 0x01,
+		ClearDepth = 0x02,
+		ClearStencil = 0x04
 	};
+
+	void SetColor( float r, float g, float b, float a );
+	void SetDepth( float clearValue  );
+	void SetStencil( uint8_t clearValue  );
+	void SetFlags( uint16_t clearFlags );
+
+	float m_color[4];
+	float m_depth;
+	uint8_t m_stencil;
+	uint16_t m_flags;
 };
 
 struct DrawCommand {
@@ -34,31 +44,30 @@ struct DrawCommand {
 	LinkedList<DrawCommand> m_drawNode;
 };
 
-class CommandBuffer {
-public:
+struct CommandBuffer {
 	CommandBuffer( const size_t cbufSize );
 	virtual ~CommandBuffer() = default;
 
-	DrawCommand *AddDrawCommand();
+	// Allocate a new DrawCommand, the command will be valid until next Reset().
+	DrawCommand *AllocateDrawCommand();
+
+	// Submit a DrawCommand to the draw list.
+	// The command must be valid for atleast one frame.
+	void Submit( DrawCommand *draw );
+
+	// Allocate a new DrawCommand and submit it
+	// The command will be valid until next Reset().
+	DrawCommand *AllocateAndSubmitDrawCommand();
+
+	// Resets the draw list and the allocator.
 	void Reset();
-
-	const LinkedList<DrawCommand> &DrawCommands() const { return m_drawList; }
-
-	void SetClearFlags( uint32_t flags );
-	void SetClearColor( float r, float g, float b, float a = 0.0f );
-	void SetClearDepth( float depth );
 	
 	glm::mat4 m_viewMatrix;
 	glm::mat4 m_projMatrix;
 
-	uint32_t m_clearFlags;
-	float m_clearColor[4];
-	float m_clearDepth;
-	uint8_t m_clearStencil;
+	ClearSettings m_clear;
 
 	LinkedList<CommandBuffer> m_cbufNode;
-
-private:
 	LinkedList<DrawCommand> m_drawList;
 	std::unique_ptr<IAllocator> m_allocator;
 };

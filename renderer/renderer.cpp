@@ -30,10 +30,10 @@ CommandBuffer *Renderer::CreateCommandBuffer( size_t size ) {
 	m_cbufList.PushBack( cbuf->m_cbufNode );
 
 	// Set default clear settings
-	cbuf->m_clearFlags = ClearFlags::Color | ClearFlags::Depth;
-	memset( cbuf->m_clearColor, 0, sizeof( float ) * 4 );
-	cbuf->m_clearDepth = 1.0f;
-	cbuf->m_clearStencil = 0;
+	cbuf->m_clear.SetFlags( ClearSettings::ClearColor | ClearSettings::ClearDepth );
+	cbuf->m_clear.SetColor( 0.0f, 0.0f, 0.0f, 1.0f );
+	cbuf->m_clear.SetDepth( 1.0f );
+	cbuf->m_clear.SetStencil( 0 );
 
 	return cbuf;
 }

@@ -7,7 +7,7 @@ namespace cyb {
 //=========== Forward declarations...
 
 struct VertexLayout;
-class CommandBuffer;
+struct CommandBuffer;
 
 //=========== Interface classes
 

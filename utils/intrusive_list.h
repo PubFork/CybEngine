@@ -5,7 +5,7 @@ namespace cyb {
 template <class T>
 struct LinkedListNode;
 
-// Intrusive, circular, linked list
+// Intrusive, circular, linked list.
 template <class T>
 class LinkedList {
 public:
@@ -20,10 +20,10 @@ public:
 		Clear();
 	}
 
-	// Check if the list is empty
+	// Check if the list is empty.
 	bool IsEmpty() const { return m_head == this; }
 
-	// Get number of entries in the list
+	// Get number of entries in the list.
 	size_t Size() const {
 		LinkedList *node;
 		int numEntries = 0;
@@ -57,7 +57,7 @@ public:
 		m_next = this;
 	}
 
-	// Push a new node to the front
+	// Push a new node to the front.
 	void PushFront( LinkedList &node ) {
 		node.Remove();
 
@@ -68,6 +68,7 @@ public:
 		node.m_head         = m_head;
 	}
 
+	// Push a new node the back.
 	void PushBack( LinkedList &node ) {
 		node.Remove(); 
 
@@ -78,6 +79,7 @@ public:
 		node.m_head         = m_head;
 	}
 
+	// Get a pointer to the prev nodes owner, or nullptr if prev points to the head.
 	T *Prev() const {
 		if ( !m_prev || ( m_prev == m_head ) ) {
 			return nullptr;
@@ -86,6 +88,7 @@ public:
 		return m_prev->m_owner;
 	}
 
+	// Get a pointer to the next nodes owner, or nullptr if next points to the head.
 	T *Next() const {
 		if ( !m_next || ( m_next == m_head ) ) {
 			return nullptr;
@@ -94,9 +97,13 @@ public:
 		return m_next->m_owner;
 	}
 
+	// Get a pointer the nodes owner.
 	T *Owner() const { return m_owner; }
+
+	// Set owner of the node.
 	void SetOwner( T *object ) { m_owner = object; }
 
+	// Get a pointer to the prev node, or nullptr if prev points to the head.
 	LinkedList *PrevNode() const {
 		if ( m_prev == m_head ) {
 			return nullptr;
@@ -105,6 +112,7 @@ public:
 		return m_prev;
 	}
 
+	// Get a pointer to the next node, or nullptr if next points to the head.
 	LinkedList *NextNode() const {
 		if ( m_next == m_head ) {
 			return nullptr;

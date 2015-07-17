@@ -96,7 +96,7 @@ int main() {
 	auto renderer = std::make_unique<cyb::Renderer>();
 	renderer->Init();
 	cyb::CommandBuffer *cbuf = renderer->CreateCommandBuffer( CYB_MEGABYTES( 8 ) );
-	cbuf->SetClearColor( 0.56f, 0.56f, 0.63f, 1.0f );
+	cbuf->m_clear.SetColor( 0.56f, 0.56f, 0.63f, 1.0f );
 
 	//=========== Load shaders
 	cyb::ShaderProgramHandle programHandle = renderer->CreateProgram( cyb::MemMakeRef( s_vertexShaderStr,   strlen( s_vertexShaderStr ) ),
@@ -137,7 +137,7 @@ int main() {
 					ypos * 14.0f,
 					2.3f * sin( frameTime + ( x + y )*0.42f ) ) );
 
-				cyb::DrawCommand *draw = cbuf->AddDrawCommand();
+				cyb::DrawCommand *draw = cbuf->AllocateAndSubmitDrawCommand();
 				draw->vertexBuffer = cubeVerticesHandle;
 				draw->indexBuffer = cubeIndexHandle;
 				draw->shaderProgram = programHandle;

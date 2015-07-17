@@ -4,6 +4,25 @@
 
 namespace cyb {
 
+void ClearSettings::SetColor( float r, float g, float b, float a ) {
+	m_color[0] = r;
+	m_color[1] = g;
+	m_color[2] = b;
+	m_color[3] = a;
+}
+
+void ClearSettings::SetDepth( float clearValue ) {
+	m_depth = clearValue;
+}
+
+void ClearSettings::SetStencil( uint8_t clearValue ) {
+	m_stencil = clearValue;
+}
+
+void ClearSettings::SetFlags( uint16_t clearFlags ) {
+	m_flags = clearFlags;
+}
+
 DrawCommand::DrawCommand() {
 	m_drawNode.SetOwner( this );
 }
@@ -23,11 +42,22 @@ CommandBuffer::CommandBuffer( const size_t cbufSize ) {
 	m_allocator = std::make_unique<LinearAllocator>( cbufSize );
 }
 
-DrawCommand *CommandBuffer::AddDrawCommand() {
+DrawCommand *CommandBuffer::AllocateDrawCommand() {
 	DrawCommand *draw = m_allocator->AllocateT<DrawCommand>();
 	CYB_CHECK( draw != nullptr, "Out of memory" );
 	draw->Clear();
+	return draw;
+}
+
+void CommandBuffer::Submit( DrawCommand *draw ) {
 	m_drawList.PushBack( draw->m_drawNode );
+}
+
+DrawCommand *CommandBuffer::AllocateAndSubmitDrawCommand() {
+	DrawCommand *draw = AllocateDrawCommand();
+	if ( draw != nullptr ) {
+		Submit( draw );
+	}
 
 	return draw;
 }
@@ -35,21 +65,6 @@ DrawCommand *CommandBuffer::AddDrawCommand() {
 void CommandBuffer::Reset() {
 	m_drawList.Clear();
 	m_allocator->Reset();
-}
-
-void CommandBuffer::SetClearFlags( uint32_t flags ) {
-	m_clearFlags = flags;
-}
-
-void CommandBuffer::SetClearColor( float r, float g, float b, float a ) {
-	m_clearColor[0] = r;
-	m_clearColor[1] = g;
-	m_clearColor[2] = b;
-	m_clearColor[3] = a;
-}
-
-void CommandBuffer::SetClearDepth( float depth ) {
-	m_clearDepth = depth;
 }
 
 }	// namespace cyb

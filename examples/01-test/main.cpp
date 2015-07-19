@@ -13,6 +13,8 @@
 #include "renderer/renderer.h"
 #include "renderer/driver_gl.h"
 
+#include "renderer/frontend.h"
+
 static const char *s_vertexShaderStr = "\
 #version 330 core \n\
 in vec3 a_position; \n\
@@ -73,6 +75,14 @@ void glewErrorCallback( int error, const char *description ) {
 int main() {
 	cyb::g_logger->AddPolicy( std::make_unique<cyb::LogPolicy_Stdout>( nullptr ), cyb::LogPolicyOperation::CopyHistory );
 
+	//=========== Renderer frontend test
+	frameData_t frame;
+	frame.Init();
+
+	frame.AddDrawViewCmd();
+
+	frame.Shutdown();
+
 	//=========== Inititalize glfw & glew
 	glfwSetErrorCallback( glewErrorCallback );
 	if ( !glfwInit() ) {
@@ -123,8 +133,8 @@ int main() {
 		_snprintf( titleBuffer, 64, "FrameTime: %.0fms", (float) timer.GetFrameTimeMs() );
 		glfwSetWindowTitle( window, titleBuffer );
 
-#define CUBE_NUM_HORIZONTAL (40*5)
-#define CUBE_NUM_VERTICAL	(32*5)
+#define CUBE_NUM_HORIZONTAL (40*1)
+#define CUBE_NUM_VERTICAL	(32*1)
 		for ( uint16_t x = 0; x < CUBE_NUM_HORIZONTAL; x++ ) {
 			for ( uint16_t y = 0; y < CUBE_NUM_VERTICAL; y++ ) {
 				glm::mat4 rotate = glm::rotate( glm::mat4( 1.0f ), (float) ( frameTime + x*0.21 ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
@@ -137,11 +147,15 @@ int main() {
 					ypos * 14.0f,
 					2.3f * sin( frameTime + ( x + y )*0.42f ) ) );
 
-				cyb::DrawCommand *draw = cbuf->AllocateAndSubmitDrawCommand();
-				draw->vertexBuffer = cubeVerticesHandle;
-				draw->indexBuffer = cubeIndexHandle;
-				draw->shaderProgram = programHandle;
-				draw->transform = translate * rotate;
+				// Create and submit draw command
+				cyb::DrawCommand *draw = cbuf->AllocateDrawCommand();
+				if ( draw ) {
+					draw->vertexBuffer = cubeVerticesHandle;
+					draw->indexBuffer = cubeIndexHandle;
+					draw->shaderProgram = programHandle;
+					draw->transform = translate * rotate;
+					cbuf->Submit( draw );
+				}
 			}
 		}
 

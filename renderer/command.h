@@ -28,7 +28,6 @@ struct ClearSettings {
 
 struct DrawCommand {
 	DrawCommand();
-	virtual ~DrawCommand() = default;
 	void Clear();
 
 	uint32_t numVertices;
@@ -45,19 +44,16 @@ struct DrawCommand {
 };
 
 struct CommandBuffer {
+	// Construct a command buffer with allocation storage of cbufSize bytes.
 	CommandBuffer( const size_t cbufSize );
-	virtual ~CommandBuffer() = default;
 
 	// Allocate a new DrawCommand, the command will be valid until next Reset().
+	// This may return nullptr if the allocation storage is full.
 	DrawCommand *AllocateDrawCommand();
 
 	// Submit a DrawCommand to the draw list.
 	// The command must be valid for atleast one frame.
 	void Submit( DrawCommand *draw );
-
-	// Allocate a new DrawCommand and submit it
-	// The command will be valid until next Reset().
-	DrawCommand *AllocateAndSubmitDrawCommand();
 
 	// Resets the draw list and the allocator.
 	void Reset();

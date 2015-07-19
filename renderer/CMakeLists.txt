@@ -1,6 +1,7 @@
 set( RENDERER_SOURCES
 	command.cpp			command.h
 	driver_gl.cpp				driver_gl.h
+	frontend.cpp				frontend.h
 	renderer.cpp				renderer.h
 	vertex_layout.cpp		vertex_layout.h
 )

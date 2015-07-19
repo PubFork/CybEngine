@@ -58,6 +58,7 @@ public:
 	}
 
 	// Push a new node to the front.
+	// If node allready is in a list, it will be removed from that list.
 	void PushFront( LinkedList &node ) {
 		node.Remove();
 
@@ -69,6 +70,7 @@ public:
 	}
 
 	// Push a new node the back.
+	// If node allready is in a list, it will be removed from that list.
 	void PushBack( LinkedList &node ) {
 		node.Remove(); 
 

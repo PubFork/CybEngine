@@ -44,22 +44,17 @@ CommandBuffer::CommandBuffer( const size_t cbufSize ) {
 
 DrawCommand *CommandBuffer::AllocateDrawCommand() {
 	DrawCommand *draw = m_allocator->AllocateT<DrawCommand>();
-	CYB_CHECK( draw != nullptr, "Out of memory" );
-	draw->Clear();
+	if ( draw != nullptr ) {
+		draw->Clear();
+	}
+
 	return draw;
 }
 
 void CommandBuffer::Submit( DrawCommand *draw ) {
-	m_drawList.PushBack( draw->m_drawNode );
-}
-
-DrawCommand *CommandBuffer::AllocateAndSubmitDrawCommand() {
-	DrawCommand *draw = AllocateDrawCommand();
 	if ( draw != nullptr ) {
-		Submit( draw );
+		m_drawList.PushBack( draw->m_drawNode );
 	}
-
-	return draw;
 }
 
 void CommandBuffer::Reset() {

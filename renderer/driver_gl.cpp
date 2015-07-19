@@ -449,6 +449,7 @@ void RendererDriverGL::Init() {
 	}
 	*/
 
+	CYB_DEBUG( "Checking supported extensions:" );
 	bool missingRequiredExtensions = false;
 	for ( int i = 0; i < ExtensionGL::Count; i++ ) {
 		s_extension[i].supported = glewIsSupported( s_extension[i].extension ) != 0;
@@ -459,10 +460,10 @@ void RendererDriverGL::Init() {
 			missingRequiredExtensions = s_extension[i].required ? true : missingRequiredExtensions;
 			stream << " [Missing]" << (s_extension[i].required ? " (required)" : "");
 		} else {
-			stream << " [Supported]";
+			stream << " [OK]";
 		}
 
-		CYB_DEBUG( stream.str() );
+		CYB_DEBUG( "  ", stream.str() );
 	}
 
 	CYB_FATAL( !missingRequiredExtensions, "Required extensions(s) is missing fron OpenGL driver." );

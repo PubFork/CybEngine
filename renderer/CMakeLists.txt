@@ -1,8 +1,10 @@
 set( RENDERER_SOURCES
+	buffer_object.cpp		buffer_object.h
 	command.cpp			command.h
 	driver_gl.cpp				driver_gl.h
 	frontend.cpp				frontend.h
 	renderer.cpp				renderer.h
+									screen_rect.h
 	vertex_layout.cpp		vertex_layout.h
 )
 

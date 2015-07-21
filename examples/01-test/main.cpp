@@ -77,11 +77,24 @@ int main() {
 
 	//=========== Renderer frontend test
 	frameData_t frame;
-	frame.Init();
+	frame.Create();
 
-	frame.AddDrawViewCmd();
+	vertexEntry_t<vertexAttrib_t::Position, attribType_t::Float, 3, false> vle;
+	CYB_DEBUG( vle.size );
 
-	frame.Shutdown();
+	vertexLayoutEntry_t entries[] = {
+		{ vertexAttrib_t::Position, attribType_t::Float, 3, false },
+		{ vertexAttrib_t::Color0, attribType_t::Uint8, 4, true }
+	};
+
+	drawSurf_t surf;
+	//surf.Create( s_cubeVertices, sizeof( s_cubeVertices ), s_cubeIndices, sizeof( s_cubeIndices ) );
+
+	viewDef_t viewDef;
+
+	frame.AddDrawViewCmd( &viewDef );
+
+	frame.Destroy();
 
 	//=========== Inititalize glfw & glew
 	glfwSetErrorCallback( glewErrorCallback );

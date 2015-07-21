@@ -2,5 +2,5 @@
 
 mkdir build
 chdir build
-cmake -Wdev -G "Visual Studio 12" ../
+cmake -Wdev -G "Visual Studio 14" ../
 pause

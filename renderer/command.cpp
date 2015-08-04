@@ -1,5 +1,5 @@
 #include "core/logger.h"
-#include "utils/allocator.h"
+#include "core/memory.h"
 #include "command.h"
 
 namespace cyb {
@@ -39,11 +39,11 @@ void DrawCommand::Clear() {
 
 CommandBuffer::CommandBuffer( const size_t cbufSize ) {
 	m_cbufNode.SetOwner( this );
-	m_allocator = std::make_unique<LinearAllocator>( cbufSize );
+	m_allocator = std::make_shared<LinearAllocator>( cbufSize );
 }
 
 DrawCommand *CommandBuffer::AllocateDrawCommand() {
-	DrawCommand *draw = m_allocator->AllocateT<DrawCommand>();
+	DrawCommand *draw = new (m_allocator.get()) DrawCommand();
 	if ( draw != nullptr ) {
 		draw->Clear();
 	}
@@ -59,7 +59,7 @@ void CommandBuffer::Submit( DrawCommand *draw ) {
 
 void CommandBuffer::Reset() {
 	m_drawList.Clear();
-	m_allocator->Reset();
+	m_allocator->Flush();
 }
 
 }	// namespace cyb

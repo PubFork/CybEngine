@@ -13,8 +13,6 @@
 #include "renderer/renderer.h"
 #include "renderer/driver_gl.h"
 
-#include "renderer/frontend.h"
-
 static const char *s_vertexShaderStr = "\
 #version 330 core \n\
 in vec3 a_position; \n\
@@ -73,28 +71,7 @@ void glewErrorCallback( int error, const char *description ) {
 }
 
 int main() {
-	cyb::g_logger->AddPolicy( std::make_unique<cyb::LogPolicy_Stdout>( nullptr ), cyb::LogPolicyOperation::CopyHistory );
-
-	//=========== Renderer frontend test
-	frameData_t frame;
-	frame.Create();
-
-	vertexEntry_t<vertexAttrib_t::Position, attribType_t::Float, 3, false> vle;
-	CYB_DEBUG( vle.size );
-
-	vertexLayoutEntry_t entries[] = {
-		{ vertexAttrib_t::Position, attribType_t::Float, 3, false },
-		{ vertexAttrib_t::Color0, attribType_t::Uint8, 4, true }
-	};
-
-	drawSurf_t surf;
-	//surf.Create( s_cubeVertices, sizeof( s_cubeVertices ), s_cubeIndices, sizeof( s_cubeIndices ) );
-
-	viewDef_t viewDef;
-
-	frame.AddDrawViewCmd( &viewDef );
-
-	frame.Destroy();
+	g_logWriter->Reset( true, logSeverity_t::Debug, true, logSeverity_t::Debug, "output.txt" );
 
 	//=========== Inititalize glfw & glew
 	glfwSetErrorCallback( glewErrorCallback );
@@ -118,16 +95,16 @@ int main() {
 	// Create and initialize renderer driver
 	auto renderer = std::make_unique<cyb::Renderer>();
 	renderer->Init();
-	cyb::CommandBuffer *cbuf = renderer->CreateCommandBuffer( CYB_MEGABYTES( 8 ) );
+	cyb::CommandBuffer *cbuf = renderer->CreateCommandBuffer( MEGABYTES( 8 ) );
 	cbuf->m_clear.SetColor( 0.56f, 0.56f, 0.63f, 1.0f );
 
 	//=========== Load shaders
-	cyb::ShaderProgramHandle programHandle = renderer->CreateProgram( cyb::MemMakeRef( s_vertexShaderStr,   strlen( s_vertexShaderStr ) ),
-		                                                              cyb::MemMakeRef( s_fragmentShaderStr, strlen( s_fragmentShaderStr ) ) );
+	cyb::ShaderProgramHandle programHandle = renderer->CreateProgram( SharedMem_MakeRef( s_vertexShaderStr,   strlen( s_vertexShaderStr ) ),
+																	  SharedMem_MakeRef( s_fragmentShaderStr, strlen( s_fragmentShaderStr ) ) );
 
 	//=========== Load geometry
-	cyb::VertexBufferHandle cubeVerticesHandle = renderer->CreateVertexBuffer( cyb::MemMakeRef( s_cubeVertices, sizeof( s_cubeVertices ) ), PosColorVertex::s_layout );
-	cyb::IndexBufferHandle cubeIndexHandle = renderer->CreateIndexBuffer( cyb::MemMakeRef( s_cubeIndices, sizeof( s_cubeIndices ) ) );
+	cyb::VertexBufferHandle cubeVerticesHandle = renderer->CreateVertexBuffer( SharedMem_MakeRef( s_cubeVertices, sizeof( s_cubeVertices ) ), PosColorVertex::s_layout );
+	cyb::IndexBufferHandle cubeIndexHandle = renderer->CreateIndexBuffer( SharedMem_MakeRef( s_cubeIndices, sizeof( s_cubeIndices ) ) );
 
 	//=========== Create transformation matrices
 	glm::mat4 projection = glm::perspective( 45.0f, 4.0f / 3.0f, 0.1f, 100.0f );

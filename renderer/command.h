@@ -1,9 +1,9 @@
 #pragma once
-#include <memory>
 #include <glm/matrix.hpp>
 #include "core/config.h"
+#include "core/memory.h"
 #include "core/interface.h"
-#include "utils/intrusive_list.h"
+#include "utils/LinkedList.h"
 
 namespace cyb {
 
@@ -65,7 +65,7 @@ struct CommandBuffer {
 
 	LinkedList<CommandBuffer> m_cbufNode;
 	LinkedList<DrawCommand> m_drawList;
-	std::unique_ptr<IAllocator> m_allocator;
+	std::shared_ptr<IAllocator> m_allocator;
 };
 
 }	// namespace cyb

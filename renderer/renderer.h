@@ -2,7 +2,7 @@
 #include <glm/mat4x4.hpp>
 #include "core/config.h"
 #include "core/interface.h"
-#include "utils/intrusive_list.h"
+#include "utils/LinkedList.h"
 #include "vertex_layout.h"
 #include "command.h"
 
@@ -20,11 +20,11 @@ public:
 	CommandBuffer *CreateCommandBuffer( size_t size );
 	void DestroyCommandBuffer( CommandBuffer *cbuf );
 
-	VertexBufferHandle CreateVertexBuffer( const MemoryPtr mem, const VertexLayout &layout );
+	VertexBufferHandle CreateVertexBuffer( const std::shared_ptr<memory_t> mem, const VertexLayout &layout );
 	void DestroyVertexBuffer( const VertexBufferHandle bufferHandle );
-	IndexBufferHandle CreateIndexBuffer( const MemoryPtr mem );
+	IndexBufferHandle CreateIndexBuffer( const std::shared_ptr<memory_t> mem );
 	void DestroyIndexBuffer( const IndexBufferHandle bufferHandle );
-	ShaderProgramHandle CreateProgram( const MemoryPtr vertexShaderMem, const MemoryPtr fragmentShaderMem );
+	ShaderProgramHandle CreateProgram( const std::shared_ptr<memory_t> vertexShaderMem, const std::shared_ptr<memory_t> fragmentShaderMem );
 	void DestroyProgram( const ShaderProgramHandle programHandle );
 
 	void UpdateViewTransform( const glm::mat4 *view, const glm::mat4 *projection );

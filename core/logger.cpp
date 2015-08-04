@@ -1,79 +1,72 @@
-#include <iostream>
 #include <cassert>
+#include <iostream>
+#include <fstream>
 #include <ctime>
-#include <chrono>
+#include <list>
 #include <iomanip>
-#include "config.h"
 #include "logger.h"
 
-namespace cyb {
+#define	NUM_HISTORY_ENTRIES		64
 
-static Logger s_defaultLogger;
-Logger *g_logger = &s_defaultLogger;
+static LogWriter s_defaultLogger;
+LogWriter *g_logWriter = &s_defaultLogger;
 
-static inline const char *LogLevelToString( const LogLevel level ) {
-	switch ( level ) {
-	case LogLevel::Debug:	return "Debug";
-	case LogLevel::Info:	return "Info";
-	case LogLevel::Warning:	return "Warning";
-	case LogLevel::Error:	return "Error";
-	};
+static const char *s_logLevelName[4] = {
+	"Debug",
+	"info",
+	"Warning",
+	"Error"
+};
 
-	return "Unknown";
-}
+class LogHistoryLocal : public ILogHistory {
+public:
+	virtual ~LogHistoryLocal() {}
+	virtual void AddMessage( const logMessage_t *msg ) final;
+	void WriteToPolicy( LogPolicy *policy );
 
-LogHistory::LogHistory( const size_t size ) {
-	m_maxSize = size;
-}
+private:
+	std::list<logMessage_t> history;
+};
 
-bool LogHistory::AddMessage( const LogMessage *entry ) {
-	if ( !entry ) {
-		return false;
+/**
+ * Add a new LogMessage to history, removing any old entries
+ * not fitting withing the max size.
+ * @param	entry		Pointer to a message to be copied to the history.
+ */
+void LogHistoryLocal::AddMessage( const logMessage_t *msg ) {
+	if ( !msg ) {
+		return;
 	}
 
-	// ensure there's room for this message
-	const size_t entriesRemoved = ShrinkToFit( m_maxSize - 1 );
+	// copy the entry to the history list
+	history.push_back( *msg );
 
-	LogMessage msg = {};
-	msg.level = entry->level;
-	msg.timestamp = entry->timestamp;
-	msg.sourceFile = entry->sourceFile;
-	msg.sourceFunction = entry->sourceFunction;
-	msg.sourceLine = entry->sourceLine;
-	msg.msg = entry->msg;
-	m_entries.emplace_back( msg );
-
-	return ( entriesRemoved > 0 );
-}
-
-size_t LogHistory::ShrinkToFit( const size_t size ) {
-	size_t removeCount = 0;
-	while ( m_entries.size() > size ) {
-		m_entries.pop_front();
-		++removeCount;
-	}
-
-	return removeCount;
-}
-
-size_t LogHistory::ChangeMaxSize( const size_t size ) {
-	m_maxSize = size;
-	return ShrinkToFit( size );
-}
-
-LogPolicy::LogPolicy( const LogPolicySettings *settings ) {
-	if ( settings ) {
-		memcpy( &m_settings, settings, sizeof( LogPolicySettings ) );
-	} else {
-		m_settings.logDebug   = CYB_DEFAULT_LOG_DEBUG;
-		m_settings.logInfo    = CYB_DEFAULT_LOG_INFO;
-		m_settings.logWarning = CYB_DEFAULT_LOG_WARNING;
-		m_settings.logError   = CYB_DEFAULT_LOG_ERROR;
-		m_settings.format     = CYB_DEFAULT_LOG_FORMAT;
+	// remove old entries if it's to big
+	while ( history.size() > NUM_HISTORY_ENTRIES ) {
+		history.pop_front();
 	}
 }
 
-std::string LogPolicy::GetFormattedMessage( const LogMessage *entry ) const {
+/** Write all the history entries to a log policy. */
+void LogHistoryLocal::WriteToPolicy( LogPolicy *policy ) {
+	for ( const auto &entry : history ) {
+		policy->WriteMessage( &entry );
+	}
+}
+
+/** Constructor. Copies settings. */
+LogPolicy::LogPolicy( const logPolicySettings_t *settings ) {
+	m_settings = *settings;
+}
+
+/**
+ * Get a formatted string.
+ * Formats the log message using the policy settings and adds a new line.
+ *
+ * @param	entry		The log message to format.
+ * @return A string with the formatted message.
+ */
+std::string LogPolicy::GetFormattedMessage( const logMessage_t *entry ) const {
 	std::ostringstream stream;
 	const std::string &format = m_settings.format;
 	const std::string::size_type formatStrLength = format.length();
@@ -85,7 +78,7 @@ std::string LogPolicy::GetFormattedMessage( const LogMessage *entry ) const {
 				stream <<  std::put_time( gmtime( &entry->timestamp ), "%c" );
 				break;
 			case 'L':
-				stream << LogLevelToString( entry->level );
+				stream << s_logLevelName[(uint8_t)entry->level];
 				break;
 			case 'l':
 				stream << entry->sourceLine;
@@ -116,54 +109,122 @@ std::string LogPolicy::GetFormattedMessage( const LogMessage *entry ) const {
 	return stream.str();
 }
 
-bool LogPolicy::ShouldLog( const LogLevel level ) const {
-	switch ( level ) {
-	case LogLevel::Debug:	return m_settings.logDebug;
-	case LogLevel::Info:	return m_settings.logInfo;
-	case LogLevel::Warning:	return m_settings.logWarning;
-	case LogLevel::Error:	return m_settings.logError;
-	}
-
-	return false;
+/**
+ * Check severity agains the policys severity filter.
+ * @param	severity	Severity level to check against.
+ * @return True if policy severity filter is less than severity.
+ */
+bool LogPolicy::ShouldLog( const logSeverity_t severity ) const {
+	return ( severity >= m_settings.severityFilter );
 }
 
-void LogPolicy::WriteMessage( const LogMessage *entry ) {
-	if ( ShouldLog( entry->level ) ) {
-		std::string formattedMessage = GetFormattedMessage( entry );
-		WriteImpl( formattedMessage.c_str() );
-	}
-}
-
-void LogPolicy::WriteHistory( const LogHistory *history ) {
-	if ( !history ) {
-		return;
-	}
-
-	for ( const auto &entry : history->Entries() ) {
-		WriteMessage( &entry );
+/**
+ * Write a message to the policy.
+ * Message will be properly formatted before it is written.
+ * @param	msg			A non-null pointer to the message.
+ */
+void LogPolicy::WriteMessage( const logMessage_t *msg ) {
+	if ( ShouldLog( msg->level ) ) {
+		std::string formattedMessage = GetFormattedMessage( msg );
+		WriteString( formattedMessage.c_str() );
 	}
 }
 
-Logger::Logger() : m_history( LOG_HISTORY_SIZE ) {
-}
+/** A log policy that writes to the standard output (stdout). */
+class ConsoleLogPolicy : public LogPolicy {
+public:
+	explicit ConsoleLogPolicy( const logPolicySettings_t *settings ) : LogPolicy( settings ) {}
+	virtual ~ConsoleLogPolicy() = default;
+	virtual void WriteString( const char *str ) final {
+		std::cout << str;
+	}
+};
 
-bool Logger::AddPolicy( std::unique_ptr<LogPolicy> policy, const uint32_t operationFlags ) {
-	if ( ( operationFlags & LogPolicyOperation::Force ) == 0 ) {
-		for ( const auto &it : m_policies ) {
-			if ( it->Hash() == policy->Hash() ) {
-				return false;
-			}
+/** A log policy that writes to a file. */
+class FileLogPolicy : public LogPolicy {
+public:
+	explicit FileLogPolicy( const char *logFile, const logPolicySettings_t *settings ) :
+		LogPolicy( settings ) {
+		filename = logFile;
+		file.open( filename );
+	}
+	virtual ~FileLogPolicy() = default;
+	virtual void WriteString( const char *str ) final {
+		if ( file.is_open() ) {
+			file << str;
 		}
 	}
 
-	CYB_DEBUG( "Adding log policy with hash ", policy->Hash() );
+private:
+	std::string filename;
+	std::ofstream file;
+};
 
-	if ( operationFlags & LogPolicyOperation::CopyHistory ) {
-		policy->WriteHistory( &m_history );
+/** Constructor. No policies are attached by default. */
+LogWriter::LogWriter() {
+	history = new LogHistoryLocal();
+}
+
+/** Destructor. Delete history and all policies. */
+LogWriter::~LogWriter() {
+	DestroyAllPolicies();
+	delete history;
+}
+
+/**
+ * Reset the log writer with new settings (history will be kept ).
+ * @param	useConsole		If set to true, a console policy will be attached to the log writer.
+ * @param	consoleFilter	Severity filter on console policy (ignored if useConsole=false).
+ * @param	useFile			If set to true, a file policy will be attached to the log writer.
+ * @param	fileFilter		Severity filter on file policy (ignored if useFile=false).
+ * @param	logfile			The output file used by the log policy, if nullptr logPolicy will be disabled (ignored if useFile=false)
+ */
+void LogWriter::Reset( bool useConsole, logSeverity_t consoleFilter, bool useFile, logSeverity_t fileFilter, const char *logfile ) {
+	DestroyAllPolicies();
+
+	if ( useConsole ) {
+		logPolicySettings_t consoleSettings;
+		consoleSettings.severityFilter = consoleFilter;
+		consoleSettings.format = "[%L]: %m";
+		ConsoleLogPolicy *consolePolicy = new ConsoleLogPolicy( &consoleSettings );
+		Attach( consolePolicy, true );
 	}
 
-	m_policies.push_back( std::move( policy ) );
+	if ( useFile && logfile != nullptr ) {
+		logPolicySettings_t fileSettings;
+		fileSettings.severityFilter = fileFilter;
+		fileSettings.format = "%t [%L] %F@%f(%l): %m";
+		FileLogPolicy *filePolicy = new FileLogPolicy( logfile, &fileSettings );
+		Attach( filePolicy, true );
+	}
+}
+
+/**
+ * Attach a new policy to the log writer, the policy has to be pre-allocated, however
+ * when passed to the log writer it will take ownership and take care of freeing the
+ * allocated memory.
+ * @param	policy			The policy to attach.
+ * @param	copyHistory		If true, the log writer history will be written to the policy.
+ * @return False if policy is nullptr, else true.
+ */
+bool LogWriter::Attach( LogPolicy *policy, bool copyHistory ) {
+	if ( !policy ) {
+		return false;
+	}
+
+	if ( copyHistory ) {
+		dynamic_cast<LogHistoryLocal *>(history)->WriteToPolicy( policy );
+	}
+
+	policyList.push_back( policy );
 	return true;
 }
 
-}	// namespace cyb
+/** Free all attached policies memory, and remove them from the log writer. */
+void LogWriter::DestroyAllPolicies() {
+	for ( uint32_t i = 0; i < policyList.size(); i++ ) {
+		delete policyList[i];
+	}
+
+	policyList.clear();
+}

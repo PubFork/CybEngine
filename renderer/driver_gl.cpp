@@ -64,13 +64,13 @@ struct RendererDriverGL : public IRendererDriver {
 	virtual void Init() final;
 	virtual void Shutdown() final;
 
-	virtual void CreateVertexBuffer( const VertexBufferHandle handle, const MemoryPtr mem, const VertexLayoutHandle layoutHandle ) final;
+	virtual void CreateVertexBuffer( const VertexBufferHandle handle, const std::shared_ptr<memory_t> mem, const VertexLayoutHandle layoutHandle ) final;
 	virtual void DestroyVertexBuffer( const VertexBufferHandle handle ) final;
-	virtual void CreateIndexBuffer( const IndexBufferHandle handle, const MemoryPtr mem ) final;
+	virtual void CreateIndexBuffer( const IndexBufferHandle handle, const std::shared_ptr<memory_t> mem ) final;
 	virtual void DestroyIndexBuffer( const IndexBufferHandle handle ) final;
 	virtual void CreateVertexLayout( const VertexLayoutHandle handle, const VertexLayout &layout ) final;
 	virtual void DestroyVertexLayout( const VertexLayoutHandle handle ) final;
-	virtual void CreateProgram( const ShaderProgramHandle handle, const MemoryPtr vertexShaderMem, const MemoryPtr fragmentShaderMem ) final;
+	virtual void CreateProgram( const ShaderProgramHandle handle, const std::shared_ptr<memory_t> vertexShaderMem, const std::shared_ptr<memory_t> fragmentShaderMem ) final;
 	virtual void DestroyProgram( const ShaderProgramHandle handle ) final;
 	virtual void Commit( const CommandBuffer *cbuf ) final;
 
@@ -155,7 +155,7 @@ void _stdcall DebugOutputProc( GLenum source, GLenum type, GLuint id, GLenum sev
 	//CYB_DEBUG( "Source=", GLEnumToString( source ), " Type=", GLEnumToString( type ), " Id=", id, " Severity=", GLEnumToString( severity ), " Message=", message );
 }
 
-void VertexBufferGL::Create( const std::shared_ptr<Memory> mem, const VertexLayoutHandle layoutHandle ) {
+void VertexBufferGL::Create( const std::shared_ptr<memory_t> mem, const VertexLayoutHandle layoutHandle ) {
 	size = mem->size;
 	vertexLayout = layoutHandle;
 
@@ -170,7 +170,7 @@ void VertexBufferGL::Destroy() {
 	glDeleteBuffers( 1, &id );
 }
 
-void IndexBufferGL::Create( const std::shared_ptr<Memory> mem ) {
+void IndexBufferGL::Create( const std::shared_ptr<memory_t> mem ) {
 	size = mem->size;
 
 	glGenBuffers( 1, &id );
@@ -184,7 +184,7 @@ void IndexBufferGL::Destroy() {
 	glDeleteBuffers( 1, &id );
 }
 
-void ShaderGL::Create( const std::shared_ptr<Memory> mem, GLenum shaderType ) {
+void ShaderGL::Create( const std::shared_ptr<memory_t> mem, GLenum shaderType ) {
 	type = shaderType;
 	id = glCreateShader( type );
 
@@ -486,7 +486,7 @@ void RendererDriverGL::Shutdown() {
 	glDeleteVertexArrays( 1, &m_vao );
 }
 
-void RendererDriverGL::CreateVertexBuffer( const VertexBufferHandle handle, const MemoryPtr mem, const VertexLayoutHandle layoutHandle ) {
+void RendererDriverGL::CreateVertexBuffer( const VertexBufferHandle handle, const std::shared_ptr<memory_t> mem, const VertexLayoutHandle layoutHandle ) {
 	m_vertexBuffers[handle.index].Create( mem, layoutHandle );
 }
 
@@ -494,7 +494,7 @@ void RendererDriverGL::DestroyVertexBuffer( const VertexBufferHandle handle ) {
 	m_vertexBuffers[handle.index].Destroy();
 }
 
-void RendererDriverGL::CreateIndexBuffer( const IndexBufferHandle handle, const MemoryPtr mem ) {
+void RendererDriverGL::CreateIndexBuffer( const IndexBufferHandle handle, const std::shared_ptr<memory_t> mem ) {
 	m_indexBuffers[handle.index].Create( mem );
 }
 
@@ -510,7 +510,7 @@ void RendererDriverGL::DestroyVertexLayout( const VertexLayoutHandle handle ) {
 	m_vertexLayouts[handle.index].Reset();
 }
 
-void RendererDriverGL::CreateProgram( const ShaderProgramHandle handle, const MemoryPtr vertexShaderMem, const MemoryPtr fragmentShaderMem ) {
+void RendererDriverGL::CreateProgram( const ShaderProgramHandle handle, const std::shared_ptr<memory_t> vertexShaderMem, const std::shared_ptr<memory_t> fragmentShaderMem ) {
 	ShaderGL vertexShader = {};
 	ShaderGL fragmentShader = {};
 

@@ -1,12 +1,8 @@
-set( RENDERER_SOURCES
-	buffer_object.cpp		buffer_object.h
-	command.cpp			command.h
-	driver_gl.cpp				driver_gl.h
-	frontend.cpp				frontend.h
-	renderer.cpp				renderer.h
-									screen_rect.h
-	vertex_layout.cpp		vertex_layout.h
-)
+message( STATUS "Processing Renderer..." )
+
+# Setup source groups
+file( GLOB RENDERER_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h )
+file( GLOB RENDERER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp )
 
 if( GLEW_SOURCE )
 	message( STATUS "Found GLEW source code. Linking statically" )
@@ -15,6 +11,10 @@ else()
 	list( APPEND RENDERER_LIBS ${GLEW_LIBRARY} )
 endif()
 
+source_group( "Header Files" FILES ${PRIVATE_RENDERER_HEADERS} )
+source_group( "Source Files" FILES ${PRIVATE_RENDERER_SOURCES} )
 
-add_library( renderer  STATIC ${RENDERER_SOURCES} )
+# Setup static library
+set( RENDERER_FILES ${RENDERER_HEADERS} ${RENDERER_SOURCES} )
+add_library( renderer STATIC ${RENDERER_FILES} )
 target_link_libraries( renderer )

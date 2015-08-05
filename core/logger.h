@@ -42,6 +42,9 @@ struct logMessage_t {
 /** Log history public interface. */
 class ILogHistory {
 public:
+	// max number of saved logMessages
+	enum { HistorySize = 64 };
+
 	virtual ~ILogHistory() {}
 	virtual void AddMessage( const logMessage_t *msg ) = 0;
 };
@@ -90,12 +93,11 @@ public:
 	 * Write a new log message entry.
 	 * This will create a new message entry, add it to history and then
 	 * dispatch it to all added policies.
-	 *
-	 * @param level The message log level.
-	 * @param sourceFile The source filename.
-	 * @param sourceFunction The source function.
-	 * @param sourceLine The source line.
-	 * @param args The log message.
+	 * @param	level			The message log level.
+	 * @param	sourceFile		The source filename.
+	 * @param	sourceFunction	The source function.
+	 * @param	sourceLine		The source line.
+	 * @param	args			The log message.
 	 */
 	template <typename... Args> 
 	void Write( const logSeverity_t level, const char *sourceFile, const char *sourceFunction, const uint32_t sourceLine, const Args &...args ) {
@@ -121,10 +123,9 @@ public:
 	/**
 	 * Write implementation.
 	 * Parses the variadic template, adding one part or the args to the log message.
-	 *
-	 * @param entry The log message entry.
-	 * @param first The arg to parse and add to message.
-	 * @param rest All the rest of the args.
+	 * @param	entry			The log message entry.
+	 * @param	first			The arg to parse and add to message.
+	 * @param	rest			All the rest of the args.
 	 */
 	template <typename First, typename... Rest>
 	void WriteImpl( std::ostringstream &stream,  const First &first, const Rest &...rest ) const {
@@ -135,9 +136,8 @@ public:
 	/**
 	 * Write implementation.
 	 * Parses the variadic template, adding the last part or the args to the log message.
-	 *
-	 * @param entry The log message entry.
-	 * @param last The last arg in the variadic template.
+	 * @param	entry			The log message entry.
+	 * @param	last			The last arg in the variadic template.
 	 */
 	template <typename Last>
 	void WriteImpl( std::ostringstream &stream, const Last &last ) const {

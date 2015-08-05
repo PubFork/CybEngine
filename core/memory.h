@@ -7,7 +7,7 @@
 #define MEGABYTES( x )	( (x) << 20 )
 #define GIGABYTES( x )	( (x) << 30 )
 
-// 16-byte aligned heap allocations
+// 16-byte aligned heap allocation
 void *Mem_Alloc16( size_t numBytes );
 void Mem_Free16( void *memory );
 
@@ -30,7 +30,7 @@ public:
 	virtual void Flush() = 0;
 };
 
-// Type-safe allocations using custom allocators
+// type-safe allocations using custom allocators
 void *operator new  ( size_t size, IAllocator *allocator, uint32_t count = 1, uint32_t alignment = IAllocator::DefaultAlignment );
 void *operator new[]( size_t size, IAllocator *allocator, uint32_t count = 1, uint32_t alignment = IAllocator::DefaultAlignment );
 void operator delete  ( void *object, IAllocator *allocator, uint32_t, uint32_t);

@@ -6,8 +6,6 @@
 #include <iomanip>
 #include "logger.h"
 
-#define	NUM_HISTORY_ENTRIES		64
-
 static LogWriter s_defaultLogger;
 LogWriter *g_logWriter = &s_defaultLogger;
 
@@ -42,13 +40,14 @@ void LogHistoryLocal::AddMessage( const logMessage_t *msg ) {
 	history.push_back( *msg );
 
 	// remove old entries if it's to big
-	while ( history.size() > NUM_HISTORY_ENTRIES ) {
+	while ( history.size() > HistorySize ) {
 		history.pop_front();
 	}
 }
 
 /** Write all the history entries to a log policy. */
 void LogHistoryLocal::WriteToPolicy( LogPolicy *policy ) {
+	assert( policy );
 	for ( const auto &entry : history ) {
 		policy->WriteMessage( &entry );
 	}
@@ -56,17 +55,18 @@ void LogHistoryLocal::WriteToPolicy( LogPolicy *policy ) {
 
 /** Constructor. Copies settings. */
 LogPolicy::LogPolicy( const logPolicySettings_t *settings ) {
+	assert( settings );
 	m_settings = *settings;
 }
 
 /**
  * Get a formatted string.
  * Formats the log message using the policy settings and adds a new line.
- *
- * @param	entry		The log message to format.
+ * @param	entry			The log message to format.
  * @return A string with the formatted message.
  */
 std::string LogPolicy::GetFormattedMessage( const logMessage_t *entry ) const {
+	assert( entry );
 	std::ostringstream stream;
 	const std::string &format = m_settings.format;
 	const std::string::size_type formatStrLength = format.length();
@@ -111,7 +111,7 @@ std::string LogPolicy::GetFormattedMessage( const logMessage_t *entry ) const {
 
 /**
  * Check severity agains the policys severity filter.
- * @param	severity	Severity level to check against.
+ * @param	severity		Severity level to check against.
  * @return True if policy severity filter is less than severity.
  */
 bool LogPolicy::ShouldLog( const logSeverity_t severity ) const {
@@ -121,9 +121,10 @@ bool LogPolicy::ShouldLog( const logSeverity_t severity ) const {
 /**
  * Write a message to the policy.
  * Message will be properly formatted before it is written.
- * @param	msg			A non-null pointer to the message.
+ * @param	msg				A non-null pointer to the message.
  */
 void LogPolicy::WriteMessage( const logMessage_t *msg ) {
+	assert( msg );
 	if ( ShouldLog( msg->level ) ) {
 		std::string formattedMessage = GetFormattedMessage( msg );
 		WriteString( formattedMessage.c_str() );
@@ -150,6 +151,7 @@ public:
 	}
 	virtual ~FileLogPolicy() = default;
 	virtual void WriteString( const char *str ) final {
+		assert( str );
 		if ( file.is_open() ) {
 			file << str;
 		}
@@ -191,6 +193,7 @@ void LogWriter::Reset( bool useConsole, logSeverity_t consoleFilter, bool useFil
 	}
 
 	if ( useFile && logfile != nullptr ) {
+		assert( logfile );
 		logPolicySettings_t fileSettings;
 		fileSettings.severityFilter = fileFilter;
 		fileSettings.format = "%t [%L] %F@%f(%l): %m";

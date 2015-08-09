@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iomanip>
 #include <glm/gtc/type_ptr.hpp>
+#include <memory>
 #include "core/interface.h"
 #include "core/config.h"
 #include "core/logger.h"
@@ -515,7 +516,7 @@ void RendererDriverGL::CreateProgram( const ShaderProgramHandle handle, const Sh
 	ShaderGL fragmentShader = {};
 
 	vertexShader.Create( vertexShaderMem, GL_VERTEX_SHADER );
-	fragmentShader.Create( fragmentShaderMem, GL_FRAGMENT_SHADER );
+ 	fragmentShader.Create( fragmentShaderMem, GL_FRAGMENT_SHADER );
 	m_shaderPrograms[handle.index].Create( vertexShader, fragmentShader );
 	vertexShader.Destroy();
 	fragmentShader.Destroy();

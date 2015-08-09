@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include <memory>
+#include <assert.h>
 
 #define BYTES( x )		( (x) )
 #define KILOBYTES( x )	( (x) << 10 )
@@ -20,12 +20,6 @@ public:
 	virtual void Free( void *memory ) = 0;
 	virtual void Flush() = 0;
 };
-
-// type-safe allocations using custom allocators
-void *operator new  ( size_t size, IAllocator *allocator, uint32_t count = 1, uint32_t alignment = IAllocator::DefaultAlignment );
-void *operator new[]( size_t size, IAllocator *allocator, uint32_t count = 1, uint32_t alignment = IAllocator::DefaultAlignment );
-void operator delete  ( void *object, IAllocator *allocator, uint32_t, uint32_t);
-void operator delete[]( void *object, IAllocator *allocator, uint32_t, uint32_t );
 
 /** System malloc/free allocator. */
 class CrtAllocator : public IAllocator {
@@ -113,10 +107,11 @@ public:
 	 * Must not be nullptr.
 	 * @param	obj			Object this shared reference retain reference to.
 	 */
-	explicit SharedRef( ObjectType *obj ) {
+	template <class OtherType>
+	explicit SharedRef( OtherType *obj ) {
 		assert( obj );
 		object = obj;
-		basePtr = new SharedPointerInternals::BasePointer( object );
+		basePtr = new SharedPointerInternals::BasePointer( obj );
 	}
 
 	/**
@@ -125,11 +120,11 @@ public:
 	* @param	obj			Object this shared reference retain reference to.
 	* @param	deleter		Custom deleter function.
 	*/
-	template <class DeleterType>
-	explicit SharedRef( ObjectType *obj, DeleterType deleter ) {
+	template <class OtherType, class DeleterType>
+	explicit SharedRef( OtherType *obj, DeleterType deleter ) {
 		assert( obj );
 		object = obj;
-		basePtr = new SharedPointerInternals::BasePointerWitchCustomDeleter<DeleterType>( object, deleter );
+		basePtr = new SharedPointerInternals::BasePointerWitchCustomDeleter<DeleterType>( obj, deleter );
 	}
 
 	/**
@@ -214,4 +209,10 @@ SharedRef<memory_t> SharedMem_MakeRef( const void *refMem, size_t size );
 // When using this, ensure that the allocator lifespan exceeds 
 // the life of the allocated memory
 // NOTE: Could make allocator a SharedRef.
-SharedRef<memory_t> SharedMem_Alloc( IAllocator *allocator, size_t numBytes );
+SharedRef<memory_t> SharedMem_Alloc( SharedRef<IAllocator> allocator, size_t numBytes );
+
+// type-safe allocations using custom allocators
+void *operator new  (size_t size, SharedRef<IAllocator> allocator, uint32_t count = 1, uint32_t alignment = IAllocator::DefaultAlignment);
+void *operator new[]( size_t size, SharedRef<IAllocator> allocator, uint32_t count = 1, uint32_t alignment = IAllocator::DefaultAlignment );
+void operator delete  (void *object, SharedRef<IAllocator> allocator, uint32_t, uint32_t);
+void operator delete[]( void *object, SharedRef<IAllocator> allocator, uint32_t, uint32_t );

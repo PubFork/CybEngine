@@ -37,13 +37,14 @@ void DrawCommand::Clear() {
 	shaderProgram.index = INVALID_HANDLE;
 }
 
-CommandBuffer::CommandBuffer( const size_t cbufSize ) {
+CommandBuffer::CommandBuffer( const size_t cbufSize )
+	: m_allocator( new LinearAllocator( cbufSize ) ) {
 	m_cbufNode.SetOwner( this );
-	m_allocator = std::make_shared<LinearAllocator>( cbufSize );
+	//m_allocator = std::make_shared<LinearAllocator>( cbufSize );
 }
 
 DrawCommand *CommandBuffer::AllocateDrawCommand() {
-	DrawCommand *draw = new (m_allocator.get()) DrawCommand();
+	DrawCommand *draw = new (m_allocator) DrawCommand();
 	if ( draw != nullptr ) {
 		draw->Clear();
 	}

@@ -65,7 +65,7 @@ struct CommandBuffer {
 
 	LinkedList<CommandBuffer> m_cbufNode;
 	LinkedList<DrawCommand> m_drawList;
-	std::shared_ptr<IAllocator> m_allocator;
+	SharedRef<IAllocator> m_allocator;
 };
 
 }	// namespace cyb

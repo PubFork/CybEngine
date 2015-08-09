@@ -26,26 +26,6 @@ void Mem_Free16( void *memory ) {
 	_aligned_free( memory );
 }
 
-/** Type-safe allocation with custom allocator using new. */
-void *operator new( size_t size, IAllocator *allocator, uint32_t count, uint32_t alignment ) {
-	return allocator->Alloc( size * count, alignment );
-}
-
-/** Type-safe allocation with custom allocator using new[]. */
-void *operator new[]( size_t size, IAllocator *allocator, uint32_t count, uint32_t alignment ) {
-	return allocator->Alloc( size * count, alignment );
-}
-
-/** Type-safe deallocation with custom allocator using delete. */
-void operator delete( void *object, IAllocator *allocator, uint32_t, uint32_t ) {
-	allocator->Free( object );
-}
-
-/** Type-safe deallocation with custom allocator using delete[]. */
-void operator delete[]( void *object, IAllocator *allocator, uint32_t, uint32_t ) {
-	allocator->Free( object );
-}
-
 /**
  * Standard allocation using system's _aligned_malloc().
  * @param	numBytes		Requested number of bytes for the allocation.
@@ -143,8 +123,7 @@ SharedRef<memory_t> SharedMem_MakeRef( const void *refMem, size_t size ) {
 * @param	numBytes		Requested number of bytes for the allocation.
 * @return A shared pointer memory_t with data pointing to new allocated memory.
 */
-SharedRef<memory_t> SharedMem_Alloc( IAllocator *allocator, size_t numBytes ) {
-	assert( allocator );
+SharedRef<memory_t> SharedMem_Alloc( SharedRef<IAllocator> allocator, size_t numBytes ) {
 	assert( numBytes >= 0 );
 
 	auto mem = SharedRef<memory_t>( (memory_t *)allocator->Alloc( sizeof( memory_t ) + numBytes ), [=]( void *memory ) {
@@ -153,4 +132,24 @@ SharedRef<memory_t> SharedMem_Alloc( IAllocator *allocator, size_t numBytes ) {
 	mem->buffer = (uint8_t *)&mem.Get() + sizeof( memory_t );
 	mem->size = numBytes;
 	return mem;
+}
+
+/** Type-safe allocation with custom allocator using new. */
+void *operator new(size_t size, SharedRef<IAllocator> allocator, uint32_t count, uint32_t alignment){
+	return allocator->Alloc( size * count, alignment );
+}
+
+/** Type-safe allocation with custom allocator using new[]. */
+void *operator new[]( size_t size, SharedRef<IAllocator> allocator, uint32_t count, uint32_t alignment ) {
+	return allocator->Alloc( size * count, alignment );
+}
+
+/** Type-safe deallocation with custom allocator using delete. */
+void operator delete(void *object, SharedRef<IAllocator> allocator, uint32_t, uint32_t) {
+	allocator->Free( object );
+}
+
+/** Type-safe deallocation with custom allocator using delete[]. */
+void operator delete[]( void *object, SharedRef<IAllocator> allocator, uint32_t, uint32_t ) {
+	allocator->Free( object );
 }

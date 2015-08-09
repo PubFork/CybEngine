@@ -20,11 +20,11 @@ public:
 	CommandBuffer *CreateCommandBuffer( size_t size );
 	void DestroyCommandBuffer( CommandBuffer *cbuf );
 
-	VertexBufferHandle CreateVertexBuffer( const std::shared_ptr<memory_t> mem, const VertexLayout &layout );
+	VertexBufferHandle CreateVertexBuffer( const SharedRef<memory_t> mem, const VertexLayout &layout );
 	void DestroyVertexBuffer( const VertexBufferHandle bufferHandle );
-	IndexBufferHandle CreateIndexBuffer( const std::shared_ptr<memory_t> mem );
+	IndexBufferHandle CreateIndexBuffer( const SharedRef<memory_t> mem );
 	void DestroyIndexBuffer( const IndexBufferHandle bufferHandle );
-	ShaderProgramHandle CreateProgram( const std::shared_ptr<memory_t> vertexShaderMem, const std::shared_ptr<memory_t> fragmentShaderMem );
+	ShaderProgramHandle CreateProgram( const SharedRef<memory_t> vertexShaderMem, const SharedRef<memory_t> fragmentShaderMem );
 	void DestroyProgram( const ShaderProgramHandle programHandle );
 
 	void UpdateViewTransform( const glm::mat4 *view, const glm::mat4 *projection );

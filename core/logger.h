@@ -1,8 +1,8 @@
 #pragma once
 
+#include <time.h>
 #include <sstream>
 #include <vector>
-#include <ctime>
 
 #ifdef _MSC_VER
 #	include <string.h>

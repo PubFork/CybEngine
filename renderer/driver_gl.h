@@ -7,7 +7,7 @@
 namespace cyb {
 
 struct VertexBufferGL {
-	void Create( const std::shared_ptr<memory_t> mem, const VertexLayoutHandle layoutHandle );
+	void Create( const SharedRef<memory_t> mem, const VertexLayoutHandle layoutHandle );
 	void Destroy();
 
 	GLuint id;
@@ -16,7 +16,7 @@ struct VertexBufferGL {
 };
 
 struct IndexBufferGL {
-	void Create( const std::shared_ptr<memory_t> mem );
+	void Create( const SharedRef<memory_t> mem );
 	void Destroy();
 
 	GLuint id;
@@ -24,7 +24,7 @@ struct IndexBufferGL {
 };
 
 struct ShaderGL {
-	void Create( const std::shared_ptr<memory_t> mem, GLenum shaderType );
+	void Create( const SharedRef<memory_t> mem, GLenum shaderType );
 	void Destroy();
 
 	GLuint id;

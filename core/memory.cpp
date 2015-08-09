@@ -26,53 +26,6 @@ void Mem_Free16( void *memory ) {
 	_aligned_free( memory );
 }
 
-/**
- * Allocates a shared pointer memory_t of 16-byte aligned heap memory.
- * Memory will be automatically freed when there's no references to it.
- * @param	numBytes		Requested number of bytes for the allocation.
- * @return A shared pointer memory_t with data pointing to new allocated memory.
- */
-std::shared_ptr<memory_t> SharedMem_Alloc( size_t numBytes ) {
-	assert( numBytes >= 0 );
-
-	auto mem = std::shared_ptr<memory_t>( (memory_t *)Mem_Alloc16( sizeof( memory_t ) + numBytes ), Mem_Free16 );
-	mem->buffer = (uint8_t *)mem.get() + sizeof( memory_t );
-	mem->size = numBytes;
-	return mem;
-}
-
-/**
- * Initializes a shared pointer memory_t, but uses refMem as data.
- * This allows for static data to be used with memory_t.
- * NOTE: while refMem is const, memory_t::buffer isn't, so data CAN be changed.
- * @param	refMem			Pointer to pre-allocated referenced memory.
- * @param	size			Number of bytes in refMem,
- * @return A shared pointer memory_t with data pointing to refMem.
- */
-std::shared_ptr<memory_t> SharedMem_MakeRef( const void *refMem, size_t size ) {
-	auto mem = std::shared_ptr<memory_t>( (memory_t *)Mem_Alloc16( sizeof( memory_t ) ), Mem_Free16 );
-	mem->buffer = (uint8_t *)const_cast<void *>( refMem );
-	mem->size = size;
-	return mem;
-}
-
-/**
- * Same as \see SharedMem_Alloc( size_t numBytes ), but with a custom allocator.
- * @param	numBytes		Requested number of bytes for the allocation.
- * @return A shared pointer memory_t with data pointing to new allocated memory.
- */
-std::shared_ptr<memory_t> SharedMem_Alloc( IAllocator *allocator, size_t numBytes ) {
-	assert( allocator );
-	assert( numBytes >= 0 );
-
-	auto mem = std::shared_ptr<memory_t>( (memory_t *)allocator->Alloc( sizeof( memory_t ) + numBytes ), [=]( void *memory ) {
-		allocator->Free( memory );
-	} );
-	mem->buffer = (uint8_t *)mem.get() + sizeof( memory_t );
-	mem->size = numBytes;
-	return mem;
-}
-
 /** Type-safe allocation with custom allocator using new. */
 void *operator new( size_t size, IAllocator *allocator, uint32_t count, uint32_t alignment ) {
 	return allocator->Alloc( size * count, alignment );
@@ -116,7 +69,9 @@ void CrtAllocator::Free( void *memory ) {
 	_aligned_free( memory );
 }
 
-
+/** Constuct a new linear allocator.
+ * @param	memoryPoolSize	Number of bytes in the allocators memory pool.
+ */
 LinearAllocator::LinearAllocator( size_t memoryPoolSize ) {
 	assert( memoryPoolSize >= 0 );
 
@@ -125,10 +80,17 @@ LinearAllocator::LinearAllocator( size_t memoryPoolSize ) {
 	end = (uint8_t *)memoryPool + memoryPoolSize;
 }
 
+/** Destruct the linear allocator and free it's memory pool */
 LinearAllocator::~LinearAllocator() {
 	Mem_Free16( memoryPool );
 }
 
+/**
+ * Allocate numBytes from the linear allocators memory pool.
+ * If the pool doesen't have enough memory, application will crash,
+ * this will never return nullptr.
+ * TODO: Throw exception instead of crashig?
+ */
 void *LinearAllocator::Alloc( size_t numBytes, uint32_t alignment ) {
 	assert( numBytes >= 0 );
 	assert( (alignment & (alignment - 1)) == 0 );
@@ -141,6 +103,54 @@ void *LinearAllocator::Alloc( size_t numBytes, uint32_t alignment ) {
 	return memory;
 }
 
+/** Reset the allocator. */
 void LinearAllocator::Flush() {
 	top = (uint8_t *)memoryPool;
+}
+
+/**
+* Allocates a shared pointer memory_t of 16-byte aligned heap memory.
+* Memory will be automatically freed when there's no references to it.
+* @param	numBytes		Requested number of bytes for the allocation.
+* @return A shared pointer memory_t with data pointing to new allocated memory.
+*/
+SharedRef<memory_t> SharedMem_Alloc( size_t numBytes ) {
+	assert( numBytes >= 0 );
+
+	auto mem = SharedRef<memory_t>( (memory_t *)Mem_Alloc16( sizeof( memory_t ) + numBytes ), Mem_Free16 );
+	mem->buffer = (uint8_t *)&mem.Get() + sizeof( memory_t );
+	mem->size = numBytes;
+	return mem;
+}
+
+/**
+* Initializes a shared pointer memory_t, but uses refMem as data.
+* This allows for static data to be used with memory_t.
+* NOTE: while refMem is const, memory_t::buffer isn't, so data CAN be changed.
+* @param	refMem			Pointer to pre-allocated referenced memory.
+* @param	size			Number of bytes in refMem,
+* @return A shared pointer memory_t with data pointing to refMem.
+*/
+SharedRef<memory_t> SharedMem_MakeRef( const void *refMem, size_t size ) {
+	auto mem = SharedRef<memory_t>( (memory_t *)Mem_Alloc16( sizeof( memory_t ) ), Mem_Free16 );
+	mem->buffer = (uint8_t *)const_cast<void *>(refMem);
+	mem->size = size;
+	return mem;
+}
+
+/**
+* Same as \see SharedMem_Alloc( size_t numBytes ), but with a custom allocator.
+* @param	numBytes		Requested number of bytes for the allocation.
+* @return A shared pointer memory_t with data pointing to new allocated memory.
+*/
+SharedRef<memory_t> SharedMem_Alloc( IAllocator *allocator, size_t numBytes ) {
+	assert( allocator );
+	assert( numBytes >= 0 );
+
+	auto mem = SharedRef<memory_t>( (memory_t *)allocator->Alloc( sizeof( memory_t ) + numBytes ), [=]( void *memory ) {
+		allocator->Free( memory );
+	} );
+	mem->buffer = (uint8_t *)&mem.Get() + sizeof( memory_t );
+	mem->size = numBytes;
+	return mem;
 }

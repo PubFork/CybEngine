@@ -42,7 +42,7 @@ void Renderer::DestroyCommandBuffer( CommandBuffer *cbuf ) {
 	delete cbuf;
 }
 
-VertexBufferHandle Renderer::CreateVertexBuffer( const std::shared_ptr<memory_t> mem, const VertexLayout &layout ) {
+VertexBufferHandle Renderer::CreateVertexBuffer( const SharedRef<memory_t> mem, const VertexLayout &layout ) {
 	VertexBufferHandle bufferHandle( m_vertexBuffers.Alloc() );
 
 	if ( IsValid( bufferHandle ) ) {
@@ -74,7 +74,7 @@ void Renderer::DestroyVertexBuffer( const VertexBufferHandle bufferHandle ) {
 	}
 }
 
-IndexBufferHandle Renderer::CreateIndexBuffer( const std::shared_ptr<memory_t> mem ) {
+IndexBufferHandle Renderer::CreateIndexBuffer( const SharedRef<memory_t> mem ) {
 	IndexBufferHandle bufferHandle( m_indexBuffers.Alloc() );
 
 	if ( IsValid( bufferHandle ) ) {
@@ -91,7 +91,7 @@ void Renderer::DestroyIndexBuffer( const IndexBufferHandle bufferHandle ) {
 	}
 }
 
-ShaderProgramHandle Renderer::CreateProgram( const std::shared_ptr<memory_t> vertexShaderMem, const std::shared_ptr<memory_t> fragmentShaderMem ) {
+ShaderProgramHandle Renderer::CreateProgram( const SharedRef<memory_t> vertexShaderMem, const SharedRef<memory_t> fragmentShaderMem ) {
 	ShaderProgramHandle handle( m_shaderPrograms.Alloc() );
 
 	if ( IsValid( handle ) ) {

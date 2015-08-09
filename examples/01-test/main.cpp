@@ -41,6 +41,11 @@ struct PosColorVertex {
 	static const cyb::VertexLayout s_layout;
 };
 
+const vertexInputElementDesc_t inputLayout[] = {
+	{ vertexInputElement_t::Position, vertexInputFormat_t::Float3,     0  },
+	{ vertexInputElement_t::Color0,   vertexInputFormat_t::UByte4Norm, 12 }
+};
+
 const cyb::VertexLayout PosColorVertex::s_layout = {
 	{ cyb::VertexAttribute::Position, cyb::AttributeType::Float, 3, false },
 	{ cyb::VertexAttribute::Color0,   cyb::AttributeType::Uint8, 4, true  }
@@ -72,6 +77,10 @@ void glewErrorCallback( int error, const char *description ) {
 
 int main() {
 	g_logWriter->Reset( true, logSeverity_t::Debug, true, logSeverity_t::Debug, "output.txt" );
+
+	{
+		SharedRef<int> asd( new int( 29 ) );
+	}
 
 	//=========== Inititalize glfw & glew
 	glfwSetErrorCallback( glewErrorCallback );

@@ -77,6 +77,9 @@ void glewErrorCallback( int error, const char *description ) {
 
 int main() {
 	g_logWriter->Reset( true, logSeverity_t::Debug, true, logSeverity_t::Debug, "output.txt" );
+	{
+		SharedRef<int> iiii( new int( 2 ) );
+	}
 
 	//=========== Inititalize glfw & glew
 	glfwSetErrorCallback( glewErrorCallback );

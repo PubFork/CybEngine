@@ -32,8 +32,6 @@ public:
 /** 
  * Simple linear allocator. 
  * Free() does nothing, use Flush() to reset the allocator.
- * Note: using hte delete operator with linear allocator will still call the objects
- *       destructor, the
  */
 class LinearAllocator : public IAllocator {
 public:
@@ -52,7 +50,12 @@ private:
 // Internal functions for smart pointers, should not be used directly.
 namespace SharedPointerInternals {
 
-struct BasePointer {
+inline void DefaultDeleter( void *object ) {
+	delete object;
+}
+
+class BasePointer {
+public:
 	BasePointer( void *obj ) {
 		object = obj;
 		sharedReferenceCount = 1;
@@ -65,38 +68,39 @@ struct BasePointer {
 
 	uint32_t ReleaseShared() {
 		if ( --sharedReferenceCount == 0) {
-			DeleteObject( object );
-			delete this;		// delete this
+			DeleteObject( object );		// delete object
+			delete this;				// delete this
 			return 0;
 		}
 
 		return sharedReferenceCount;
 	}
 
-	virtual void DeleteObject( void *memory ) {
-		delete memory;
-	}
+	virtual void DeleteObject( void * ) = 0;
 
-	uint32_t sharedReferenceCount;
-	uint32_t weakReferenceCount;
+private:
+	uint16_t sharedReferenceCount;
+	uint16_t weakReferenceCount;
 	void *object;
 };
 
 template <class DeleterType>
-struct BasePointerWitchCustomDeleter : public BasePointer {
-	BasePointerWitchCustomDeleter( void *obj, DeleterType deleter )
-		: BasePointer( obj )
-		, customDeleter( deleter ) {
+class BasePointerDel : public BasePointer {
+public:
+	BasePointerDel( void *obj, DeleterType deleter ) :
+		BasePointer( obj ),
+		objectDeleter( deleter ) {
 	}
 
 	virtual void DeleteObject( void *memory ) final {
-		customDeleter( memory );
+		objectDeleter( memory );
 	}
 	
-	DeleterType customDeleter;
+private:
+	DeleterType objectDeleter;
 };
 
-}	// SharedPointerInternals
+}	// namespace SharedPointerInternals
 
 /** SharedRef is a non-nullable, non-intrusive reference counted object reference. */
 template <class ObjectType>
@@ -111,7 +115,7 @@ public:
 	explicit SharedRef( OtherType *obj ) {
 		assert( obj );
 		object = obj;
-		basePtr = new SharedPointerInternals::BasePointer( obj );
+		basePtr = new SharedPointerInternals::BasePointerDel<void (*)(void*)>( obj, &SharedPointerInternals::DefaultDeleter );
 	}
 
 	/**
@@ -124,7 +128,7 @@ public:
 	explicit SharedRef( OtherType *obj, DeleterType deleter ) {
 		assert( obj );
 		object = obj;
-		basePtr = new SharedPointerInternals::BasePointerWitchCustomDeleter<DeleterType>( obj, deleter );
+		basePtr = new SharedPointerInternals::BasePointerDel<DeleterType>( obj, deleter );
 	}
 
 	/**
@@ -205,10 +209,6 @@ struct memory_t {
 
 SharedRef<memory_t> SharedMem_Alloc( size_t numBytes );
 SharedRef<memory_t> SharedMem_MakeRef( const void *refMem, size_t size );
-
-// When using this, ensure that the allocator lifespan exceeds 
-// the life of the allocated memory
-// NOTE: Could make allocator a SharedRef.
 SharedRef<memory_t> SharedMem_Alloc( SharedRef<IAllocator> allocator, size_t numBytes );
 
 // type-safe allocations using custom allocators

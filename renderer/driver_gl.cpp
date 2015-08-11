@@ -2,7 +2,6 @@
 #include <sstream>
 #include <iomanip>
 #include <glm/gtc/type_ptr.hpp>
-#include <memory>
 #include "core/interface.h"
 #include "core/config.h"
 #include "core/logger.h"
@@ -269,12 +268,12 @@ void ProgramGL::Create( const ShaderGL &vertexShader, const ShaderGL &fragmentSh
 
 	CYB_DEBUG( "Program (", id, ") info:" );
 
-	// Allocate a string capable of storing max length variable names
+	// allocate a string capable of storing max length variable names
 	GLint max0, max1;
 	glGetProgramInterfaceiv( id, GL_PROGRAM_INPUT, GL_MAX_NAME_LENGTH, &max0 );
 	glGetProgramInterfaceiv( id, GL_UNIFORM,       GL_MAX_NAME_LENGTH, &max1 );
 	uint32_t maxLength = std::max<GLint>( max0, max1 );
-	auto name = std::make_unique<char[]>( maxLength + 1 );
+	char *name = (char *)_alloca( maxLength + 1 );
 
 	struct ResourceInfoGL {
 		GLenum type;
@@ -290,12 +289,12 @@ void ProgramGL::Create( const ShaderGL &vertexShader, const ShaderGL &fragmentSh
 	glGetProgramInterfaceiv( id, GL_PROGRAM_INPUT, GL_ACTIVE_RESOURCES, &attribCount );
 	while ( attribCount-- ) {
 		glGetProgramResourceiv( id, GL_PROGRAM_INPUT, attribCount, propCount, props, propCount, NULL, (GLint *) &resourceInfo );
-		glGetProgramResourceName( id, GL_PROGRAM_INPUT, attribCount, maxLength, NULL, &name[0] );
+		glGetProgramResourceName( id, GL_PROGRAM_INPUT, attribCount, maxLength, NULL, name );
 
 		if ( resourceInfo.location != -1 ) {
-			const VertexAttribute::Enum attributeEnum = GetVertexAttributeEnum( name.get() );
+			const VertexAttribute::Enum attributeEnum = GetVertexAttributeEnum( name );
 			attributes[attributeEnum] = resourceInfo.location;
-			CYB_DEBUG( "  layout( location = ", resourceInfo.location, " ) in ", GLEnumToString( resourceInfo.type ), " ", name.get() );
+			CYB_DEBUG( "  layout( location = ", resourceInfo.location, " ) in ", GLEnumToString( resourceInfo.type ), " ", name );
 		}
 	}
 
@@ -304,9 +303,9 @@ void ProgramGL::Create( const ShaderGL &vertexShader, const ShaderGL &fragmentSh
 	glGetProgramInterfaceiv( id, GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniformCount );
 	while ( uniformCount-- ) {
 		glGetProgramResourceiv( id, GL_UNIFORM, uniformCount, propCount, props, propCount, NULL, (GLint *) &resourceInfo );
-		glGetProgramResourceName( id, GL_UNIFORM, uniformCount, maxLength, NULL, &name[0] );
+		glGetProgramResourceName( id, GL_UNIFORM, uniformCount, maxLength, NULL, name );
 
-		const UniformGL::Enum uniformEnum = GetPredefinedUniformEnum( name.get() );
+		const UniformGL::Enum uniformEnum = GetPredefinedUniformEnum( name );
 		if ( uniformEnum != UniformGL::Count ) {
 			UniformGL &uniform = predefined[numPredefined];
 			uniform.type = uniformEnum;		// mapped to predefined enum type
@@ -317,7 +316,7 @@ void ProgramGL::Create( const ShaderGL &vertexShader, const ShaderGL &fragmentSh
 			// TODO: Cache non-predefined uniforms
 		}
 
-		CYB_DEBUG( "  layout( location = ", resourceInfo.location, " ) uniform ", GLEnumToString( resourceInfo.type ), " ", name.get() );
+		CYB_DEBUG( "  layout( location = ", resourceInfo.location, " ) uniform ", GLEnumToString( resourceInfo.type ), " ", name );
 	}
 }
 

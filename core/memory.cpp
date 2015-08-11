@@ -135,7 +135,7 @@ SharedRef<memory_t> SharedMem_Alloc( SharedRef<IAllocator> allocator, size_t num
 }
 
 /** Type-safe allocation with custom allocator using new. */
-void *operator new(size_t size, SharedRef<IAllocator> allocator, uint32_t count, uint32_t alignment){
+void *operator new(size_t size, SharedRef<IAllocator> allocator, uint32_t count, uint32_t alignment ) {
 	return allocator->Alloc( size * count, alignment );
 }
 

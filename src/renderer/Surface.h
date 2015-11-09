@@ -22,7 +22,8 @@ enum InputAttribute
     Attrib_TexCoord0,
     Attrib_TexCoord1,
     Attrib_TexCoord2,
-    Attrib_TexCoord3
+    Attrib_TexCoord3,
+    Attrib_Count
 };
 
 struct InputElement

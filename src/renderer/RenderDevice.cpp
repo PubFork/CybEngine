@@ -6,6 +6,17 @@
 namespace renderer
 {
 
+static const char *attribName[Attrib_Count] = {
+    "a_position",
+    "a_normal",
+    "a_color0",
+    "a_color1",
+    "texCoord0",
+    "texCoord1",
+    "texCoord2",
+    "texCoord3",
+};
+
 static const char *vertexShaderMVSource =
 "#version 430 core\n"
 "uniform mat4 u_modelView;\n"
@@ -164,8 +175,13 @@ std::shared_ptr<Buffer> RenderDevice::CreateBuffer(BufferUsage usage, const void
 std::shared_ptr<ShaderSet> RenderDevice::CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList)
 {
     auto shaderSet = std::make_shared<ShaderSet>();
+    
     for (auto &shader : shaderList)
         shaderSet->SetShader(shader);
+    
+    for (int i = 0; i < Attrib_Count; i++)
+        shaderSet->LoadAttrib(attribName[i]);
+
     return shaderSet;
 }
 
@@ -199,11 +215,8 @@ void RenderDevice::Clear(float r, float g, float b, float a, float depth, bool c
 {
     glClearColor(r, g, b, a);
     glClearDepth(depth);
-
-    GLenum clearFlags = 0;
-    clearFlags |= clearColor ? GL_COLOR_BUFFER_BIT : 0;
-    clearFlags |= clearDepth ? GL_DEPTH_BUFFER_BIT : 0;
-    glClear(clearFlags);
+    glClear((clearColor ? GL_COLOR_BUFFER_BIT : 0) |
+            (clearDepth ? GL_DEPTH_BUFFER_BIT : 0));
 }
 
 void RenderDevice::Render(const Surface *surf, const glm::mat4 &transform)
@@ -227,14 +240,20 @@ void RenderDevice::Render(const Surface *surf, const glm::mat4 &transform)
     for (uint32_t i = 0; i < inputLayout->numElements; i++) {
         const InputElement *elem = &inputLayout->elements[i];
         const DataFormatInfo *fmt = &formatInfo[elem->format];
-
-        glEnableVertexAttribArray(i);
-        glVertexAttribPointer(i, fmt->size, fmt->type, fmt->normalized, layoutStride, (void *)elem->alignedOffset);
-
+        
+        GLint location = shader->GetAttribLocation(elem->attribute);
+        glEnableVertexAttribArray(location);
+        glVertexAttribPointer(location, fmt->size, fmt->type, fmt->normalized, layoutStride, (void *)elem->alignedOffset);
     }
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geo->indexBuffer->Id());
     glDrawElements(glPrimType[geo->prim], geo->indexCount, GL_UNSIGNED_SHORT, NULL);
+
+    for (uint32_t i = 0; i < inputLayout->numElements; i++) {
+        const InputElement *elem = &inputLayout->elements[i];
+        GLint location = shader->GetAttribLocation(elem->attribute);
+        glDisableVertexAttribArray(location);
+    }
 }
 
 } // renderer

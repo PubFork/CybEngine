@@ -41,6 +41,9 @@ public:
     void UnsetShader(ShaderStage stage);
     bool Link();
 
+    uint32_t LoadAttrib(const char *name);
+    int32_t GetAttribLocation(uint32_t attrib) const;
+
     bool SetUniform(const char *name, uint32_t numFloats, const float *v);
     bool SetUniform1f(const char *name, float x);
     bool SetUniform2f(const char *name, float x, float y);
@@ -54,6 +57,7 @@ public:
 private:
     std::shared_ptr<Shader> shaders[Shader_Count];
     std::vector<Uniform> uniformInfo;
+    std::vector<int32_t> attribLocations;
 };
 
 } // renderer

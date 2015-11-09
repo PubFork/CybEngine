@@ -124,6 +124,18 @@ bool ShaderSet::Link()
     return true;
 }
 
+uint32_t ShaderSet::LoadAttrib(const char *name)
+{
+    int32_t attrib = (int32_t)attribLocations.size();
+    attribLocations.push_back(glGetAttribLocation(progId, name));
+    return attrib;
+}
+
+int32_t ShaderSet::GetAttribLocation(uint32_t attrib) const
+{
+    return attribLocations[attrib];
+}
+
 bool ShaderSet::SetUniform(const char *name, uint32_t numFloats, const float *v)
 {
     for (const auto &uniform : uniformInfo) {

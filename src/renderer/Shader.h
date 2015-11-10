@@ -41,8 +41,7 @@ public:
     void UnsetShader(ShaderStage stage);
     bool Link();
 
-    uint32_t LoadAttrib(const char *name);
-    int32_t GetAttribLocation(uint32_t attrib) const;
+    GLint GetAttribLocation(uint32_t attrib) const;
 
     bool SetUniform(const char *name, uint32_t numFloats, const float *v);
     bool SetUniform1f(const char *name, float x);

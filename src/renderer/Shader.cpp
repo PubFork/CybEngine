@@ -2,9 +2,21 @@
 #include "Shader.h"
 
 #include "core/Log.h"
+#include "InputLayout.h"
 
 namespace renderer
 {
+
+static const char *attribName[Attrib_Count] = {
+    "a_position",
+    "a_normal",
+    "a_color0",
+    "a_color1",
+    "a_texCoord0",
+    "a_texCoord1",
+    "a_texCoord2",
+    "a_texCoord3",
+};
 
 GLenum GLStage(ShaderStage stage)
 {
@@ -121,17 +133,13 @@ bool ShaderSet::Link()
         }
     }
 
+    for (int i = 0; i < Attrib_Count; i++) 
+        attribLocations.push_back(glGetAttribLocation(progId, attribName[i]));
+
     return true;
 }
 
-uint32_t ShaderSet::LoadAttrib(const char *name)
-{
-    int32_t attrib = (int32_t)attribLocations.size();
-    attribLocations.push_back(glGetAttribLocation(progId, name));
-    return attrib;
-}
-
-int32_t ShaderSet::GetAttribLocation(uint32_t attrib) const
+GLint ShaderSet::GetAttribLocation(uint32_t attrib) const
 {
     return attribLocations[attrib];
 }

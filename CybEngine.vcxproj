@@ -22,7 +22,7 @@
     <ClCompile Include="src\core\Log.cpp" />
     <ClCompile Include="src\core\Timer.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\renderer\Surface.cpp" />
+    <ClCompile Include="src\renderer\InputLayout.cpp" />
     <ClCompile Include="src\renderer\RenderDevice.cpp" />
     <ClCompile Include="src\renderer\Shader.cpp" />
   </ItemGroup>
@@ -32,6 +32,8 @@
     <ClInclude Include="src\core\Log.h" />
     <ClInclude Include="src\core\MurmurHash.h" />
     <ClInclude Include="src\core\Timer.h" />
+    <ClInclude Include="src\renderer\Buffer.h" />
+    <ClInclude Include="src\renderer\InputLayout.h" />
     <ClInclude Include="src\renderer\Surface.h" />
     <ClInclude Include="src\renderer\RenderDevice.h" />
     <ClInclude Include="src\renderer\Shader.h" />

@@ -2,6 +2,7 @@
 
 #include "core/Log.h"
 #include "core/Timer.h"
+#include "renderer/InputLayout.h"
 #include "renderer/Surface.h"
 #include "renderer/RenderDevice.h"
 

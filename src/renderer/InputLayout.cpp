@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "Surface.h"
+#include "InputLayout.h"
 
 namespace renderer
 {
@@ -41,35 +41,6 @@ bool InputLayout::IsValid() const
         previousOffset = elements[i].alignedOffset;
     }
 
-    return true;
-}
-
-Buffer::Buffer() :
-    bufferId(0),
-    size(0),
-    use(0)
-{
-}
-
-Buffer::~Buffer()
-{
-    if (bufferId)
-        glDeleteBuffers(1, &bufferId);
-}
-
-bool Buffer::Data(BufferUsage usage, const void *buffer, size_t bufSize)
-{
-    switch (usage) {
-    case Buffer_Index: use = GL_ELEMENT_ARRAY_BUFFER; break;
-    default:           use = GL_ARRAY_BUFFER; break;
-    }
-
-    if (!bufferId)
-        glCreateBuffers(1, &bufferId);
-    size = bufSize;
-
-    glBindBuffer(use, bufferId);
-    glBufferData(use, size, buffer, GL_STATIC_DRAW);
     return true;
 }
 

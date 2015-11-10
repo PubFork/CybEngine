@@ -2,20 +2,10 @@
 #include "RenderDevice.h"
 
 #include "core/Log.h"
+#include "InputLayout.h"
 
 namespace renderer
 {
-
-static const char *attribName[Attrib_Count] = {
-    "a_position",
-    "a_normal",
-    "a_color0",
-    "a_color1",
-    "texCoord0",
-    "texCoord1",
-    "texCoord2",
-    "texCoord3",
-};
 
 static const char *vertexShaderMVSource =
 "#version 430 core\n"
@@ -178,9 +168,6 @@ std::shared_ptr<ShaderSet> RenderDevice::CreateShaderSet(std::initializer_list<s
     
     for (auto &shader : shaderList)
         shaderSet->SetShader(shader);
-    
-    for (int i = 0; i < Attrib_Count; i++)
-        shaderSet->LoadAttrib(attribName[i]);
 
     return shaderSet;
 }

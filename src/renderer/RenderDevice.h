@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shader.h"
+#include "Buffer.h"
 #include "Surface.h"
 
 namespace renderer

@@ -5,11 +5,6 @@
 
 #pragma once
 
-#include <GL/glew.h>
-#include <Windows.h>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
 #include <glm/mat4x4.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtc/matrix_transform.hpp>

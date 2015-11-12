@@ -24,10 +24,9 @@ public:
     virtual ~Shader_GL();
 
     GLenum GLStage() const;
-    virtual bool Compile(const char *source);
+    bool Compile(const char *source);
 
     GLuint shaderId;
-    ShaderStage stage;
 };
 
 class ShaderSet_GL : public ShaderSet
@@ -64,6 +63,7 @@ public:
     virtual std::shared_ptr<Buffer> CreateBuffer(BufferUsage usage, const void *buf, size_t bufSize);
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {});
 
+    virtual void SetFillMode(FillMode mode);
     virtual void Clear(float r, float g, float b, float a, float depth, bool clearColor = true, bool clearDepth = true);
     virtual void Render(const Surface *surf, const glm::mat4 &transform);
 

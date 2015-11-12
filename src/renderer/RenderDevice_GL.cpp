@@ -1,4 +1,7 @@
 #include "stdafx.h"
+#include <GL/glew.h>
+#include <Windows.h>
+#include <GL/glew.h>
 #include "RenderDevice_GL.h"
 
 #include "core/Log.h"
@@ -324,6 +327,13 @@ bool ShaderSet_GL::SetUniform(const char *name, uint32_t numFloats, const float 
 
 RenderDevice_GL::RenderDevice_GL()
 {
+    glewExperimental = true;
+    GLenum err = glewInit();
+    THROW_FATAL_COND(err != GLEW_OK, std::string("glew init: ") + (char *)glewGetErrorString(err));
+    DEBUG_LOG_TEXT("Using OpenGL version %s", glGetString(GL_VERSION));
+    DEBUG_LOG_TEXT("Shader language %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    DEBUG_LOG_TEXT("GLEW %s", glewGetString(GLEW_VERSION));
+
     glDebugMessageCallback(DebugOutputCallback, NULL);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 
@@ -357,6 +367,17 @@ std::shared_ptr<ShaderSet> RenderDevice_GL::CreateShaderSet(std::initializer_lis
         shaderSet->SetShader(shader);
 
     return shaderSet;
+}
+
+void RenderDevice_GL::SetFillMode(FillMode mode)
+{
+    static const GLenum glFillMode[] = {
+        GL_FILL,
+        GL_LINE,
+        GL_POINT
+    };
+
+    glPolygonMode(GL_FRONT_AND_BACK, glFillMode[mode]);
 }
 
 void RenderDevice_GL::Clear(float r, float g, float b, float a, float depth, bool clearColor, bool clearDepth)
@@ -404,6 +425,11 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
         GLint location = shader->attribLocations[elem->attribute];
         glDisableVertexAttribArray(location);
     }
+}
+
+std::shared_ptr<RenderDevice> CreateRenderDeviceGL()
+{
+    return std::make_shared<RenderDevice_GL>();
 }
 
 } // renderer

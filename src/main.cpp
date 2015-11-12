@@ -1,10 +1,12 @@
 #include "stdafx.h"
+#include <Windows.h>
+#include <GLFW/glfw3.h>
 
 #include "core/Log.h"
 #include "core/Timer.h"
 #include "renderer/InputLayout.h"
 #include "renderer/Surface.h"
-#include "renderer/RenderDevice_GL.h"
+#include "renderer/RenderDevice.h"
 
 struct Vertex_PosColor
 {
@@ -48,21 +50,12 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+        isInitialized = true;
     }
 
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(window);
     //glfwSwapInterval(0);
-
-    if (!isInitialized) {
-        glewExperimental = true;
-        GLenum err = glewInit();
-        THROW_FATAL_COND(err != GLEW_OK, std::string( "glew init: ") + (char *)glewGetErrorString(err));
-        DEBUG_LOG_TEXT("Using OpenGL version %s", glGetString(GL_VERSION));
-        DEBUG_LOG_TEXT("Shader language %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-        DEBUG_LOG_TEXT("GLEW %s", glewGetString(GLEW_VERSION));
-        isInitialized = true;
-    }
 
     return window;
 }
@@ -80,8 +73,7 @@ int main()
 
     try {
         GLFWwindow *window = OpenWindow(1024, 760, "Cyb engine test");
-
-        auto device = std::make_shared<renderer::RenderDevice_GL>();
+        auto device = renderer::CreateRenderDeviceGL();
   
         renderer::Surface surf;
         surf.geometry.vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex, cubeVertices, sizeof(cubeVertices));

@@ -20,7 +20,6 @@ class Buffer
 {
 public:
     virtual ~Buffer() = default;
-
     virtual bool SetData(BufferUsage usage, const void *buffer, size_t bufSize) = 0;
 };
 
@@ -38,9 +37,7 @@ class Shader
 public:
     Shader(ShaderStage s) : stage(s) {}
     virtual ~Shader() = default;
-
     ShaderStage GetStage() const { return stage; }
-    virtual bool Compile(const char *source) = 0;
 
 protected:
     ShaderStage stage;
@@ -89,12 +86,12 @@ public:
     virtual ~RenderDevice() = default;
 
     void SetProjection(const glm::mat4 &proj);
-    void SetFillMode(FillMode mode);
     std::shared_ptr<Shader> LoadBuiltinShader(ShaderStage stage, BuiltinShaders shader);
 
     virtual std::shared_ptr<Buffer> CreateBuffer(BufferUsage usage, const void *buf, size_t bufSize) = 0;
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {}) = 0;
     
+    virtual void SetFillMode(FillMode mode) = 0;
     virtual void Clear(float r, float g, float b, float a, float depth, bool clearColor = true, bool clearDepth = true) = 0;
     virtual void Render(const Surface *surf, const glm::mat4 &transform) = 0;
 
@@ -103,5 +100,7 @@ protected:
     std::shared_ptr<Shader> vertexShaders[VShader_Count];
     std::shared_ptr<Shader> fragmentShaders[FShader_Count];
 };
+
+std::shared_ptr<RenderDevice> CreateRenderDeviceGL();
 
 } // renderer

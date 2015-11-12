@@ -39,13 +39,10 @@
     <ClCompile Include="src\core\Timer.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\renderer\Shader.cpp">
-      <Filter>Source Files\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="src\renderer\RenderDevice.cpp">
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\renderer\InputLayout.cpp">
+    <ClCompile Include="src\renderer\RenderDevice_GL.cpp">
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
   </ItemGroup>
@@ -68,9 +65,6 @@
     <ClInclude Include="src\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\renderer\Shader.h">
-      <Filter>Header Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="src\renderer\RenderDevice.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>
@@ -80,7 +74,7 @@
     <ClInclude Include="src\renderer\InputLayout.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\renderer\Buffer.h">
+    <ClInclude Include="src\renderer\RenderDevice_GL.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,7 +4,7 @@
 #include "core/Timer.h"
 #include "renderer/InputLayout.h"
 #include "renderer/Surface.h"
-#include "renderer/RenderDevice.h"
+#include "renderer/RenderDevice_GL.h"
 
 struct Vertex_PosColor
 {
@@ -81,7 +81,7 @@ int main()
     try {
         GLFWwindow *window = OpenWindow(1024, 760, "Cyb engine test");
 
-        auto device = std::make_shared<renderer::RenderDevice>();
+        auto device = std::make_shared<renderer::RenderDevice_GL>();
   
         renderer::Surface surf;
         surf.geometry.vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex, cubeVertices, sizeof(cubeVertices));

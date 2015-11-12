@@ -83,7 +83,7 @@ static const DataFormatInfo formatInfo[] = {
     { 3, GL_FLOAT,         GL_FALSE },      // Format_RGB_F32
     { 4, GL_FLOAT,         GL_FALSE },      // Format_RGBA_F32
     { 4, GL_UNSIGNED_BYTE, GL_FALSE },      // Format_RGBA_UI8
-    { 4, GL_UNSIGNED_BYTE, GL_TRUE },      // Format_RGBA_UI8Norm
+    { 4, GL_UNSIGNED_BYTE, GL_TRUE },       // Format_RGBA_UI8Norm
 };
 
 static const GLenum glPrimType[] = {

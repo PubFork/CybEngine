@@ -2,11 +2,9 @@
 #include <GL/glew.h>
 #include <Windows.h>
 #include <GL/glew.h>
-#include "InputLayout.h"
 #include "RenderDevice_GL.h"
 
 #include "core/Log.h"
-#include "Surface.h"
 
 namespace renderer
 {

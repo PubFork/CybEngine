@@ -33,9 +33,7 @@
     <ClInclude Include="src\core\MurmurHash.h" />
     <ClInclude Include="src\core\Timer.h" />
     <ClInclude Include="src\engine\Model.h" />
-    <ClInclude Include="src\renderer\InputLayout.h" />
     <ClInclude Include="src\renderer\RenderDevice_GL.h" />
-    <ClInclude Include="src\renderer\Surface.h" />
     <ClInclude Include="src\renderer\RenderDevice.h" />
     <ClInclude Include="src\stdafx.h" />
   </ItemGroup>

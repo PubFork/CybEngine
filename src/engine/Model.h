@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer/Surface.h"
+#include "renderer/RenderDevice.h"
 
 namespace engine
 {

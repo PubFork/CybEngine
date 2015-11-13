@@ -77,12 +77,6 @@
     <ClInclude Include="src\renderer\RenderDevice.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\renderer\Surface.h">
-      <Filter>Header Files\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\InputLayout.h">
-      <Filter>Header Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="src\renderer\RenderDevice_GL.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>

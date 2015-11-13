@@ -2,10 +2,10 @@
 #include <GL/glew.h>
 #include <Windows.h>
 #include <GL/glew.h>
+#include "InputLayout.h"
 #include "RenderDevice_GL.h"
 
 #include "core/Log.h"
-#include "InputLayout.h"
 #include "Surface.h"
 
 namespace renderer
@@ -226,6 +226,8 @@ bool Shader_GL::Compile(const char *source)
 ShaderSet_GL::ShaderSet_GL()
 {
     progId = glCreateProgram();
+    for (uint32_t i = 0; i < Attrib_Count; i++)
+        attribLocations[i] = -1;
 }
 
 ShaderSet_GL::~ShaderSet_GL()
@@ -296,7 +298,7 @@ bool ShaderSet_GL::Link()
     }
 
     for (int i = 0; i < Attrib_Count; i++)
-        attribLocations.push_back(glGetAttribLocation(progId, attribName[i]));
+        attribLocations[i] = glGetAttribLocation(progId, attribName[i]);
 
     return true;
 }

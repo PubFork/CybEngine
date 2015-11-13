@@ -9,7 +9,7 @@ class Buffer_GL : public Buffer
 {
 public:
     Buffer_GL();
-    virtual ~Buffer_GL() final;
+    virtual ~Buffer_GL();
     virtual bool SetData(BufferUsage usage, const void *buffer, size_t bufSize);
 
     GLuint bufferId;
@@ -50,8 +50,8 @@ public:
 
     GLuint progId;
     std::shared_ptr<Shader> shaders[Shader_Count];
-    std::vector<Uniform> uniformInfo;
-    std::vector<int32_t> attribLocations;
+    GLint attribLocations[Attrib_Count];
+    std::list<Uniform> uniformInfo;
 };
 
 class RenderDevice_GL : public RenderDevice

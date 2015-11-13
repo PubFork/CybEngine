@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="src\core\Log.cpp" />
     <ClCompile Include="src\core\Timer.cpp" />
+    <ClCompile Include="src\engine\Model.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\renderer\RenderDevice.cpp" />
     <ClCompile Include="src\renderer\RenderDevice_GL.cpp" />
@@ -31,6 +32,7 @@
     <ClInclude Include="src\core\Log.h" />
     <ClInclude Include="src\core\MurmurHash.h" />
     <ClInclude Include="src\core\Timer.h" />
+    <ClInclude Include="src\engine\Model.h" />
     <ClInclude Include="src\renderer\InputLayout.h" />
     <ClInclude Include="src\renderer\RenderDevice_GL.h" />
     <ClInclude Include="src\renderer\Surface.h" />

@@ -28,6 +28,12 @@
     <Filter Include="Source Files\Renderer">
       <UniqueIdentifier>{375cb722-8c5c-4e48-8eae-6462c653d952}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Engine">
+      <UniqueIdentifier>{6d1e6dc4-795d-443c-99d1-0e3566896f2d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Engine">
+      <UniqueIdentifier>{8f822ea4-00cc-4de6-9e0a-cda36d0b7b32}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -44,6 +50,9 @@
     </ClCompile>
     <ClCompile Include="src\renderer\RenderDevice_GL.cpp">
       <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\engine\Model.cpp">
+      <Filter>Source Files\Engine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -76,6 +85,9 @@
     </ClInclude>
     <ClInclude Include="src\renderer\RenderDevice_GL.h">
       <Filter>Header Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\engine\Model.h">
+      <Filter>Header Files\Engine</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

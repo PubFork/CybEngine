@@ -16,13 +16,6 @@ enum BufferUsage
     Buffer_Compute
 };
 
-class Buffer
-{
-public:
-    virtual ~Buffer() = default;
-    virtual bool SetData(BufferUsage usage, const void *buffer, size_t bufSize) = 0;
-};
-
 enum ShaderStage
 {
     Shader_Vertex,
@@ -30,6 +23,31 @@ enum ShaderStage
     Shader_Fragment,
     Shader_Compute,
     Shader_Count
+};
+
+enum BuiltinShaders
+{
+    VShader_MV = 0,
+    VShader_MVP,
+    VShader_Count,
+
+    FShader_Solid = 0,
+    FShader_Gouraud,
+    FShader_Count
+};
+
+enum FillMode
+{
+    Fill_Solid,
+    Fill_Wire,
+    Fill_Point
+};
+
+class Buffer
+{
+public:
+    virtual ~Buffer() = default;
+    virtual bool SetData(BufferUsage usage, const void *buffer, size_t bufSize) = 0;
 };
 
 class Shader
@@ -61,27 +79,9 @@ public:
     bool SetUniform4x4f(const char *name, const glm::mat4 &m);
 };
 
-enum BuiltinShaders
-{
-    VShader_MV = 0,
-    VShader_MVP,
-    VShader_Count,
-
-    FShader_Solid = 0,
-    FShader_Gouraud,
-    FShader_Count
-};
-
 class RenderDevice
 {
 public:
-    enum FillMode
-    {
-        Fill_Solid,
-        Fill_Wire,
-        Fill_Point
-    };
-
     RenderDevice() = default;
     virtual ~RenderDevice() = default;
 

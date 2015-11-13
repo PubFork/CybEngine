@@ -9,8 +9,7 @@ namespace core
 // This is a sample implementation of MurmurHash2A designed to work 
 // incrementally.
 
-// Usage - 
-
+// Usage:
 // CMurmurHash2A hasher
 // hasher.Begin(seed);
 // hasher.Add(data1,size1);

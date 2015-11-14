@@ -72,15 +72,15 @@ enum PrimitiveType
 
 enum CullMode
 {
-    Cull_Back,
-    Cull_Front,
-    Cull_None
+    Cull_Back,                      // cull back facing faces
+    Cull_Front,                     // cull front facing faces
+    Cull_None                       // don't cull any faces based on winding
 };
 
 enum WindingOrder
 {
-    Winding_CW,     // clockwise
-    Winding_CCW     // counter-clockwise
+    Winding_CW,                     // clockwise
+    Winding_CCW                     // counter-clockwise
 };
 
 struct InputElement

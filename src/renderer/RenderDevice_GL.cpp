@@ -75,7 +75,7 @@ static const char *attribName[Attrib_Count] = {
 
 struct DataFormatInfo
 {
-    GLint size;
+    GLint num;
     GLenum type;
     GLboolean normalized;
 };
@@ -84,7 +84,7 @@ static const DataFormatInfo formatInfo[] = {
     { 3, GL_FLOAT,         GL_FALSE },      // Format_RGB_F32
     { 4, GL_FLOAT,         GL_FALSE },      // Format_RGBA_F32
     { 4, GL_UNSIGNED_BYTE, GL_FALSE },      // Format_RGBA_UI8
-    { 4, GL_UNSIGNED_BYTE, GL_TRUE },       // Format_RGBA_UI8Norm
+    { 4, GL_UNSIGNED_BYTE, GL_TRUE  },      // Format_RGBA_UI8Norm
 };
 
 static const GLenum glPrimType[] = {
@@ -413,7 +413,7 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
 
         GLint location = shader->attribLocations[elem->attribute];
         glEnableVertexAttribArray(location);
-        glVertexAttribPointer(location, fmt->size, fmt->type, fmt->normalized, layoutStride, (void *)elem->alignedOffset);
+        glVertexAttribPointer(location, fmt->num, fmt->type, fmt->normalized, layoutStride, (void *)elem->alignedOffset);
     }
 
     std::shared_ptr<Buffer_GL> ibo = std::dynamic_pointer_cast<Buffer_GL>(geo->indexBuffer);

@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "Log.h"
 
+#include <windows.h>
+
 namespace core
 {
 

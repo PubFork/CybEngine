@@ -6,6 +6,8 @@
 #include "core/Timer.h"
 #include "renderer/RenderDevice.h"
 
+#include "engine/Model_obj.h"
+
 struct Vertex_PosColor
 {
     float x, y, z;
@@ -62,9 +64,6 @@ int main()
 { 
 #ifdef _DEBUG
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
-    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-    _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
 #endif
 
     int returnValue = 0;
@@ -72,7 +71,10 @@ int main()
     try {
         GLFWwindow *window = OpenWindow(1024, 760, "Cyb engine test");
         auto device = renderer::CreateRenderDeviceGL();
-  
+
+        auto m = engine::OBJ_Load("Street environment_V01.obj");
+        engine::OBJ_Free(m);
+
         renderer::Surface surf;
         surf.geometry.vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex, cubeVertices, sizeof(cubeVertices));
         surf.geometry.inputLayout = { vertexLayout, _countof(vertexLayout) };

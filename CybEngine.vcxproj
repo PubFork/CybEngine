@@ -19,9 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\core\FileUtils.cpp" />
     <ClCompile Include="src\core\Log.cpp" />
     <ClCompile Include="src\core\Timer.cpp" />
     <ClCompile Include="src\engine\Model.cpp" />
+    <ClCompile Include="src\engine\Model_obj.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\renderer\RenderDevice.cpp" />
     <ClCompile Include="src\renderer\RenderDevice_GL.cpp" />
@@ -29,10 +31,12 @@
   <ItemGroup>
     <ClInclude Include="src\core\containers\LinkedList.h" />
     <ClInclude Include="src\core\containers\TempArray.h" />
+    <ClInclude Include="src\core\FileUtils.h" />
     <ClInclude Include="src\core\Log.h" />
     <ClInclude Include="src\core\MurmurHash.h" />
     <ClInclude Include="src\core\Timer.h" />
     <ClInclude Include="src\engine\Model.h" />
+    <ClInclude Include="src\engine\Model_obj.h" />
     <ClInclude Include="src\renderer\RenderDevice_GL.h" />
     <ClInclude Include="src\renderer\RenderDevice.h" />
     <ClInclude Include="src\stdafx.h" />

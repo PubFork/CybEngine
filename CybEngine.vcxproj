@@ -33,6 +33,7 @@
     <ClInclude Include="src\core\containers\TempArray.h" />
     <ClInclude Include="src\core\FileUtils.h" />
     <ClInclude Include="src\core\Log.h" />
+    <ClInclude Include="src\core\Macros.h" />
     <ClInclude Include="src\core\MurmurHash.h" />
     <ClInclude Include="src\core\Timer.h" />
     <ClInclude Include="src\engine\Model.h" />
@@ -129,6 +130,8 @@
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>Create</PrecompiledHeader>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <Optimization>Disabled</Optimization>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <AdditionalDependencies>opengl32.lib;glew32sd.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -144,12 +147,18 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
       <AdditionalIncludeDirectories>D:\Projects\CybEngine\src;D:\Projects\CybEngine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>Full</Optimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>D:\Projects\CybEngine\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,29 +1,63 @@
 #pragma once
 
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
+#include "core/Macros.h"
 
 namespace renderer
 {
 
-enum DataFormat
+namespace dev
 {
-    Format_RGB_F32,
-    Format_RGBA_F32,
-    Format_RGBA_UI8,
-    Format_RGBA_UI8Norm
+
+enum GeometryFlags
+{
+    Geo_Point               = 0x01,     // draw points
+    Geo_Line                = 0x02,     // draw lines
+    Geo_Triangle            = 0x03,     // draw triangle
+    Geo_LineStrip           = 0x04,     // draw lines
+    Geo_TriangleStrip       = 0x05,     // draw triangles
+    Geo_Quad                = 0x06,     // draw quads
+
+    Geo_DynamicVertexBuffer = 0x00,
+    Geo_DynamicIndexBuffer  = 0x00,
+    Geo_StaticVertexBuffer  = 0x08,
+    Geo_StaticIndexBuffer   = 0x10,
+
+    Geo_Dynamic = Geo_DynamicVertexBuffer | Geo_DynamicIndexBuffer,
+    Geo_Static = Geo_StaticVertexBuffer | Geo_StaticIndexBuffer
 };
 
-enum InputAttribute
+} // dev
+
+enum VertexFormat
 {
-    Attrib_Position,
-    Attrib_Normal,
-    Attrib_Color0,
-    Attrib_Color1,
-    Attrib_TexCoord0,
-    Attrib_TexCoord1,
-    Attrib_TexCoord2,
-    Attrib_TexCoord3,
-    Attrib_Count
+    VF_Invalid,
+    VF_Standard,                           // pos, normal, tex0
+    VF_Double,                             // pos, color, tex0, tex1
+    VF_Compact                             // pos, color
+};
+
+struct VertexStandard   // 32 bytes
+{
+    float x, y, z;
+    float nx, ny, nz;
+    float u, v;
+};
+
+struct VertexDouble     // 32 bytes
+{
+    float x, y, z;
+    uint32_t color;
+    float u0, v0;
+    float u1, v1;
+};
+
+struct VertexCompact    // 16 bytes
+{
+    float x, y, z;
+    uint32_t color;
 };
 
 enum BufferUsage
@@ -83,20 +117,13 @@ enum WindingOrder
     Winding_CCW                     // counter-clockwise
 };
 
-struct InputElement
+enum ClearFlags
 {
-    InputAttribute attribute;
-    DataFormat format;
-    uintptr_t alignedOffset;
-};
-
-struct InputLayout
-{
-    const InputElement *elements;
-    uint32_t numElements;
-
-    uint32_t GetStride() const;
-    bool IsValid() const;
+    Clear_None      = BIT(0),
+    Clear_Color     = BIT(1),
+    Clear_Depth     = BIT(2),
+    Clear_Stencil   = BIT(3),
+    Clear_All = Clear_Color | Clear_Depth | Clear_Stencil
 };
 
 class Buffer
@@ -137,19 +164,10 @@ public:
 
 struct SurfaceGeometry
 {
-    SurfaceGeometry()
-    {
-        vertexBuffer = nullptr;
-        inputLayout = { nullptr, 0 };
-        indexBuffer = nullptr;
-        indexCount = 0;
-        prim = Prim_Triangles;
-        culling = Cull_Back;
-        winding = Winding_CCW;
-    }
+    SurfaceGeometry();
 
     std::shared_ptr<Buffer> vertexBuffer;
-    InputLayout inputLayout;
+    VertexFormat vfmt;
     std::shared_ptr<Buffer> indexBuffer;
     uint32_t indexCount;
 
@@ -160,6 +178,12 @@ struct SurfaceGeometry
 
 struct Surface
 {
+    Surface()
+    {
+        name = "<unknown>";
+    }
+
+    std::string name;
     SurfaceGeometry geometry;
     std::shared_ptr<ShaderSet> shader;
 };
@@ -172,21 +196,22 @@ public:
 
     void SetProjection(const glm::mat4 &proj);
     std::shared_ptr<Shader> LoadBuiltinShader(ShaderStage stage, BuiltinShaders shader);
+    void SetDefaultShader(std::shared_ptr<ShaderSet> shader);
 
     virtual std::shared_ptr<Buffer> CreateBuffer(BufferUsage usage, const void *buf, size_t bufSize) = 0;
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {}) = 0;
     
     virtual void SetFillMode(FillMode mode) = 0;
-    virtual void Clear(float r, float g, float b, float a, float depth, bool clearColor = true, bool clearDepth = true) = 0;
+    virtual void Clear(int32_t flags, uint32_t color) = 0;
     virtual void Render(const Surface *surf, const glm::mat4 &transform) = 0;
 
 protected:
     glm::mat4 projection;
     std::shared_ptr<Shader> vertexShaders[VShader_Count];
     std::shared_ptr<Shader> fragmentShaders[FShader_Count];
+    std::shared_ptr<ShaderSet> defaultShader;
 };
 
-uint32_t AlignedDataFormatSize(const DataFormat format);
 std::shared_ptr<RenderDevice> CreateRenderDeviceGL();
 
 } // renderer

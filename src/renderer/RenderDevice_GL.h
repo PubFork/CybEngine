@@ -50,7 +50,6 @@ public:
 
     GLuint progId;
     std::shared_ptr<Shader> shaders[Shader_Count];
-    GLint attribLocations[Attrib_Count];
     std::list<Uniform> uniformInfo;
 };
 
@@ -64,7 +63,7 @@ public:
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {});
 
     virtual void SetFillMode(FillMode mode);
-    virtual void Clear(float r, float g, float b, float a, float depth, bool clearColor = true, bool clearDepth = true);
+    virtual void Clear(int32_t flags, uint32_t color);
     virtual void Render(const Surface *surf, const glm::mat4 &transform);
 
 private:

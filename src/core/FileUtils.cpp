@@ -22,8 +22,8 @@ FileReader::~FileReader()
 bool FileReader::Open(const char *filename)
 {
     assert(filename);
+    
     Close();
-
     std::ifstream file(filename);
     if (!file)
         return false;
@@ -33,6 +33,7 @@ bool FileReader::Open(const char *filename)
     file.seekg(0, std::ios_base::beg);
 
     fileBuffer = new char[fileSize];
+    fileEnd = fileBuffer + fileSize;
     filePointer = fileBuffer;
     file.read(fileBuffer, fileSize);
 
@@ -44,6 +45,7 @@ void FileReader::Close()
     if (IsOpen()) {
         delete[] fileBuffer;
         fileBuffer = nullptr;
+        fileEnd = nullptr;
         filePointer = nullptr;
         fileSize = 0;
     }
@@ -61,7 +63,7 @@ void FileReader::Seek(size_t offset, SeekOrigin origin)
     switch (origin) {
     case Seek_Beg: filePointer = fileBuffer + offset; break;
     case Seek_Cur: filePointer += offset; break;
-    case Seek_End: filePointer = fileBuffer + fileSize - offset; break;
+    case Seek_End: filePointer = fileEnd - offset; break;
     default: assert(0);
     }
 }
@@ -81,7 +83,7 @@ int FileReader::Peek() const
 {
     int ret = -1;
 
-    if (filePointer + 1 < fileBuffer + fileSize)
+    if (filePointer + 1 < fileEnd)
         ret = *(filePointer + 1);
 
     // HACK: This should't be needed, but seems we get the wrong filesize from os or something

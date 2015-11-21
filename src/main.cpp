@@ -6,15 +6,9 @@
 #include "core/Timer.h"
 #include "renderer/RenderDevice.h"
 
-#include "engine/Model_obj.h"
+#include "engine/Model.h"
 
-struct Vertex_PosColor
-{
-    float x, y, z;
-    uint32_t color;         // ABGR 
-};
-
-static const Vertex_PosColor cubeVertices[] = {
+static const renderer::VertexCompact cubeVertices[] = {
     { -1.0f,  1.0f,  1.0f, 0xff000000 },
     {  1.0f,  1.0f,  1.0f, 0xff0000ff },
     { -1.0f, -1.0f,  1.0f, 0xff00ff00 },
@@ -34,11 +28,6 @@ static const unsigned short cubeIndices[] = {
     2, 3, 6, 6, 3, 7
 };
 
-renderer::InputElement vertexLayout[] = {
-    { renderer::Attrib_Position, renderer::Format_RGB_F32,       0 },
-    { renderer::Attrib_Color0,   renderer::Format_RGBA_UI8Norm, 12 }
-}; 
-
 GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 {
     static bool isInitialized = false;
@@ -55,7 +44,7 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(window);
-    //glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     return window;
 }
@@ -72,17 +61,15 @@ int main()
         GLFWwindow *window = OpenWindow(1024, 760, "Cyb engine test");
         auto device = renderer::CreateRenderDeviceGL();
 
-        auto m = engine::OBJ_Load("Street environment_V01.obj");
-        engine::OBJ_Free(m);
+        engine::Model model;
+        model.LoadOBJ(device, nullptr, "assets/Street environment_V01.obj");
 
         renderer::Surface surf;
         surf.geometry.vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex, cubeVertices, sizeof(cubeVertices));
-        surf.geometry.inputLayout = { vertexLayout, _countof(vertexLayout) };
+        surf.geometry.vfmt = renderer::VF_Compact;
         surf.geometry.indexBuffer = device->CreateBuffer(renderer::Buffer_Index, cubeIndices, sizeof(cubeIndices));
         surf.geometry.indexCount = _countof(cubeIndices);
         surf.geometry.winding = renderer::Winding_CW;
-        surf.shader = device->CreateShaderSet({ device->LoadBuiltinShader(renderer::Shader_Vertex,   renderer::VShader_MVP),
-                                                device->LoadBuiltinShader(renderer::Shader_Fragment, renderer::FShader_Gouraud) });
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f));
         glm::mat4 view = glm::lookAt(
@@ -94,6 +81,8 @@ int main()
         double startTime = core::Timer::GetSeconds();
         double previousFrametime = startTime;
 
+        device->SetFillMode(renderer::Fill_Wire);
+
         while (!glfwWindowShouldClose(window)) {
             double currentTime = core::Timer::GetSeconds() - startTime;
             double frametime = currentTime - previousFrametime;
@@ -102,11 +91,13 @@ int main()
             _snprintf_s(titleBuffer, sizeof(titleBuffer), "FrameTime: %.0fms", frametime * core::Timer::MsPerSecond);
             glfwSetWindowTitle(window, titleBuffer);
 
-            device->Clear(0.7f, 0.7f, 0.82f, 1.0f, 1.0f);
+            device->Clear(renderer::Clear_All, 0xff203040);
 
-            glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.2), glm::vec3(1.0f, 0.0f, 0.0f));
-            rotate = glm::rotate(glm::mat4(rotate), (float)(currentTime*0.33), glm::vec3(0.0f, 1.0f, 0.0f));
-            device->Render(&surf, view * rotate);
+            glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.2), glm::vec3(0.0f, 1.0f, 0.0f));
+            //rotate = glm::rotate(glm::mat4(rotate), (float)(currentTime*0.33), glm::vec3(0.0f, 1.0f, 0.0f));
+            //device->Render(&surf, view * rotate);
+
+            model.Render(device, view * rotate);
 
             glfwSwapBuffers(window);
             glfwPollEvents();

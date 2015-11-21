@@ -10,6 +10,7 @@ class Model
 public:
     typedef std::list<renderer::Surface> SurfaceList;
 
+    Model();
     Model(const std::string &modelName);
     ~Model();
 
@@ -20,7 +21,8 @@ public:
     size_t NumSurfaces() const { return surfaces.size(); }
     const SurfaceList &GetSurfaces() const { return surfaces; }
 
-    virtual void Load(const std::string &filename);
+    void LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, std::shared_ptr<renderer::ShaderSet> shader, const std::string &filename);
+    void Render(std::shared_ptr<renderer::RenderDevice> device, const glm::mat4 &transform);
 
 private:
     std::string name;

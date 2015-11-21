@@ -95,5 +95,8 @@
     <ClInclude Include="src\core\FileUtils.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\core\Macros.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

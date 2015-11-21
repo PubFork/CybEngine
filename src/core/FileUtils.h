@@ -30,6 +30,7 @@ public:
 
 private:
     char *fileBuffer;
+    char *fileEnd;      // buffer + filesize
     char *filePointer;
     size_t fileSize;
 };

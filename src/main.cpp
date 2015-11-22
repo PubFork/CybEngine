@@ -5,40 +5,21 @@
 #include "core/Log.h"
 #include "core/Timer.h"
 #include "renderer/RenderDevice.h"
-
 #include "engine/Model.h"
-
-static const renderer::VertexCompact cubeVertices[] = {
-    { -1.0f,  1.0f,  1.0f, 0xff000000 },
-    {  1.0f,  1.0f,  1.0f, 0xff0000ff },
-    { -1.0f, -1.0f,  1.0f, 0xff00ff00 },
-    {  1.0f, -1.0f,  1.0f, 0xff00ffff },
-    { -1.0f,  1.0f, -1.0f, 0xffff0000 },
-    {  1.0f,  1.0f, -1.0f, 0xffff00ff },
-    { -1.0f, -1.0f, -1.0f, 0xffffff00 },
-    {  1.0f, -1.0f, -1.0f, 0xffffffff }
-};
-
-static const unsigned short cubeIndices[] = {
-    0, 1, 2, 1, 3, 2,
-    4, 6, 5, 5, 6, 7,
-    0, 2, 4, 4, 2, 6,
-    1, 5, 3, 5, 7, 3,
-    0, 4, 1, 4, 5, 1,
-    2, 3, 6, 6, 3, 7
-};
 
 GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 {
     static bool isInitialized = false;
 
-    if (!isInitialized) {
+    if (!isInitialized)
+    {
         glfwSetErrorCallback([](int, const char *msg) { throw core::FatalException(msg); });
         glfwInit();
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+        //glfwWindowHint(GLFW_SAMPLES, 64);
         isInitialized = true;
     }
 
@@ -50,40 +31,35 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 }
 
 int main()
-{ 
+{
 #ifdef _DEBUG
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
     int returnValue = 0;
 
-    try {
+    try
+    {
         GLFWwindow *window = OpenWindow(1024, 760, "Cyb engine test");
         auto device = renderer::CreateRenderDeviceGL();
 
         engine::Model model;
-        model.LoadOBJ(device, nullptr, "assets/Street environment_V01.obj");
-
-        renderer::Surface surf;
-        surf.geometry.vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex, cubeVertices, sizeof(cubeVertices));
-        surf.geometry.vfmt = renderer::VF_Compact;
-        surf.geometry.indexBuffer = device->CreateBuffer(renderer::Buffer_Index, cubeIndices, sizeof(cubeIndices));
-        surf.geometry.indexCount = _countof(cubeIndices);
-        surf.geometry.winding = renderer::Winding_CW;
+        model.LoadOBJ(device, nullptr, "assets/Porsche_911_GT2.obj");
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f));
         glm::mat4 view = glm::lookAt(
             glm::vec3(0, 0, -3),    // position
             glm::vec3(0, 0, 0),     // target
             glm::vec3(0, 1, 0));    // up
-    
+
         char titleBuffer[64];
         double startTime = core::Timer::GetSeconds();
         double previousFrametime = startTime;
 
         device->SetFillMode(renderer::Fill_Wire);
 
-        while (!glfwWindowShouldClose(window)) {
+        while (!glfwWindowShouldClose(window))
+        {
             double currentTime = core::Timer::GetSeconds() - startTime;
             double frametime = currentTime - previousFrametime;
             previousFrametime = currentTime;
@@ -94,17 +70,15 @@ int main()
             device->Clear(renderer::Clear_All, 0xff203040);
 
             glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.2), glm::vec3(0.0f, 1.0f, 0.0f));
-            //rotate = glm::rotate(glm::mat4(rotate), (float)(currentTime*0.33), glm::vec3(0.0f, 1.0f, 0.0f));
-            //device->Render(&surf, view * rotate);
-
             model.Render(device, view * rotate);
 
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
-    } catch (const std::exception &e) {
+    } catch (const std::exception &e)
+    {
         DEBUG_LOG_TEXT("*** Error: %s", e.what());
-        MessageBox(0, e.what(), 0, MB_OK | MB_ICONERROR | MB_SETFOREGROUND); 
+        MessageBox(0, e.what(), 0, MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
         returnValue = 1;
     }
 

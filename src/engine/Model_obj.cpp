@@ -39,40 +39,18 @@ inline float ParseFloat(const char *&token)
     return value;
 }
 
-inline void ParseFloat2(const char *&token, float &x, float &y)
-{
-    x = ParseFloat(token);
-    y = ParseFloat(token);
-}
-
-inline void ParseFloat3(const char *&token, float &x, float &y, float &z)
-{
-    x = ParseFloat(token);
-    y = ParseFloat(token);
-    z = ParseFloat(token);
-}
-
-inline std::string ParseString(const char *&token)
-{
-    token += strspn(token, " \t");
-    size_t e = strcspn(token, " \t\r\n");
-    std::string str(token, &token[e]);
-    token += e;
-    return str;
-}
-
 inline uint16_t FixIndex(int idx)
 {
     if (idx > 0)
         return (uint16_t)idx - 1;
-    return (uint16_t)idx;
+    return 0;
 }
 
 inline Obj_VertexIndex ParseFaceIndex(const char *&token, Obj_VertexIndex &vi)
 {
     vi = { 0, 0, 0 };
 
-    vi.v = FixIndex(atoi(token));
+    vi.v = (uint16_t)atoi(token);
     token += strcspn(token, "/ \t\r");
     if (token[0] != '/')
         return vi;
@@ -82,38 +60,53 @@ inline Obj_VertexIndex ParseFaceIndex(const char *&token, Obj_VertexIndex &vi)
     // i//k
     if (token[0] == '/') {
         token++;
-        vi.vn = FixIndex(atoi(token));
+        vi.vn = (uint16_t)atoi(token);
         token += strcspn(token, "/ \t\r");
         return vi;
     }
 
     // i/j/k or i/j
-    vi.vt = FixIndex(atoi(token));
+    vi.vt = (uint16_t)atoi(token);
     token += strcspn(token, "/ \t\r");
     if (token[0] != '/')
         return vi;
 
     // i/j/k
     token++;
-    vi.vn = FixIndex(atoi(token));
+    vi.vn = (uint16_t)atoi(token);
     token += strcspn(token, "/ \t\r\n");
 
-    //DEBUG_LOG_TEXT("FaceIndex %d/%d/%d", vi.v+1, vi.vt+1, vi.vn+1);
     return vi;
 }
 
-uint16_t UpdateVertex(std::map<Obj_VertexIndex, uint16_t> &vertexCache, Obj_Surface &surface, const std::vector<float> &positions, const Obj_VertexIndex &vi)
+uint16_t UpdateVertex(std::map<Obj_VertexIndex, uint16_t> &vertexCache, Obj_Surface &surface, const std::vector<float> &positions, const std::vector<float> &normals, const std::vector<float> &texCoords, const Obj_VertexIndex &vi)
 {
     auto it = vertexCache.find(vi);
     if (it != vertexCache.end())
         return it->second;
 
-    assert(positions.size() > (unsigned int)(3 * vi.v + 2));
+    uint32_t vertexIndex = FixIndex(vi.v) * 3;;
+    assert(positions.size() > (unsigned int)(vertexIndex + 2));
 
-    Obj_Vertex vertex;
-    vertex.position[0] = positions[3 * vi.v + 0];
-    vertex.position[1] = positions[3 * vi.v + 1];
-    vertex.position[2] = positions[3 * vi.v + 2];
+    Obj_Vertex vertex = { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } };
+    vertex.position[0] = positions[vertexIndex + 0];
+    vertex.position[1] = positions[vertexIndex + 1];
+    vertex.position[2] = positions[vertexIndex + 2];
+
+    if (vi.vn)
+    { 
+        uint32_t normalIndex = FixIndex(vi.vn) * 3;
+        vertex.normal[0] = normals[normalIndex + 0];
+        vertex.normal[1] = normals[normalIndex + 1];
+        vertex.normal[2] = normals[normalIndex + 2];
+    }
+
+    if (vi.vt)
+    {
+        uint32_t texCoordIndex = FixIndex(vi.vt) * 2;
+        vertex.texCoord[0] = texCoords[texCoordIndex + 0];
+        vertex.texCoord[1] = texCoords[texCoordIndex + 1];
+    }
 
     surface.vertices.push_back(vertex);
     uint16_t idx = static_cast<uint16_t>(surface.vertices.size() - 1);
@@ -122,7 +115,7 @@ uint16_t UpdateVertex(std::map<Obj_VertexIndex, uint16_t> &vertexCache, Obj_Surf
     return idx;
 }
 
-bool ExportFaceGroupToSurface(Obj_Surface &surface, const Obj_FaceGroup &faceGroup, const std::vector<float> &positions, const std::string name)
+bool ExportFaceGroupToSurface(Obj_Surface &surface, const Obj_FaceGroup &faceGroup, const std::vector<float> &positions, const std::vector<float> &normals, const std::vector<float> &texCoords, const std::string name)
 {
     std::map<Obj_VertexIndex, uint16_t> vertexCache;
 
@@ -144,9 +137,9 @@ bool ExportFaceGroupToSurface(Obj_Surface &surface, const Obj_FaceGroup &faceGro
             i1 = i2;
             i2 = face[k];
 
-            uint16_t v0 = UpdateVertex(vertexCache, surface, positions, i0);
-            uint16_t v1 = UpdateVertex(vertexCache, surface, positions, i1);
-            uint16_t v2 = UpdateVertex(vertexCache, surface, positions, i2);
+            uint16_t v0 = UpdateVertex(vertexCache, surface, positions, normals, texCoords, i0);
+            uint16_t v1 = UpdateVertex(vertexCache, surface, positions, normals, texCoords, i1);
+            uint16_t v2 = UpdateVertex(vertexCache, surface, positions, normals, texCoords, i2);
 
             surface.indices.push_back(v0);
             surface.indices.push_back(v1);
@@ -186,19 +179,35 @@ Obj_Model *OBJ_Load(const char *filename)
             continue;
 
         // vertex
-        if (linebuf[0] == 'v' && isspace(linebuf[1])) {
+        if (!strncmp(linebuf, "v ", 2)) {
             linebuf += 2;
-            float x, y, z;
-            ParseFloat3(linebuf, x, y, z);
-            v.push_back(x);
-            v.push_back(y);
-            v.push_back(z);
-            //DEBUG_LOG_TEXT("v %f %f %f", x, y, z);
+            v.push_back(ParseFloat(linebuf));
+            v.push_back(ParseFloat(linebuf));
+            v.push_back(ParseFloat(linebuf));
+            continue;
+        }
+
+        // vertex normal
+        if (!strncmp(linebuf, "vn ", 3))
+        {
+            linebuf += 3;
+            vn.push_back(ParseFloat(linebuf));
+            vn.push_back(ParseFloat(linebuf));
+            vn.push_back(ParseFloat(linebuf));
+            continue;
+        }
+
+        // vertex tex coord
+        if (!strncmp(linebuf, "vt ", 3))
+        {
+            linebuf += 3;
+            vt.push_back(ParseFloat(linebuf));
+            vt.push_back(ParseFloat(linebuf));
             continue;
         }
 
         // face
-        if (linebuf[0] == 'f' && isspace(linebuf[1])) {
+        if (!strncmp(linebuf, "f ", 2)) {
             linebuf += 2;
             linebuf += strspn(linebuf, " \t");
 
@@ -211,17 +220,16 @@ Obj_Model *OBJ_Load(const char *filename)
                 linebuf += n;
             }
 
-            //DEBUG_LOG_TEXT("====[ End face with %d edges", face.size());
             faceGroup.push_back(face);
             continue;
         }
 
         // group name
-        if (linebuf[0] == 'g' && isspace(linebuf[1])) {
+        if (!strncmp(linebuf, "g ", 2)) {
             // save current surface to model
             Obj_Surface surf;
 
-            if (ExportFaceGroupToSurface(surf, faceGroup, v, name)) {
+            if (ExportFaceGroupToSurface(surf, faceGroup, v, vn, vt, name)) {
                 model->surfaces.push_back(surf);
             }
 
@@ -230,13 +238,15 @@ Obj_Model *OBJ_Load(const char *filename)
 
             // parse name for next surface
             linebuf += 2;
-            name = ParseString(linebuf);
-            //DEBUG_LOG_TEXT("Group name %s", name.c_str());
+            linebuf += strspn(linebuf, " \t");
+            size_t e = strcspn(linebuf, "\r\n");
+            name = std::string(linebuf, &linebuf[e]);
+            linebuf += e;
         }
     }
 
     Obj_Surface surf;
-    if (ExportFaceGroupToSurface(surf, faceGroup, v, name)) {
+    if (ExportFaceGroupToSurface(surf, faceGroup, v, vn, vt, name)) {
         model->surfaces.push_back(surf);
     }
 

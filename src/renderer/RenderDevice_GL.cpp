@@ -16,11 +16,11 @@ namespace renderer
  *********************************************************************/
 
 #define VERTEX_SHADER_COMMON                    \
-"#version 420 core\n"                             \
-"layout(location = 1) in vec3 a_position;\n"     \
-"layout(location = 2) in vec3 a_normal;\n"       \
-"layout(location = 3) in vec4 a_color;\n"        \
-"layout(location = 4) in vec2 a_tex0;\n"         \
+"#version 420 core\n"                           \
+"layout(location = 1) in vec3 a_position;\n"    \
+"layout(location = 2) in vec3 a_normal;\n"      \
+"layout(location = 3) in vec4 a_color;\n"       \
+"layout(location = 4) in vec2 a_tex0;\n"        \
 "layout(location = 5) in vec2 a_tex1;\n"
 
 static const char *vertexShaderMVSource =
@@ -83,7 +83,7 @@ struct InputElement
     GLint location;
     const char *attribute;
     uintptr_t offset;
-    GLenum type; 
+    GLenum type;
     GLint size;
     GLboolean normalized;
 };
@@ -95,14 +95,14 @@ struct InputLayout
     uint32_t numElements;
 };
 
-static const InputElement defaultVertexDecl[] = 
+static const InputElement defaultVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
     { 2, "a_normal",   12, GL_FLOAT,         3, GL_FALSE },
     { 4, "a_tex0",     24, GL_FLOAT,         2, GL_FALSE }
 };
 
-static const InputElement doubleVertexDecl[] = 
+static const InputElement doubleVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
     { 3, "a_color",    12, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
@@ -155,13 +155,15 @@ void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenu
 
 void SetCullFlags(CullMode culling, WindingOrder winding)
 {
-    switch (winding) {
+    switch (winding)
+    {
     case Winding_CCW: glFrontFace(GL_CCW); break;
     case Winding_CW:  glFrontFace(GL_CW); break;
     default: assert(0);
     }
 
-    switch (culling) {
+    switch (culling)
+    {
     case Cull_None:
         glDisable(GL_CULL_FACE);
         break;
@@ -194,7 +196,8 @@ Buffer_GL::~Buffer_GL()
 
 bool Buffer_GL::SetData(BufferUsage usage, const void *buffer, size_t bufSize)
 {
-    switch (usage) {
+    switch (usage)
+    {
     case Buffer_Index: target = GL_ELEMENT_ARRAY_BUFFER; break;
     default:           target = GL_ARRAY_BUFFER; break;
     }
@@ -243,7 +246,8 @@ bool Shader_GL::Compile(const char *source)
 
     GLint compiled = 0;
     glGetShaderiv(shaderId, GL_COMPILE_STATUS, &compiled);
-    if (!compiled) {
+    if (!compiled)
+    {
         GLchar infoLog[1024];
         glGetShaderInfoLog(shaderId, sizeof(infoLog), 0, infoLog);
         DEBUG_LOG_TEXT_COND(infoLog[0], "Compiling shader:\n%s\nFailed: %s", source, infoLog);
@@ -278,7 +282,8 @@ void ShaderSet_GL::UnsetShader(ShaderStage stage)
 {
     std::shared_ptr<Shader_GL> shader = std::dynamic_pointer_cast<Shader_GL>(shaders[stage]);
 
-    if (shader) {
+    if (shader)
+    {
         glDetachShader(progId, shader->shaderId);
         shaders[stage] = nullptr;
     }
@@ -356,16 +361,19 @@ bool ShaderSet_GL::Link()
 
 bool ShaderSet_GL::SetUniform(const char *name, uint32_t numFloats, const float *v)
 {
-    for (const auto &uniform : uniformInfo) {
-        if (!strcmp(uniform.name.c_str(), name)) {
+    for (const auto &uniform : uniformInfo)
+    {
+        if (!strcmp(uniform.name.c_str(), name))
+        {
             glUseProgram(progId);
 
-            switch (uniform.numFloats) {
+            switch (uniform.numFloats)
+            {
             case 1:   glUniform1fv(uniform.location, numFloats, v); break;
             case 2:   glUniform2fv(uniform.location, numFloats / 2, v); break;
             case 3:   glUniform3fv(uniform.location, numFloats / 3, v); break;
             case 4:   glUniform4fv(uniform.location, numFloats / 4, v); break;
-            //case 12:  glUniformMatrix3fv(uniform.location, 1, 1, v); break;
+                //case 12:  glUniformMatrix3fv(uniform.location, 1, 1, v); break;
             case 16:  glUniformMatrix4fv(uniform.location, 1, GL_FALSE, v); break;
             default: assert(0);
             }
@@ -441,7 +449,7 @@ void RenderDevice_GL::Clear(int32_t flags, uint32_t color)
 {
     float a = ((color >> 24) & 255) * (1.f / 255.f);
     float r = ((color >> 16) & 255) * (1.f / 255.f);
-    float g = ((color >>  8) & 255) * (1.f / 255.f);
+    float g = ((color >> 8) & 255) * (1.f / 255.f);
     float b = (color & 255) * (1.f / 255.f);
     glClearColor(r, g, b, a);
 
@@ -483,7 +491,8 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
     glBindBuffer(GL_ARRAY_BUFFER, vbo->bufferId);
 
     const InputLayout *inputLayout = &vertexLayouts[geo->vfmt];
-    for (uint32_t i = 0; i < inputLayout->numElements; i++) {
+    for (uint32_t i = 0; i < inputLayout->numElements; i++)
+    {
         const InputElement *elem = &inputLayout->elements[i];
 
         glEnableVertexAttribArray(elem->location);
@@ -494,7 +503,8 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo->bufferId);
     glDrawElements(glPrimType[geo->prim], geo->indexCount, GL_UNSIGNED_SHORT, NULL);
 
-    for (uint32_t i = 0; i < inputLayout->numElements; i++) {
+    for (uint32_t i = 0; i < inputLayout->numElements; i++)
+    {
         const InputElement *elem = &inputLayout->elements[i];
         glDisableVertexAttribArray(elem->location);
     }

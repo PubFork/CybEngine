@@ -2,7 +2,7 @@
 
 namespace engine
 {
-namespace obj_loader
+namespace priv
 {
 
 struct Obj_VertexIndex
@@ -40,5 +40,5 @@ struct Obj_Model
 Obj_Model *OBJ_Load(const char *filename);
 void OBJ_Free(Obj_Model *model);
 
-} // obj_loader
+} // priv
 } // engine

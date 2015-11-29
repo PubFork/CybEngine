@@ -3,8 +3,6 @@
 
 #include "Model_obj.h"
 
-#define VECTOR_BYTESIZE(v) (sizeof(v[0]) * v.size())
-
 namespace engine
 {
 
@@ -42,7 +40,7 @@ void Model::Render(std::shared_ptr<renderer::RenderDevice> device, const glm::ma
 
 void Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, std::shared_ptr<renderer::ShaderSet> shader, const std::string &filename)
 {
-    obj_loader::Obj_Model *objModel = obj_loader::OBJ_Load(filename.c_str());
+    priv::Obj_Model *objModel = priv::OBJ_Load(filename.c_str());
     InitEmpty(objModel->name.empty() ? "<unknown>" : objModel->name);
 
     for (auto &objSurf : objModel->surfaces) {
@@ -58,7 +56,7 @@ void Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, std::shared_
         AddSurface(surf);
     }
 
-    obj_loader::OBJ_Free(objModel);
+    priv::OBJ_Free(objModel);
 }
 
 } // engine

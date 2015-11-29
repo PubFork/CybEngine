@@ -11,7 +11,7 @@
 
 namespace engine
 {
-namespace obj_loader
+namespace priv
 {
 
 inline bool operator<(const Obj_VertexIndex &a, const Obj_VertexIndex &b)
@@ -261,5 +261,5 @@ void OBJ_Free(Obj_Model *model)
     delete model;
 }
 
-} // obj_loader
+} // priv
 } // engine

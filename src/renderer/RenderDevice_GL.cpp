@@ -280,7 +280,7 @@ bool Shader_GL::Compile(const char *source)
     glGetShaderiv(shaderId, GL_COMPILE_STATUS, &compiled);
     if (!compiled)
     {
-        GLchar infoLog[1024];
+        GLchar infoLog[KILOBYTES(1)];
         glGetShaderInfoLog(shaderId, sizeof(infoLog), 0, infoLog);
         DEBUG_LOG_TEXT_COND(infoLog[0], "Compiling shader:\n%s\nFailed: %s", source, infoLog);
         return false;
@@ -332,7 +332,7 @@ bool ShaderSet_GL::Link()
     glGetProgramiv(progId, GL_LINK_STATUS, &linked);
     if (!linked)
     {
-        GLchar infoLog[1024];
+        GLchar infoLog[KILOBYTES(1)];
         glGetProgramInfoLog(progId, sizeof(infoLog), 0, infoLog);
         DEBUG_LOG_TEXT_COND(infoLog[0], "Linking shaders failed: %s", infoLog);
         return false;

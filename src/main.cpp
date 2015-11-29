@@ -45,7 +45,7 @@ int main()
 
         engine::Model model;
         auto litShader = device->CreateShaderSet({ device->LoadBuiltinShader(renderer::Shader_Vertex, renderer::VShader_MVP), device->LoadBuiltinShader(renderer::Shader_Fragment, renderer::FShader_LitGouraud) });
-        model.LoadOBJ(device, litShader, "assets/Porsche_911_GT2.obj");
+        model.LoadOBJ(device, litShader, "assets/knot.obj");
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f));
         glm::mat4 view = glm::lookAt(
@@ -70,7 +70,7 @@ int main()
 
             device->Clear(renderer::Clear_All, 0xff203040);
 
-            glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.2), glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.4), glm::vec3(0.0f, 1.0f, 0.0f));
             model.Render(device, view * rotate);
 
             glfwSwapBuffers(window);

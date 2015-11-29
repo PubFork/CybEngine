@@ -45,7 +45,7 @@ void Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, std::shared_
     obj_loader::Obj_Model *objModel = obj_loader::OBJ_Load(filename.c_str());
     InitEmpty(objModel->name.empty() ? "<unknown>" : objModel->name);
 
-    for (const auto &objSurf : objModel->surfaces) {
+    for (auto &objSurf : objModel->surfaces) {
         renderer::Surface surf;
         renderer::SurfaceGeometry *geo = &surf.geometry;
         geo->vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex, &objSurf.vertices[0], VECTOR_BYTESIZE(objSurf.vertices));

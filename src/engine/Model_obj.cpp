@@ -51,7 +51,7 @@ inline Obj_VertexIndex ParseFaceIndex(const char *&token, Obj_VertexIndex &vi)
     vi = { 0, 0, 0 };
 
     vi.v = (uint16_t)atoi(token);
-    token += strcspn(token, "/ \t\r");
+    token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
         return vi;
 
@@ -61,13 +61,13 @@ inline Obj_VertexIndex ParseFaceIndex(const char *&token, Obj_VertexIndex &vi)
     if (token[0] == '/') {
         token++;
         vi.vn = (uint16_t)atoi(token);
-        token += strcspn(token, "/ \t\r");
+        token += strcspn(token, "/ \t\r\n");
         return vi;
     }
 
     // i/j/k or i/j
     vi.vt = (uint16_t)atoi(token);
-    token += strcspn(token, "/ \t\r");
+    token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
         return vi;
 
@@ -93,6 +93,7 @@ uint16_t UpdateVertex(std::map<Obj_VertexIndex, uint16_t> &vertexCache, Obj_Surf
     vertex.position[1] = positions[vertexIndex + 1];
     vertex.position[2] = positions[vertexIndex + 2];
 
+    
     if (vi.vn)
     { 
         uint32_t normalIndex = FixIndex(vi.vn) * 3;
@@ -123,7 +124,8 @@ bool ExportFaceGroupToSurface(Obj_Surface &surface, const Obj_FaceGroup &faceGro
         return false;
 
     // Flatten vertices and indices
-    for (size_t i = 0; i < faceGroup.size(); i++) {
+    for (size_t i = 0; i < faceGroup.size(); i++)
+    {
         const std::vector<Obj_VertexIndex> &face = faceGroup[i];
 
         Obj_VertexIndex i0 = face[0];
@@ -133,7 +135,8 @@ bool ExportFaceGroupToSurface(Obj_Surface &surface, const Obj_FaceGroup &faceGro
         size_t npolys = face.size();
 
         // Polygon -> triangle fan conversion
-        for (size_t k = 2; k < npolys; k++) {
+        for (size_t k = 2; k < npolys; k++)
+        {
             i1 = i2;
             i2 = face[k];
 
@@ -146,7 +149,7 @@ bool ExportFaceGroupToSurface(Obj_Surface &surface, const Obj_FaceGroup &faceGro
             surface.indices.push_back(v2);
         }
     }
-    
+
     surface.name = name;
     return true;
 }

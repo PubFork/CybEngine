@@ -17,8 +17,8 @@ typedef std::vector<Obj_Face> Obj_FaceGroup;
 
 struct Obj_Vertex
 {
-    float position[3];
-    float normal[3];
+    glm::vec3 position;
+    glm::vec3 normal;
     float texCoord[2];
 };
 

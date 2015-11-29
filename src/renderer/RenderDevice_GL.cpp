@@ -17,34 +17,41 @@ namespace renderer
 
 #define VERTEX_SHADER_COMMON                    \
 "#version 420 core\n"                           \
+"uniform mat4 u_proj;\n"                        \
+"uniform mat4 u_modelView;\n"                   \
 "layout(location = 1) in vec3 a_position;\n"    \
 "layout(location = 2) in vec3 a_normal;\n"      \
 "layout(location = 3) in vec4 a_color;\n"       \
 "layout(location = 4) in vec2 a_tex0;\n"        \
-"layout(location = 5) in vec2 a_tex1;\n"
+"layout(location = 5) in vec2 a_tex1;\n"        \
+"out vec4 o_color;\n"                           \
+"out vec3 o_normal;\n"                          \
+"out vec2 o_tex0;\n"                            \
+"out vec2 o_tex1;\n"
 
 static const char *vertexShaderMVSource =
 VERTEX_SHADER_COMMON
-"uniform mat4 u_modelView;\n"
-"out vec4 color0;\n"
 "void main()\n"
 "{\n"
 "   gl_Position = u_modelView * vec4(a_position, 1);\n"
-"   color0 = a_color;\n"
+"   o_color = a_color; \n"
+"   o_normal = vec3(u_modelView * vec4(a_normal, 0));\n"
+"   o_tex0 = a_tex0;\n"
+"   o_tex1 = a_tex1;\n"
 "}\n";
 
 static const char *vertexShaderMVPSource =
 VERTEX_SHADER_COMMON
-"uniform mat4 u_proj;\n"
-"uniform mat4 u_modelView;\n"
-"out vec4 color0;\n"
 "void main()\n"
 "{\n"
 "   gl_Position = u_proj * (u_modelView * vec4(a_position, 1));\n"
-"   color0 = a_color;\n"
+"   o_color = a_color;\n"
+"   o_normal = vec3(u_modelView * vec4(a_normal, 0));\n"
+"   o_tex0 = a_tex0;\n"
+"   o_tex1 = a_tex1;\n"
 "}\n";
 
-static const char *fragmentShaderFlatSource =
+static const char *fsFlatSource =
 "#version 420 core\n"
 "uniform vec4 u_color;\n"
 "out vec4 fragColor;\n"
@@ -53,13 +60,37 @@ static const char *fragmentShaderFlatSource =
 "   fragColor = u_color;\n"
 "}\n";
 
-static const char *fragmentShaderGouraudSource =
+static const char *fsGouraudSource =
 "#version 420 core\n"
-"in vec4 color0;\n"
+"in vec4 o_color;\n"
 "out vec4 fragColor;\n"
 "void main()\n"
 "{\n"
-"   fragColor = color0;\n"
+"   fragColor = o_color;\n"
+"}\n";
+
+static const char *fsLitGouraudSource =
+"#version 420 core\n"
+"in vec4 o_color;\n"
+"in vec3 o_normal;\n"
+"out vec4 fragColor;\n"
+
+"struct DirectionalLight\n"
+"{\n"
+"    vec3 color;\n"
+"    vec3 direction;\n"
+"    float ambientIntensity;\n"
+"};\n"
+
+"void main()\n"
+"{\n"
+"   DirectionalLight light;\n"
+"   light.color = vec3(1.0, 1.0, 1.0);\n"
+"   light.direction = vec3(-1.0, -1.0, -1.0);\n"
+"   light.ambientIntensity = 0.2;\n"
+"   vec4 blueColor = vec4(0, 0, 1, 1);\n"
+"   float diffuseIntensity = max(0.0, dot(normalize(o_normal), -normalize(light.direction)));\n"
+"   fragColor = blueColor * vec4(light.color * (light.ambientIntensity + diffuseIntensity), 1.0);\n"
 "}\n";
 
 static const char *vertexShaderSources[VShader_Count] = {
@@ -68,8 +99,9 @@ static const char *vertexShaderSources[VShader_Count] = {
 };
 
 static const char *fragmentShaderSources[FShader_Count] = {
-    fragmentShaderFlatSource,
-    fragmentShaderGouraudSource
+    fsFlatSource,
+    fsGouraudSource,
+    fsLitGouraudSource
 };
 
 /*********************************************************************
@@ -410,6 +442,10 @@ RenderDevice_GL::RenderDevice_GL()
     // create default shader set
     SetDefaultShader(CreateShaderSet({ LoadBuiltinShader(renderer::Shader_Vertex, renderer::VShader_MVP),
                                        LoadBuiltinShader(renderer::Shader_Fragment, renderer::FShader_Gouraud) }));
+
+    // setup default states
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
 }
 
 RenderDevice_GL::~RenderDevice_GL()

@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Log.h"
 
+#include "FileUtils.h"
 #include <windows.h>
 
 namespace core
@@ -45,11 +46,7 @@ void LogText(const char *fmt, ...)
 
 void LogSaveToFile(const char *filename)
 {
-    std::ofstream file(filename);
-    DEBUG_LOG_TEXT_COND(!file.is_open(), "Coult't open %s for writing", filename);
-    if (file.is_open()) {
-        file.write(logStream.str(), logStream.pcount());
-    }
+    WriteDataToFile(filename, logStream.str(), logStream.pcount());
 }
 
 }   // core

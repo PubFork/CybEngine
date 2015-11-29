@@ -25,14 +25,38 @@ public:
     size_t Tell() const;
     int Peek() const;
 
-    char ReadChar();
+    size_t Read(void *buffer, size_t numBytes);
+    size_t ReadChar(char &c);
+    size_t ReadUInt16(uint16_t &value);
+    size_t ReadSInt16(int16_t &value);
+    size_t ReadUInt32(uint32_t &value);
+    size_t ReadSInt32(int32_t &value);
+    size_t ReadFloat(float &value);
+
     const char *GetLine(size_t *length);
 
 private:
     char *fileBuffer;
-    char *fileEnd;      // buffer + filesize
-    char *filePointer;
+    char *currentPosition;
     size_t fileSize;
 };
+
+class FileWriter
+{
+public:
+    FileWriter(const char *filename, bool truncate);
+    ~FileWriter();
+
+    bool Open(const char *filename, bool truncate);
+    void Close();
+    bool IsOpen();
+
+    size_t Write(const void *buffer, size_t numBytes);
+
+private:
+    std::ofstream file;
+};
+
+size_t WriteDataToFile(const char *filename, const void *buffer, size_t numBytes);
 
 } // core

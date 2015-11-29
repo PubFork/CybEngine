@@ -19,7 +19,7 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
-        //glfwWindowHint(GLFW_SAMPLES, 64);
+        glfwWindowHint(GLFW_SAMPLES, 64);
         isInitialized = true;
     }
 
@@ -44,9 +44,10 @@ int main()
         auto device = renderer::CreateRenderDeviceGL();
 
         engine::Model model;
-        model.LoadOBJ(device, nullptr, "assets/Porsche_911_GT2.obj");
+        auto litShader = device->CreateShaderSet({ device->LoadBuiltinShader(renderer::Shader_Vertex, renderer::VShader_MVP), device->LoadBuiltinShader(renderer::Shader_Fragment, renderer::FShader_LitGouraud) });
+        model.LoadOBJ(device, litShader, "assets/Porsche_911_GT2.obj");
 
-        device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f));
+        device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f));
         glm::mat4 view = glm::lookAt(
             glm::vec3(0, 0, -3),    // position
             glm::vec3(0, 0, 0),     // target
@@ -56,7 +57,7 @@ int main()
         double startTime = core::Timer::GetSeconds();
         double previousFrametime = startTime;
 
-        device->SetFillMode(renderer::Fill_Wire);
+        //device->SetFillMode(renderer::Fill_Wire);
 
         while (!glfwWindowShouldClose(window))
         {

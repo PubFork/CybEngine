@@ -86,6 +86,7 @@ enum BuiltinShaders
 
     FShader_Solid = 0,
     FShader_Gouraud,
+    FShader_LitGouraud,
     FShader_Count
 };
 

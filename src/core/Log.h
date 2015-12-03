@@ -6,17 +6,17 @@ namespace core
 class FatalException : public std::exception
 {
 public:
-    FatalException(const std::string &message);
+    FatalException(const std::string& message);
     virtual ~FatalException() = default;
 
-    virtual const char *what() const final;
+    virtual const char* what() const final;
 
 private:
     std::string errorMessage;
 };
 
-void LogText(const char *fmt, ...);
-void LogSaveToFile(const char *filename);
+void LogText(const char* fmt, ...);
+void LogSaveToFile(const char* filename);
 
 }   // core
 

@@ -5,40 +5,58 @@ namespace engine
 namespace priv
 {
 
-struct Obj_VertexIndex
+struct ObjIndex
 {
     uint16_t v;
     uint16_t vt;
     uint16_t vn;
 };
 
-typedef std::vector<Obj_VertexIndex> Obj_Face;
-typedef std::vector<Obj_Face> Obj_FaceGroup;
+typedef std::vector<ObjIndex> ObjFace;
+typedef std::vector<ObjFace> ObjFaceGroup;
 
-struct Obj_Vertex
+struct ObjVertex
 {
+    ObjVertex()
+    {
+        position = glm::vec3(0.0f, 0.0f, 0.0f);
+        normal = glm::vec3(0.0f, 0.0f, 0.0f);
+        texCoord[0] = texCoord[1] = 0.0f;
+    }
+
     glm::vec3 position;
     glm::vec3 normal;
     float texCoord[2];
 };
 
-struct Obj_Surface
+struct ObjMaterial
 {
     std::string name;
-    std::vector<Obj_Vertex> vertices;
+    glm::vec3 ambientColor;
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
+    std::string ambientTexture;
+    std::string diffuseTexture;
+    std::string specularTexture;
+};
+
+struct ObjSurface
+{
+    std::string name;
+    std::vector<ObjVertex> vertices;
     std::vector<uint16_t> indices;
-    bool hasNormals;
-    bool hasTexCoords;
+    ObjMaterial *material;
 };
 
-struct Obj_Model
+struct ObjModel
 {
     std::string name;
-    std::vector<Obj_Surface> surfaces;
+    std::vector<ObjSurface> surfaces;
+    std::unordered_map<std::string, ObjMaterial> materials;
 };
 
-Obj_Model *OBJ_Load(const char *filename);
-void OBJ_Free(Obj_Model *model);
+ObjModel *OBJ_Load(const char *filename);
+void OBJ_Free(ObjModel *model);
 
 } // priv
 } // engine

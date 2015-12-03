@@ -14,7 +14,7 @@ namespace engine
 namespace priv
 {
 
-inline bool operator<(const Obj_VertexIndex &a, const Obj_VertexIndex &b)
+inline bool operator<(const ObjIndex &a, const ObjIndex &b)
 {
     if (a.v != b.v)
         return (a.v < b.v);
@@ -46,7 +46,7 @@ inline uint16_t FixIndex(int idx)
     return 0;
 }
 
-inline Obj_VertexIndex ParseFaceIndex(const char *&token, Obj_VertexIndex &vi)
+inline ObjIndex ParseFaceIndex(const char *&token, ObjIndex &vi)
 {
     vi = { 0, 0, 0 };
 
@@ -79,7 +79,7 @@ inline Obj_VertexIndex ParseFaceIndex(const char *&token, Obj_VertexIndex &vi)
     return vi;
 }
 
-uint16_t UpdateVertex(std::map<Obj_VertexIndex, uint16_t> &vertexCache, Obj_Surface &surface, const std::vector<float> &positions, const std::vector<float> &normals, const std::vector<float> &texCoords, const Obj_VertexIndex &vi)
+uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &surface, const std::vector<float> &positions, const std::vector<float> &normals, const std::vector<float> &texCoords, const ObjIndex &vi)
 {
     auto it = vertexCache.find(vi);
     if (it != vertexCache.end())
@@ -88,11 +88,10 @@ uint16_t UpdateVertex(std::map<Obj_VertexIndex, uint16_t> &vertexCache, Obj_Surf
     uint32_t vertexIndex = FixIndex(vi.v) * 3;;
     assert(positions.size() > (unsigned int)(vertexIndex + 2));
 
-    Obj_Vertex vertex = { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } };
+    ObjVertex vertex;
     vertex.position[0] = positions[vertexIndex + 0];
     vertex.position[1] = positions[vertexIndex + 1];
     vertex.position[2] = positions[vertexIndex + 2];
-
     
     if (vi.vn)
     { 
@@ -116,9 +115,9 @@ uint16_t UpdateVertex(std::map<Obj_VertexIndex, uint16_t> &vertexCache, Obj_Surf
     return idx;
 }
 
-bool ExportFaceGroupToSurface(Obj_Surface &surface, const Obj_FaceGroup &faceGroup, const std::vector<float> &positions, const std::vector<float> &normals, const std::vector<float> &texCoords, const std::string name)
+bool ExportFaceGroupToSurface(ObjSurface &surface, const ObjFaceGroup &faceGroup, const std::vector<float> &positions, const std::vector<float> &normals, const std::vector<float> &texCoords, const std::string name)
 {
-    std::map<Obj_VertexIndex, uint16_t> vertexCache;
+    std::map<ObjIndex, uint16_t> vertexCache;
 
     if (faceGroup.empty())
         return false;
@@ -126,11 +125,11 @@ bool ExportFaceGroupToSurface(Obj_Surface &surface, const Obj_FaceGroup &faceGro
     // Flatten vertices and indices
     for (size_t i = 0; i < faceGroup.size(); i++)
     {
-        const std::vector<Obj_VertexIndex> &face = faceGroup[i];
+        const std::vector<ObjIndex> &face = faceGroup[i];
 
-        Obj_VertexIndex i0 = face[0];
-        Obj_VertexIndex i1 = {};
-        Obj_VertexIndex i2 = face[1];
+        ObjIndex i0 = face[0];
+        ObjIndex i1 = {};
+        ObjIndex i2 = face[1];
 
         size_t npolys = face.size();
 
@@ -154,68 +153,55 @@ bool ExportFaceGroupToSurface(Obj_Surface &surface, const Obj_FaceGroup &faceGro
     return true;
 }
 
-Obj_Model *OBJ_Load(const char *filename)
+ObjModel *OBJ_Load(const char *filename)
 {
     core::FileReader file(filename);
 
-    Obj_Model *model = new Obj_Model();
+    ObjModel *model = new ObjModel();
 
     std::vector<float> v;
     std::vector<float> vn;
     std::vector<float> vt;
-    Obj_FaceGroup faceGroup;
+    ObjFaceGroup faceGroup;
     std::string name;
 
-    Obj_Face face;
-    Obj_VertexIndex vertexIndex;
+    ObjFace face;
+    ObjIndex vertexIndex;
 
-    while (file.Peek() != -1) {
+    while (file.Peek() != -1)
+    {
         size_t lineLength = 0;
         const char *linebuf = file.GetLine(&lineLength);
-
-        // skip leading whitespaces
-        while (isspace(*linebuf))
-            linebuf++;
 
         // skip comments and empty lines
         if (linebuf[0] == '#' || linebuf[0] == '\n' || lineLength <= 1)
             continue;
 
-        // vertex
-        if (!strncmp(linebuf, "v ", 2)) {
+        if (!strncmp(linebuf, "v ", 2))                 // vertex
+        {
             linebuf += 2;
             v.push_back(ParseFloat(linebuf));
             v.push_back(ParseFloat(linebuf));
             v.push_back(ParseFloat(linebuf));
-            continue;
-        }
-
-        // vertex normal
-        if (!strncmp(linebuf, "vn ", 3))
+        } else if (!strncmp(linebuf, "vn ", 3))         // vertex normal
         {
             linebuf += 3;
             vn.push_back(ParseFloat(linebuf));
             vn.push_back(ParseFloat(linebuf));
             vn.push_back(ParseFloat(linebuf));
-            continue;
-        }
-
-        // vertex tex coord
-        if (!strncmp(linebuf, "vt ", 3))
+        } else if (!strncmp(linebuf, "vt ", 3))         // texcoord
         {
             linebuf += 3;
             vt.push_back(ParseFloat(linebuf));
             vt.push_back(ParseFloat(linebuf));
-            continue;
-        }
-
-        // face
-        if (!strncmp(linebuf, "f ", 2)) {
+        } else if (!strncmp(linebuf, "f ", 2))          // face
+        {
             linebuf += 2;
             linebuf += strspn(linebuf, " \t");
 
             face.clear();
-            while (!IsNewLine(linebuf[0])) {
+            while (!IsNewLine(linebuf[0]))
+            {
                 ParseFaceIndex(linebuf, vertexIndex);
                 face.push_back(vertexIndex);
 
@@ -224,20 +210,14 @@ Obj_Model *OBJ_Load(const char *filename)
             }
 
             faceGroup.push_back(face);
-            continue;
-        }
-
-        // group name
-        if (!strncmp(linebuf, "g ", 2)) {
-            // save current surface to model
-            Obj_Surface surf;
-
-            if (ExportFaceGroupToSurface(surf, faceGroup, v, vn, vt, name)) {
+        } else if (!strncmp(linebuf, "g ", 2))          // group name
+        {
+            ObjSurface surf;
+            if (ExportFaceGroupToSurface(surf, faceGroup, v, vn, vt, name))
                 model->surfaces.push_back(surf);
-            }
 
             // reset facegroup and get the name of the next one
-            faceGroup = Obj_FaceGroup();
+            faceGroup = ObjFaceGroup();
 
             // parse name for next surface
             linebuf += 2;
@@ -245,18 +225,25 @@ Obj_Model *OBJ_Load(const char *filename)
             size_t e = strcspn(linebuf, "\r\n");
             name = std::string(linebuf, &linebuf[e]);
             linebuf += e;
+        } else if (!strncmp(linebuf, "mtllib ", 7))
+        {
+            linebuf += 7;
+            linebuf += strspn(linebuf, " \t");
+            size_t e = strcspn(linebuf, "\r\n");
+            std::string materialFilename = core::GetBasePath(filename) + std::string(linebuf, &linebuf[e]);
+            linebuf += e;
+            DEBUG_LOG_TEXT("MATERIAL: %s", materialFilename.c_str());
         }
     }
 
-    Obj_Surface surf;
-    if (ExportFaceGroupToSurface(surf, faceGroup, v, vn, vt, name)) {
+    ObjSurface surf;
+    if (ExportFaceGroupToSurface(surf, faceGroup, v, vn, vt, name))
         model->surfaces.push_back(surf);
-    }
 
     return model;
 }
 
-void OBJ_Free(Obj_Model *model)
+void OBJ_Free(ObjModel *model)
 {
     delete model;
 }

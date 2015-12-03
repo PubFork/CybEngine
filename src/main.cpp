@@ -7,13 +7,15 @@
 #include "renderer/RenderDevice.h"
 #include "engine/Model.h"
 
-GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
+#include "core/FileUtils.h"
+
+GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char* title)
 {
     static bool isInitialized = false;
 
     if (!isInitialized)
     {
-        glfwSetErrorCallback([](int, const char *msg) { throw core::FatalException(msg); });
+        glfwSetErrorCallback([](int, const char* msg) { throw core::FatalException(msg); });
         glfwInit();
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -23,7 +25,7 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
         isInitialized = true;
     }
 
-    GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
 
@@ -37,10 +39,10 @@ int main()
 #endif
 
     int returnValue = 0;
-
+    
     try
     {
-        GLFWwindow *window = OpenWindow(1024, 760, "Cyb engine test");
+        GLFWwindow* window = OpenWindow(1024, 760, "Cyb engine test");
         auto device = renderer::CreateRenderDeviceGL();
 
         engine::Model model;
@@ -76,7 +78,7 @@ int main()
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
-    } catch (const std::exception &e)
+    } catch (const std::exception& e)
     {
         DEBUG_LOG_TEXT("*** Error: %s", e.what());
         MessageBox(0, e.what(), 0, MB_OK | MB_ICONERROR | MB_SETFOREGROUND);

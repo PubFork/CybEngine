@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Log.h"
 
+#include "Macros.h"
 #include "FileUtils.h"
 #include <windows.h>
 
@@ -9,25 +10,24 @@ namespace core
 
 std::ostrstream logStream;
 
-FatalException::FatalException(const std::string &message) :
-    errorMessage( message )
+FatalException::FatalException(const std::string& message) :
+    errorMessage(message)
 {
 #ifdef _DEBUG
-    if (IsDebuggerPresent()) {
+    if (IsDebuggerPresent())
         _CrtDbgBreak();
-    }
 #endif
 }
 
-const char *FatalException::what() const
+const char* FatalException::what() const
 {
     return errorMessage.c_str();
 }
 
-void LogText(const char *fmt, ...)
+void LogText(const char* fmt, ...)
 {
     assert(fmt);
-    static char buffer[1024];
+    static char buffer[KILOBYTES(1)];
     va_list args;
 
     va_start(args, fmt);
@@ -35,7 +35,8 @@ void LogText(const char *fmt, ...)
     va_end(args);
 
     // append a newline to the message
-    if (messageLength > 0) {
+    if (messageLength > 0)
+    {
         buffer[messageLength + 0] = '\n';
         buffer[messageLength + 1] = '\0';
 
@@ -44,7 +45,7 @@ void LogText(const char *fmt, ...)
     }
 }
 
-void LogSaveToFile(const char *filename)
+void LogSaveToFile(const char* filename)
 {
     WriteDataToFile(filename, logStream.str(), logStream.pcount());
 }

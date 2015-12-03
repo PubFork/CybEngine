@@ -40,7 +40,7 @@ void Model::Render(std::shared_ptr<renderer::RenderDevice> device, const glm::ma
 
 void Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, std::shared_ptr<renderer::ShaderSet> shader, const std::string &filename)
 {
-    priv::Obj_Model *objModel = priv::OBJ_Load(filename.c_str());
+    priv::ObjModel *objModel = priv::OBJ_Load(filename.c_str());
     InitEmpty(objModel->name.empty() ? "<unknown>" : objModel->name);
 
     for (auto &objSurf : objModel->surfaces) {

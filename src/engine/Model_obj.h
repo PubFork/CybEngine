@@ -17,16 +17,9 @@ typedef std::vector<ObjFace> ObjFaceGroup;
 
 struct ObjVertex
 {
-    ObjVertex()
-    {
-        position = glm::vec3(0.0f, 0.0f, 0.0f);
-        normal = glm::vec3(0.0f, 0.0f, 0.0f);
-        texCoord[0] = texCoord[1] = 0.0f;
-    }
-
     glm::vec3 position;
     glm::vec3 normal;
-    float texCoord[2];
+    glm::vec2 texCoord;
 };
 
 struct ObjMaterial
@@ -45,7 +38,7 @@ struct ObjSurface
     std::string name;
     std::vector<ObjVertex> vertices;
     std::vector<uint16_t> indices;
-    ObjMaterial *material;
+    ObjMaterial* material;
 };
 
 struct ObjModel
@@ -55,8 +48,8 @@ struct ObjModel
     std::unordered_map<std::string, ObjMaterial> materials;
 };
 
-ObjModel *OBJ_Load(const char *filename);
-void OBJ_Free(ObjModel *model);
+ObjModel* OBJ_Load(const char* filename);
+void OBJ_Free(ObjModel* model);
 
 } // priv
 } // engine

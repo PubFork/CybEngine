@@ -14,7 +14,7 @@ namespace engine
 namespace priv
 {
 
-inline bool operator<(const ObjIndex &a, const ObjIndex &b)
+bool operator<(const ObjIndex &a, const ObjIndex &b)
 {
     if (a.v != b.v)
         return (a.v < b.v);
@@ -26,96 +26,115 @@ inline bool operator<(const ObjIndex &a, const ObjIndex &b)
     return false;
 }
 
-inline bool IsNewLine(const char c)
-{
-    return (c == '\r') || (c == '\n') || (c == '\0');
-}
-
-inline float ParseFloat(const char *&token)
+float ReadFloat(const char*& token)
 {
     token += strspn(token, " \t");
     float value = (float)atof(token);
-    token += strcspn(token, " \t\r\n");
+    token += strcspn(token, " \t\n");
     return value;
 }
 
-inline uint16_t FixIndex(int idx)
+glm::vec2 ReadVec2(const char*& buffer)
 {
-    if (idx > 0)
-        return (uint16_t)idx - 1;
-    return 0;
+    float x = ReadFloat(buffer);
+    float y = ReadFloat(buffer);
+    return glm::vec2(x, y);
 }
 
-inline ObjIndex ParseFaceIndex(const char *&token, ObjIndex &vi)
+glm::vec3 ReadVec3(const char*& buffer)
+{
+    float x = ReadFloat(buffer);
+    float y = ReadFloat(buffer);
+    float z = ReadFloat(buffer);
+    return glm::vec3(x, y, z);
+}
+
+bool ReadToken(const char *&token, const char *elementStr)
+{
+    size_t elementLen = strlen(elementStr);
+    if (!strncmp(token, elementStr, elementLen))
+    {
+        token += elementLen;
+        token += strspn(token, " \t");
+        return true;
+    }
+
+    return false;
+}
+
+// read a string from token, using newline as string terminator
+std::string ReadString(const char *&token)
+{
+    size_t end = strcspn(token, "\n");
+    std::string str(token, &token[end]);
+    token += end;
+    return str;
+}
+
+uint16_t FixIndex(int idx)
+{
+    return (uint16_t)(idx > 0 ? idx - 1 : 0);
+}
+
+ObjIndex ParseFaceIndex(const char *&token, ObjIndex &vi)
 {
     vi = { 0, 0, 0 };
 
-    vi.v = (uint16_t)atoi(token);
-    token += strcspn(token, "/ \t\r\n");
+    vi.v = FixIndex(atoi(token));
+    token += strcspn(token, "/ \t\n");
     if (token[0] != '/')
         return vi;
 
     token++;
-    
+
     // i//k
-    if (token[0] == '/') {
+    if (token[0] == '/')
+    {
         token++;
-        vi.vn = (uint16_t)atoi(token);
-        token += strcspn(token, "/ \t\r\n");
+        vi.vn = FixIndex(atoi(token));
+        token += strcspn(token, "/ \t\n");
         return vi;
     }
 
     // i/j/k or i/j
-    vi.vt = (uint16_t)atoi(token);
-    token += strcspn(token, "/ \t\r\n");
+    vi.vt = FixIndex(atoi(token));
+    token += strcspn(token, "/ \t\n");
     if (token[0] != '/')
         return vi;
 
     // i/j/k
     token++;
-    vi.vn = (uint16_t)atoi(token);
-    token += strcspn(token, "/ \t\r\n");
+    vi.vn = FixIndex(atoi(token));
+    token += strcspn(token, "/ \t\n");
 
     return vi;
 }
 
-uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &surface, const std::vector<float> &positions, const std::vector<float> &normals, const std::vector<float> &texCoords, const ObjIndex &vi)
+uint16_t UpdateVertex(std::map<ObjIndex, uint16_t>& vertexCache, ObjSurface& surface, const std::vector<glm::vec3>& positions, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& texCoords, const ObjIndex& index)
 {
-    auto it = vertexCache.find(vi);
+    // check vertex cache first
+    auto it = vertexCache.find(index);
     if (it != vertexCache.end())
         return it->second;
 
-    uint32_t vertexIndex = FixIndex(vi.v) * 3;;
-    assert(positions.size() > (unsigned int)(vertexIndex + 2));
-
+    // create vertices not found in cache and insert them
     ObjVertex vertex;
-    vertex.position[0] = positions[vertexIndex + 0];
-    vertex.position[1] = positions[vertexIndex + 1];
-    vertex.position[2] = positions[vertexIndex + 2];
-    
-    if (vi.vn)
-    { 
-        uint32_t normalIndex = FixIndex(vi.vn) * 3;
-        vertex.normal[0] = normals[normalIndex + 0];
-        vertex.normal[1] = normals[normalIndex + 1];
-        vertex.normal[2] = normals[normalIndex + 2];
-    }
+    vertex.position = positions[index.v];
 
-    if (vi.vt)
-    {
-        uint32_t texCoordIndex = FixIndex(vi.vt) * 2;
-        vertex.texCoord[0] = texCoords[texCoordIndex + 0];
-        vertex.texCoord[1] = texCoords[texCoordIndex + 1];
-    }
+    if (index.vn)
+        vertex.normal = normals[index.vn];
+
+    if (index.vt)
+        vertex.texCoord = texCoords[index.vt];
 
     surface.vertices.push_back(vertex);
     uint16_t idx = static_cast<uint16_t>(surface.vertices.size() - 1);
-    vertexCache[vi] = idx;
+    vertexCache[index] = idx;
 
     return idx;
 }
 
-bool ExportFaceGroupToSurface(ObjSurface &surface, const ObjFaceGroup &faceGroup, const std::vector<float> &positions, const std::vector<float> &normals, const std::vector<float> &texCoords, const std::string name)
+bool ExportFaceGroupToSurface(ObjSurface& surface, const ObjFaceGroup& faceGroup, const std::vector<glm::vec3>& positions, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& texCoords, const std::string name)
 {
     std::map<ObjIndex, uint16_t> vertexCache;
 
@@ -139,13 +158,9 @@ bool ExportFaceGroupToSurface(ObjSurface &surface, const ObjFaceGroup &faceGroup
             i1 = i2;
             i2 = face[k];
 
-            uint16_t v0 = UpdateVertex(vertexCache, surface, positions, normals, texCoords, i0);
-            uint16_t v1 = UpdateVertex(vertexCache, surface, positions, normals, texCoords, i1);
-            uint16_t v2 = UpdateVertex(vertexCache, surface, positions, normals, texCoords, i2);
-
-            surface.indices.push_back(v0);
-            surface.indices.push_back(v1);
-            surface.indices.push_back(v2);
+            surface.indices.push_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i0));
+            surface.indices.push_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i1));
+            surface.indices.push_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i2));
         }
     }
 
@@ -159,9 +174,9 @@ ObjModel *OBJ_Load(const char *filename)
 
     ObjModel *model = new ObjModel();
 
-    std::vector<float> v;
-    std::vector<float> vn;
-    std::vector<float> vt;
+    std::vector<glm::vec3> v;
+    std::vector<glm::vec3> vn;
+    std::vector<glm::vec2> vt;
     ObjFaceGroup faceGroup;
     std::string name;
 
@@ -177,30 +192,23 @@ ObjModel *OBJ_Load(const char *filename)
         if (linebuf[0] == '#' || linebuf[0] == '\n' || lineLength <= 1)
             continue;
 
-        if (!strncmp(linebuf, "v ", 2))                 // vertex
+        if (ReadToken(linebuf, "v "))
         {
-            linebuf += 2;
-            v.push_back(ParseFloat(linebuf));
-            v.push_back(ParseFloat(linebuf));
-            v.push_back(ParseFloat(linebuf));
-        } else if (!strncmp(linebuf, "vn ", 3))         // vertex normal
+            // vertex
+            v.emplace_back(ReadVec3(linebuf));
+        } else if (ReadToken(linebuf, "vn "))
         {
-            linebuf += 3;
-            vn.push_back(ParseFloat(linebuf));
-            vn.push_back(ParseFloat(linebuf));
-            vn.push_back(ParseFloat(linebuf));
-        } else if (!strncmp(linebuf, "vt ", 3))         // texcoord
+            // vertex normal
+            vn.emplace_back(ReadVec3(linebuf));
+        } else if (ReadToken(linebuf, "vt "))
         {
-            linebuf += 3;
-            vt.push_back(ParseFloat(linebuf));
-            vt.push_back(ParseFloat(linebuf));
-        } else if (!strncmp(linebuf, "f ", 2))          // face
+            // texcoord
+            vt.emplace_back(ReadVec2(linebuf));
+        } else if (ReadToken(linebuf, "f "))
         {
-            linebuf += 2;
-            linebuf += strspn(linebuf, " \t");
-
+            // face
             face.clear();
-            while (!IsNewLine(linebuf[0]))
+            while ((linebuf[0] != '\n') && (linebuf[0] != '\0'))
             {
                 ParseFaceIndex(linebuf, vertexIndex);
                 face.push_back(vertexIndex);
@@ -210,28 +218,19 @@ ObjModel *OBJ_Load(const char *filename)
             }
 
             faceGroup.push_back(face);
-        } else if (!strncmp(linebuf, "g ", 2))          // group name
+        } else if (ReadToken(linebuf, "g "))
         {
+            // facegroup name
             ObjSurface surf;
             if (ExportFaceGroupToSurface(surf, faceGroup, v, vn, vt, name))
                 model->surfaces.push_back(surf);
 
             // reset facegroup and get the name of the next one
             faceGroup = ObjFaceGroup();
-
-            // parse name for next surface
-            linebuf += 2;
-            linebuf += strspn(linebuf, " \t");
-            size_t e = strcspn(linebuf, "\r\n");
-            name = std::string(linebuf, &linebuf[e]);
-            linebuf += e;
-        } else if (!strncmp(linebuf, "mtllib ", 7))
+            name = ReadString(linebuf);
+        } else if (ReadToken(linebuf, "mtllib "))
         {
-            linebuf += 7;
-            linebuf += strspn(linebuf, " \t");
-            size_t e = strcspn(linebuf, "\r\n");
-            std::string materialFilename = core::GetBasePath(filename) + std::string(linebuf, &linebuf[e]);
-            linebuf += e;
+            std::string materialFilename = core::GetBasePath(filename) + ReadString(linebuf);
             DEBUG_LOG_TEXT("MATERIAL: %s", materialFilename.c_str());
         }
     }

@@ -194,12 +194,21 @@ size_t WriteDataToFile(const char* filename, const void* buffer, size_t numBytes
     return file.Write(buffer, numBytes);
 }
 
-std::string GetBasePath(const std::string& filename)
+std::string GetBasePath(const char* filename)
 {
-    size_t lastPathSeperator = filename.find_last_of("/\\");
-    if (lastPathSeperator == std::string::npos)
+    size_t lastPathSeperatorPos = 0;
+    const char *ptr = filename;
+    while (*ptr != '\0')
+    {
+        if (*ptr == '/' || *ptr == '\\')
+            lastPathSeperatorPos = ptr - filename;
+        ptr++;
+    }
+
+    if (!lastPathSeperatorPos)
         return "";
-    return std::string(filename.substr(0, lastPathSeperator + 1));
+
+    return std::string(filename, lastPathSeperatorPos + 1);
 }
 
 } // core

@@ -39,7 +39,7 @@ int main()
 #endif
 
     int returnValue = 0;
-    
+
     try
     {
         GLFWwindow* window = OpenWindow(1024, 760, "Cyb engine test");

@@ -58,6 +58,6 @@ private:
 };
 
 size_t WriteDataToFile(const char* filename, const void* buffer, size_t numBytes);
-std::string GetBasePath(const std::string& filename);
+std::string GetBasePath(const char* filename);
 
 } // core

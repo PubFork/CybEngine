@@ -76,18 +76,17 @@ uint16_t FixIndex(int idx)
     return (uint16_t)(idx > 0 ? idx - 1 : 0);
 }
 
-ObjIndex ParseFaceIndex(const char *&token, ObjIndex &vi)
+ObjIndex ReadFaceIndex(const char *&token)
 {
-    vi = { 0, 0, 0 };
+    ObjIndex vi = { 0, 0, 0 };
 
     vi.v = FixIndex(atoi(token));
     token += strcspn(token, "/ \t\n");
     if (token[0] != '/')
         return vi;
 
-    token++;
-
     // i//k
+    token++;
     if (token[0] == '/')
     {
         token++;
@@ -108,6 +107,20 @@ ObjIndex ParseFaceIndex(const char *&token, ObjIndex &vi)
     token += strcspn(token, "/ \t\n");
 
     return vi;
+}
+
+ObjFace ReadFace(const char*& buffer)
+{
+    ObjFace face;
+
+    while ((buffer[0] != '\n') && (buffer[0] != '\0'))
+    {
+        face.push_back(ReadFaceIndex(buffer));
+        size_t n = strspn(buffer, " \t");
+        buffer += n;
+    }
+
+    return face;
 }
 
 uint16_t UpdateVertex(std::map<ObjIndex, uint16_t>& vertexCache, ObjSurface& surface, const std::vector<glm::vec3>& positions, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& texCoords, const ObjIndex& index)
@@ -177,11 +190,8 @@ ObjModel *OBJ_Load(const char *filename)
     std::vector<glm::vec3> v;
     std::vector<glm::vec3> vn;
     std::vector<glm::vec2> vt;
-    ObjFaceGroup faceGroup;
-    std::string name;
-
-    ObjFace face;
-    ObjIndex vertexIndex;
+    ObjFaceGroup facegroup;
+    std::string facegroupName;
 
     while (file.Peek() != -1)
     {
@@ -193,41 +203,21 @@ ObjModel *OBJ_Load(const char *filename)
             continue;
 
         if (ReadToken(linebuf, "v "))
-        {
-            // vertex
             v.emplace_back(ReadVec3(linebuf));
-        } else if (ReadToken(linebuf, "vn "))
-        {
-            // vertex normal
+        else if (ReadToken(linebuf, "vn "))
             vn.emplace_back(ReadVec3(linebuf));
-        } else if (ReadToken(linebuf, "vt "))
+        else if (ReadToken(linebuf, "vt "))
+          vt.emplace_back(ReadVec2(linebuf));
+        else if (ReadToken(linebuf, "f "))
+            facegroup.emplace_back(ReadFace(linebuf));
+        else if (ReadToken(linebuf, "g "))
         {
-            // texcoord
-            vt.emplace_back(ReadVec2(linebuf));
-        } else if (ReadToken(linebuf, "f "))
-        {
-            // face
-            face.clear();
-            while ((linebuf[0] != '\n') && (linebuf[0] != '\0'))
-            {
-                ParseFaceIndex(linebuf, vertexIndex);
-                face.push_back(vertexIndex);
-
-                size_t n = strspn(linebuf, " \t\r");
-                linebuf += n;
-            }
-
-            faceGroup.push_back(face);
-        } else if (ReadToken(linebuf, "g "))
-        {
-            // facegroup name
             ObjSurface surf;
-            if (ExportFaceGroupToSurface(surf, faceGroup, v, vn, vt, name))
+            if (ExportFaceGroupToSurface(surf, facegroup, v, vn, vt, facegroupName))
                 model->surfaces.push_back(surf);
 
-            // reset facegroup and get the name of the next one
-            faceGroup = ObjFaceGroup();
-            name = ReadString(linebuf);
+            facegroup = ObjFaceGroup();
+            facegroupName = ReadString(linebuf);
         } else if (ReadToken(linebuf, "mtllib "))
         {
             std::string materialFilename = core::GetBasePath(filename) + ReadString(linebuf);
@@ -236,7 +226,7 @@ ObjModel *OBJ_Load(const char *filename)
     }
 
     ObjSurface surf;
-    if (ExportFaceGroupToSurface(surf, faceGroup, v, vn, vt, name))
+    if (ExportFaceGroupToSurface(surf, facegroup, v, vn, vt, facegroupName))
         model->surfaces.push_back(surf);
 
     return model;

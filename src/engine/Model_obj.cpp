@@ -14,7 +14,7 @@ namespace engine
 namespace priv
 {
 
-bool operator<(const ObjIndex &a, const ObjIndex &b)
+bool operator<(const ObjIndex& a, const ObjIndex& b)
 {
     if (a.v != b.v)
         return (a.v < b.v);
@@ -49,7 +49,7 @@ glm::vec3 ReadVec3(const char*& buffer)
     return glm::vec3(x, y, z);
 }
 
-bool ReadToken(const char *&token, const char *elementStr)
+bool ReadToken(const char*& token, const char* elementStr)
 {
     size_t elementLen = strlen(elementStr);
     if (!strncmp(token, elementStr, elementLen))
@@ -63,7 +63,7 @@ bool ReadToken(const char *&token, const char *elementStr)
 }
 
 // read a string from token, using newline as string terminator
-std::string ReadString(const char *&token)
+std::string ReadString(const char*& token)
 {
     size_t end = strcspn(token, "\n");
     std::string str(token, &token[end]);
@@ -76,7 +76,7 @@ uint16_t FixIndex(int idx)
     return (uint16_t)(idx > 0 ? idx - 1 : 0);
 }
 
-ObjIndex ReadFaceIndex(const char *&token)
+ObjIndex ReadFaceIndex(const char*& token)
 {
     ObjIndex vi = { 0, 0, 0 };
 
@@ -181,27 +181,75 @@ bool ExportFaceGroupToSurface(ObjSurface& surface, const ObjFaceGroup& faceGroup
     return true;
 }
 
-ObjModel *OBJ_Load(const char *filename)
+bool MTL_Load(const char* filename, ObjMaterialMap &outMaterials)
 {
     core::FileReader file(filename);
+    if (!file.IsOpen())
+        return false;
 
-    ObjModel *model = new ObjModel();
+    DEBUG_LOG_TEXT("Loading %s...", filename);
+    ObjMaterial material;
+
+    while (file.Peek() != -1)
+    {
+        const char *lineBuffer = file.GetLine(nullptr);
+        lineBuffer += strspn(lineBuffer, " \t");
+        if (lineBuffer[0] == '#' || lineBuffer[0] == '\n' || lineBuffer[0] == '\0')
+            continue;
+
+        if (ReadToken(lineBuffer, "newmtl "))
+        {
+            if (!material.name.empty())
+            {
+                outMaterials[material.name] = material;
+                material = ObjMaterial();
+            }
+
+            material.name = ReadString(lineBuffer);
+        } else if (ReadToken(lineBuffer, "Ka "))
+            material.ambientColor = ReadVec3(lineBuffer);
+        else if (ReadToken(lineBuffer, "Kd "))
+            material.diffuseColor = ReadVec3(lineBuffer);
+        else if (ReadToken(lineBuffer, "Ks "))
+            material.specularColor = ReadVec3(lineBuffer);
+        else if (ReadToken(lineBuffer, "map_Ka "))
+            material.ambientTexture = ReadString(lineBuffer);
+        else if (ReadToken(lineBuffer, "map_Kd "))
+            material.diffuseTexture = ReadString(lineBuffer);
+        else if (ReadToken(lineBuffer, "map_Ks "))
+            material.diffuseTexture = ReadString(lineBuffer);
+    }
+
+    outMaterials[material.name] = material;
+    return false;
+}
+
+ObjModel *OBJ_Load(const char* filename)
+{
+    core::FileReader file(filename);
+    if (!file.IsOpen())
+        return nullptr;
+
+    DEBUG_LOG_TEXT("Loading %s...", filename);
+    ObjModel* model = new ObjModel();
 
     std::vector<glm::vec3> v;
     std::vector<glm::vec3> vn;
     std::vector<glm::vec2> vt;
     ObjFaceGroup facegroup;
     std::string facegroupName;
+    ObjMaterial *material = nullptr;
 
     while (file.Peek() != -1)
     {
-        size_t lineLength = 0;
-        const char *linebuf = file.GetLine(&lineLength);
+        const char *linebuf = file.GetLine(nullptr);
 
         // skip comments and empty lines
-        if (linebuf[0] == '#' || linebuf[0] == '\n' || lineLength <= 1)
+        linebuf += strspn(linebuf, " \t");
+        if (linebuf[0] == '#' || linebuf[0] == '\n' || linebuf[0] == '\0')
             continue;
 
+        // parse all tokens
         if (ReadToken(linebuf, "v "))
             v.emplace_back(ReadVec3(linebuf));
         else if (ReadToken(linebuf, "vn "))
@@ -214,20 +262,36 @@ ObjModel *OBJ_Load(const char *filename)
         {
             ObjSurface surf;
             if (ExportFaceGroupToSurface(surf, facegroup, v, vn, vt, facegroupName))
+            {
+                surf.material = material;
                 model->surfaces.push_back(surf);
+            }
 
             facegroup = ObjFaceGroup();
             facegroupName = ReadString(linebuf);
         } else if (ReadToken(linebuf, "mtllib "))
         {
             std::string materialFilename = core::GetBasePath(filename) + ReadString(linebuf);
-            DEBUG_LOG_TEXT("MATERIAL: %s", materialFilename.c_str());
+            MTL_Load(materialFilename.c_str(), model->materials);
+            if (!model->materials.empty())
+                material = &model->materials.begin()->second;
+        } else if (ReadToken(linebuf, "usemtl "))
+        {
+            std::string matString = ReadString(linebuf);
+            auto searchResult = model->materials.find(matString);
+            if (searchResult != model->materials.end())
+                material = &searchResult->second;
+            else
+                material = nullptr;
         }
     }
 
     ObjSurface surf;
     if (ExportFaceGroupToSurface(surf, facegroup, v, vn, vt, facegroupName))
+    {
+        surf.material = material;
         model->surfaces.push_back(surf);
+    }
 
     return model;
 }

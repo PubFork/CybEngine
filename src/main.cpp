@@ -47,7 +47,7 @@ int main()
 
         engine::Model model;
         auto litShader = device->CreateShaderSet({ device->LoadBuiltinShader(renderer::Shader_Vertex, renderer::VShader_MVP), device->LoadBuiltinShader(renderer::Shader_Fragment, renderer::FShader_LitGouraud) });
-        model.LoadOBJ(device, litShader, "assets/knot.obj");
+        model.LoadOBJ(device, litShader, "assets/Street environment_V01.obj");
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f));
         glm::mat4 view = glm::lookAt(

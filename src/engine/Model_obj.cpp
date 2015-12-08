@@ -181,7 +181,20 @@ bool ExportFaceGroupToSurface(ObjSurface& surface, const ObjFaceGroup& faceGroup
     return true;
 }
 
-bool MTL_Load(const char* filename, ObjMaterialMap &outMaterials)
+void MakeDefaultMaterial(ObjMaterial& material)
+{
+    material.name            = "";
+    material.ambientColor    = glm::vec3(0.0f, 0.0f, 0.0f);
+    material.diffuseColor    = glm::vec3(0.0f, 0.0f, 0.0f);
+    material.specularColor   = glm::vec3(0.0f, 0.0f, 0.0f);
+    material.ambientTexture  = "";
+    material.diffuseTexture  = "";
+    material.specularTexture = "";
+    material.dissolve        = 1.0f;
+    material.shininess       = 1.0f;
+}
+
+bool MTL_Load(const char* filename, ObjMaterialMap& outMaterials)
 {
     core::FileReader file(filename);
     if (!file.IsOpen())
@@ -200,11 +213,9 @@ bool MTL_Load(const char* filename, ObjMaterialMap &outMaterials)
         if (ReadToken(lineBuffer, "newmtl "))
         {
             if (!material.name.empty())
-            {
                 outMaterials[material.name] = material;
-                material = ObjMaterial();
-            }
 
+            MakeDefaultMaterial(material);
             material.name = ReadString(lineBuffer);
         } else if (ReadToken(lineBuffer, "Ka "))
             material.ambientColor = ReadVec3(lineBuffer);
@@ -218,10 +229,16 @@ bool MTL_Load(const char* filename, ObjMaterialMap &outMaterials)
             material.diffuseTexture = ReadString(lineBuffer);
         else if (ReadToken(lineBuffer, "map_Ks "))
             material.diffuseTexture = ReadString(lineBuffer);
+        else if (ReadToken(lineBuffer, "d "))
+            material.dissolve = ReadFloat(lineBuffer);
+        else if (ReadToken(lineBuffer, "Tr "))
+            material.dissolve = 1.0f - ReadFloat(lineBuffer);
+        else if (ReadToken(lineBuffer, "Ns "))
+            material.shininess = ReadFloat(lineBuffer);
     }
 
     outMaterials[material.name] = material;
-    return false;
+    return true;
 }
 
 ObjModel *OBJ_Load(const char* filename)
@@ -238,7 +255,11 @@ ObjModel *OBJ_Load(const char* filename)
     std::vector<glm::vec2> vt;
     ObjFaceGroup facegroup;
     std::string facegroupName;
-    ObjMaterial *material = nullptr;
+    ObjMaterial defaultMaterial;
+    ObjMaterial *material = &defaultMaterial;
+
+    MakeDefaultMaterial(defaultMaterial);
+    defaultMaterial.name = "default";   // default default material name is ""
 
     while (file.Peek() != -1)
     {
@@ -258,6 +279,8 @@ ObjModel *OBJ_Load(const char* filename)
           vt.emplace_back(ReadVec2(linebuf));
         else if (ReadToken(linebuf, "f "))
             facegroup.emplace_back(ReadFace(linebuf));
+        else if (ReadToken(linebuf, "o "))
+            model->name = ReadString(linebuf);
         else if (ReadToken(linebuf, "g "))
         {
             ObjSurface surf;
@@ -272,17 +295,29 @@ ObjModel *OBJ_Load(const char* filename)
         } else if (ReadToken(linebuf, "mtllib "))
         {
             std::string materialFilename = core::GetBasePath(filename) + ReadString(linebuf);
-            MTL_Load(materialFilename.c_str(), model->materials);
-            if (!model->materials.empty())
-                material = &model->materials.begin()->second;
+            bool result = MTL_Load(materialFilename.c_str(), model->materials);
+            
+            if (!result || model->materials.empty())
+            {
+                DEBUG_LOG_TEXT_COND(true, "Failed to read MTL file %s (Using default)", materialFilename.c_str());
+                model->materials["default"] = defaultMaterial;  // fallback to default material if none is defined
+            }
+
+            material = &model->materials.begin()->second;
         } else if (ReadToken(linebuf, "usemtl "))
         {
             std::string matString = ReadString(linebuf);
             auto searchResult = model->materials.find(matString);
             if (searchResult != model->materials.end())
+            {
                 material = &searchResult->second;
-            else
-                material = nullptr;
+            } else
+            {
+                // if the material isn't found, create a default one in the model
+                // and point the material pointer to it.
+                model->materials["default"] = defaultMaterial;
+                material = &model->materials["default"];
+            }
         }
     }
 

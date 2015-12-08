@@ -31,6 +31,9 @@ struct ObjMaterial
     std::string ambientTexture;
     std::string diffuseTexture;
     std::string specularTexture;
+    float dissolve;
+    float shininess;
+
 };
 
 typedef std::unordered_map<std::string, ObjMaterial> ObjMaterialMap;

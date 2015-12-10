@@ -4,8 +4,10 @@
 #include "core/FileUtils.h"
 #include "core/Log.h"
 
+#define DEFAULT_MATERIAL_NAME   "default"
+
 /*
- * This .obj loader has big parts copied straight from syoyo's tinyobjloader:
+ * Some parts are based of syoyo's tinyobjloader:
  * https://github.com/syoyo/tinyobjloader
  */
 
@@ -14,7 +16,7 @@ namespace engine
 namespace priv
 {
 
-bool operator<(const ObjIndex& a, const ObjIndex& b)
+bool operator<(const ObjIndex &a, const ObjIndex &b)
 {
     if (a.v != b.v)
         return (a.v < b.v);
@@ -26,22 +28,22 @@ bool operator<(const ObjIndex& a, const ObjIndex& b)
     return false;
 }
 
-float ReadFloat(const char*& token)
+float ReadFloat(const char *&buffer)
 {
-    token += strspn(token, " \t");
-    float value = (float)atof(token);
-    token += strcspn(token, " \t\n");
+    buffer += strspn(buffer, " \t");
+    float value = (float)atof(buffer);
+    buffer += strcspn(buffer, " \t\n");
     return value;
 }
 
-glm::vec2 ReadVec2(const char*& buffer)
+glm::vec2 ReadVec2(const char *&buffer)
 {
     float x = ReadFloat(buffer);
     float y = ReadFloat(buffer);
     return glm::vec2(x, y);
 }
 
-glm::vec3 ReadVec3(const char*& buffer)
+glm::vec3 ReadVec3(const char *&buffer)
 {
     float x = ReadFloat(buffer);
     float y = ReadFloat(buffer);
@@ -49,13 +51,13 @@ glm::vec3 ReadVec3(const char*& buffer)
     return glm::vec3(x, y, z);
 }
 
-bool ReadToken(const char*& token, const char* elementStr)
+bool ReadToken(const char *&buffer, const char *token)
 {
-    size_t elementLen = strlen(elementStr);
-    if (!strncmp(token, elementStr, elementLen))
+    size_t tokenLength = strlen(token);
+    if (!strncmp(buffer, token, tokenLength))
     {
-        token += elementLen;
-        token += strspn(token, " \t");
+        buffer += tokenLength;
+        buffer += strspn(buffer, " \t");
         return true;
     }
 
@@ -63,11 +65,11 @@ bool ReadToken(const char*& token, const char* elementStr)
 }
 
 // read a string from token, using newline as string terminator
-std::string ReadString(const char*& token)
+std::string ReadString(const char *&buffer)
 {
-    size_t end = strcspn(token, "\n");
-    std::string str(token, &token[end]);
-    token += end;
+    size_t end = strcspn(buffer, "\n");
+    std::string str(buffer, &buffer[end]);
+    buffer += end;
     return str;
 }
 
@@ -76,7 +78,7 @@ uint16_t FixIndex(int idx)
     return (uint16_t)(idx > 0 ? idx - 1 : 0);
 }
 
-ObjIndex ReadFaceIndex(const char*& token)
+ObjIndex ReadFaceIndex(const char *&token)
 {
     ObjIndex vi = { 0, 0, 0 };
 
@@ -109,13 +111,13 @@ ObjIndex ReadFaceIndex(const char*& token)
     return vi;
 }
 
-ObjFace ReadFace(const char*& buffer)
+ObjFace ReadFace(const char *&buffer)
 {
     ObjFace face;
 
     while ((buffer[0] != '\n') && (buffer[0] != '\0'))
     {
-        face.push_back(ReadFaceIndex(buffer));
+        face.emplace_back(ReadFaceIndex(buffer));
         size_t n = strspn(buffer, " \t");
         buffer += n;
     }
@@ -123,7 +125,7 @@ ObjFace ReadFace(const char*& buffer)
     return face;
 }
 
-uint16_t UpdateVertex(std::map<ObjIndex, uint16_t>& vertexCache, ObjSurface& surface, const std::vector<glm::vec3>& positions, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& texCoords, const ObjIndex& index)
+uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &surface, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const ObjIndex &index)
 {
     // check vertex cache first
     auto it = vertexCache.find(index);
@@ -131,7 +133,8 @@ uint16_t UpdateVertex(std::map<ObjIndex, uint16_t>& vertexCache, ObjSurface& sur
         return it->second;
 
     // create vertices not found in cache and insert them
-    ObjVertex vertex;
+    surface.vertices.emplace_back();
+    ObjVertex& vertex = surface.vertices.back();
     vertex.position = positions[index.v];
 
     if (index.vn)
@@ -140,14 +143,13 @@ uint16_t UpdateVertex(std::map<ObjIndex, uint16_t>& vertexCache, ObjSurface& sur
     if (index.vt)
         vertex.texCoord = texCoords[index.vt];
 
-    surface.vertices.push_back(vertex);
     uint16_t idx = static_cast<uint16_t>(surface.vertices.size() - 1);
     vertexCache[index] = idx;
 
     return idx;
 }
 
-bool ExportFaceGroupToSurface(ObjSurface& surface, const ObjFaceGroup& faceGroup, const std::vector<glm::vec3>& positions, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& texCoords, const std::string name)
+bool ExportFaceGroupToSurface(ObjSurface &surface, const ObjFaceGroup &faceGroup, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const std::string name)
 {
     std::map<ObjIndex, uint16_t> vertexCache;
 
@@ -171,9 +173,9 @@ bool ExportFaceGroupToSurface(ObjSurface& surface, const ObjFaceGroup& faceGroup
             i1 = i2;
             i2 = face[k];
 
-            surface.indices.push_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i0));
-            surface.indices.push_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i1));
-            surface.indices.push_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i2));
+            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i0));
+            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i1));
+            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i2));
         }
     }
 
@@ -181,7 +183,7 @@ bool ExportFaceGroupToSurface(ObjSurface& surface, const ObjFaceGroup& faceGroup
     return true;
 }
 
-void MakeDefaultMaterial(ObjMaterial& material)
+void MakeDefaultMaterial(ObjMaterial &material)
 {
     material.name            = "";
     material.ambientColor    = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -194,7 +196,7 @@ void MakeDefaultMaterial(ObjMaterial& material)
     material.shininess       = 1.0f;
 }
 
-bool MTL_Load(const char* filename, ObjMaterialMap& outMaterials)
+bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
 {
     core::FileReader file(filename);
     if (!file.IsOpen())
@@ -241,14 +243,14 @@ bool MTL_Load(const char* filename, ObjMaterialMap& outMaterials)
     return true;
 }
 
-ObjModel *OBJ_Load(const char* filename)
+ObjModel *OBJ_Load(const char *filename)
 {
     core::FileReader file(filename);
     if (!file.IsOpen())
         return nullptr;
 
     DEBUG_LOG_TEXT("Loading %s...", filename);
-    ObjModel* model = new ObjModel();
+    ObjModel *model = new ObjModel();
 
     std::vector<glm::vec3> v;
     std::vector<glm::vec3> vn;
@@ -259,7 +261,7 @@ ObjModel *OBJ_Load(const char* filename)
     ObjMaterial *material = &defaultMaterial;
 
     MakeDefaultMaterial(defaultMaterial);
-    defaultMaterial.name = "default";   // default default material name is ""
+    defaultMaterial.name = DEFAULT_MATERIAL_NAME;   // default material name is ""
 
     while (file.Peek() != -1)
     {
@@ -287,7 +289,7 @@ ObjModel *OBJ_Load(const char* filename)
             if (ExportFaceGroupToSurface(surf, facegroup, v, vn, vt, facegroupName))
             {
                 surf.material = material;
-                model->surfaces.push_back(surf);
+                model->surfaces.emplace_back(surf);
             }
 
             facegroup = ObjFaceGroup();
@@ -300,7 +302,7 @@ ObjModel *OBJ_Load(const char* filename)
             if (!result || model->materials.empty())
             {
                 DEBUG_LOG_TEXT_COND(true, "Failed to read MTL file %s (Using default)", materialFilename.c_str());
-                model->materials["default"] = defaultMaterial;  // fallback to default material if none is defined
+                model->materials[DEFAULT_MATERIAL_NAME] = defaultMaterial;  // fallback to default material if none is defined
             }
 
             material = &model->materials.begin()->second;
@@ -315,8 +317,8 @@ ObjModel *OBJ_Load(const char* filename)
             {
                 // if the material isn't found, create a default one in the model
                 // and point the material pointer to it.
-                model->materials["default"] = defaultMaterial;
-                material = &model->materials["default"];
+                model->materials[DEFAULT_MATERIAL_NAME] = defaultMaterial;
+                material = &model->materials[DEFAULT_MATERIAL_NAME];
             }
         }
     }
@@ -325,7 +327,7 @@ ObjModel *OBJ_Load(const char* filename)
     if (ExportFaceGroupToSurface(surf, facegroup, v, vn, vt, facegroupName))
     {
         surf.material = material;
-        model->surfaces.push_back(surf);
+        model->surfaces.emplace_back(surf);
     }
 
     return model;

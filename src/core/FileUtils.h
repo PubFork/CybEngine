@@ -13,10 +13,10 @@ enum SeekOrigin
 class FileReader
 {
 public:
-    FileReader(const char* filename, bool throwOnFailure = false);
+    FileReader(const char *filename, bool throwOnFailure = false);
     ~FileReader();
 
-    bool Open(const char* filename);
+    bool Open(const char *filename);
     void Close();
     bool IsOpen() const;
 
@@ -25,19 +25,19 @@ public:
     size_t Tell() const;
     int Peek() const;
 
-    size_t Read(void* buffer, size_t numBytes);
-    size_t ReadChar(char& c);
-    size_t ReadUInt16(uint16_t& value);
-    size_t ReadSInt16(int16_t& value);
-    size_t ReadUInt32(uint32_t& value);
-    size_t ReadSInt32(int32_t& value);
-    size_t ReadFloat(float& value);
+    size_t Read(void *buffer, size_t numBytes);
+    size_t ReadChar(char &c);
+    size_t ReadUInt16(uint16_t &value);
+    size_t ReadSInt16(int16_t &value);
+    size_t ReadUInt32(uint32_t &value);
+    size_t ReadSInt32(int32_t &value);
+    size_t ReadFloat(float &value);
 
-    const char* GetLine(size_t* length);    // deprecated
+    const char *GetLine(size_t *length);    // deprecated
 
 private:
-    char* fileBuffer;
-    char* currentPosition;
+    char *fileBuffer;
+    char *currentPosition;
     size_t fileSize;
 };
 

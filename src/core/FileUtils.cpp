@@ -6,7 +6,7 @@
 namespace core
 {
 
-FileReader::FileReader(const char* filename, bool throwOnFailure) :
+FileReader::FileReader(const char *filename, bool throwOnFailure) :
     fileBuffer(nullptr),
     currentPosition(nullptr),
     fileSize(0)
@@ -20,7 +20,7 @@ FileReader::~FileReader()
     Close();
 }
 
-bool FileReader::Open(const char* filename)
+bool FileReader::Open(const char *filename)
 {
     assert(filename);
     
@@ -94,7 +94,7 @@ int FileReader::Peek() const
     return ret;
 }
 
-size_t FileReader::Read(void* buffer, size_t numBytes)
+size_t FileReader::Read(void *buffer, size_t numBytes)
 {
     if (currentPosition + numBytes > fileBuffer + fileSize)
         numBytes = fileBuffer + fileSize - currentPosition;
@@ -104,45 +104,46 @@ size_t FileReader::Read(void* buffer, size_t numBytes)
     return numBytes;
 }
 
-size_t FileReader::ReadChar(char& value)
+size_t FileReader::ReadChar(char &value)
 {
     return Read(&value, sizeof(value));
 }
 
-size_t FileReader::ReadUInt16(uint16_t& value)
+size_t FileReader::ReadUInt16(uint16_t &value)
 {
     return Read(&value, sizeof(value));
 }
 
-size_t FileReader::ReadSInt16(int16_t& value)
+size_t FileReader::ReadSInt16(int16_t &value)
 {
     return Read(&value, sizeof(value));
 }
 
-size_t FileReader::ReadUInt32(uint32_t& value)
+size_t FileReader::ReadUInt32(uint32_t &value)
 {
     return Read(&value, sizeof(value));
 }
 
-size_t FileReader::ReadSInt32(int32_t& value)
+size_t FileReader::ReadSInt32(int32_t &value)
 {
     return Read(&value, sizeof(value));
 }
 
-size_t FileReader::ReadFloat(float& value)
+size_t FileReader::ReadFloat(float &value)
 {
     return Read(&value, sizeof(value));
 }
 
-const char* FileReader::GetLine(size_t* length)
+const char *FileReader::GetLine(size_t *length)
 {
     const char* line = currentPosition;
 
     char c = 0;
+    size_t bytesRead = 0;
     do
     {
-        ReadChar(c);
-    } while (c != '\n' && c != '\0');
+        bytesRead = ReadChar(c);
+    } while (c != '\n' && c != '\0' && bytesRead == sizeof(c));
 
     if (length)
         *length = currentPosition - line;
@@ -150,7 +151,7 @@ const char* FileReader::GetLine(size_t* length)
     return line;
 }
 
-FileWriter::FileWriter(const char* filename, bool truncate, bool throwOnFailure)
+FileWriter::FileWriter(const char *filename, bool truncate, bool throwOnFailure)
 {
     bool result = Open(filename, truncate);
     THROW_FATAL_COND(throwOnFailure && !result, std::string("Failed to open file ") + filename);
@@ -161,7 +162,7 @@ FileWriter::~FileWriter()
     Close();
 }
 
-bool FileWriter::Open(const char* filename, bool truncate)
+bool FileWriter::Open(const char *filename, bool truncate)
 {
     std::ios_base::openmode mode = std::ios_base::out;
     if (truncate)
@@ -181,20 +182,20 @@ bool FileWriter::IsOpen()
     return file.is_open();
 }
 
-size_t FileWriter::Write(const void* buffer, size_t numBytes)
+size_t FileWriter::Write(const void *buffer, size_t numBytes)
 {
     std::streamsize origSize = file.tellp();
     file.write((const char*)buffer, numBytes);
     return file.tellp() - origSize;
 }
 
-size_t WriteDataToFile(const char* filename, const void* buffer, size_t numBytes)
+size_t WriteDataToFile(const char *filename, const void *buffer, size_t numBytes)
 {
     FileWriter file(filename, true);
     return file.Write(buffer, numBytes);
 }
 
-std::string GetBasePath(const char* filename)
+std::string GetBasePath(const char *filename)
 {
     size_t lastPathSeperatorPos = 0;
     const char *ptr = filename;

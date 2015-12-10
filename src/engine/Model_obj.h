@@ -33,7 +33,6 @@ struct ObjMaterial
     std::string specularTexture;
     float dissolve;
     float shininess;
-
 };
 
 typedef std::unordered_map<std::string, ObjMaterial> ObjMaterialMap;
@@ -43,7 +42,7 @@ struct ObjSurface
     std::string name;
     std::vector<ObjVertex> vertices;
     std::vector<uint16_t> indices;
-    ObjMaterial* material;
+    ObjMaterial *material;
 };
 
 struct ObjModel
@@ -53,9 +52,9 @@ struct ObjModel
     ObjMaterialMap materials;
 };
 
-bool MTL_Load(const char* filename, ObjMaterialMap &materials);
-ObjModel* OBJ_Load(const char* filename);
-void OBJ_Free(ObjModel* model);
+bool MTL_Load(const char *filename, ObjMaterialMap &materials);
+ObjModel *OBJ_Load(const char *filename);
+void OBJ_Free(ObjModel *model);
 
 } // priv
 } // engine

@@ -10,7 +10,7 @@ namespace core
 
 std::ostrstream logStream;
 
-FatalException::FatalException(const std::string& message) :
+FatalException::FatalException(const std::string &message) :
     errorMessage(message)
 {
 #ifdef _DEBUG
@@ -19,12 +19,12 @@ FatalException::FatalException(const std::string& message) :
 #endif
 }
 
-const char* FatalException::what() const
+const char *FatalException::what() const
 {
     return errorMessage.c_str();
 }
 
-void LogText(const char* fmt, ...)
+void LogText(const char *fmt, ...)
 {
     assert(fmt);
     static char buffer[KILOBYTES(1)];
@@ -45,7 +45,7 @@ void LogText(const char* fmt, ...)
     }
 }
 
-void LogSaveToFile(const char* filename)
+void LogSaveToFile(const char *filename)
 {
     WriteDataToFile(filename, logStream.str(), logStream.pcount());
 }

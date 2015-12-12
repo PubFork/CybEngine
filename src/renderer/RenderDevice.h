@@ -8,45 +8,22 @@
 namespace renderer
 {
 
-namespace dev
-{
-
-enum GeometryFlags
-{
-    Geo_Point               = 0x01,     // draw points
-    Geo_Line                = 0x02,     // draw lines
-    Geo_Triangle            = 0x03,     // draw triangle
-    Geo_LineStrip           = 0x04,     // draw lines
-    Geo_TriangleStrip       = 0x05,     // draw triangles
-    Geo_Quad                = 0x06,     // draw quads
-
-    Geo_DynamicVertexBuffer = 0x00,
-    Geo_DynamicIndexBuffer  = 0x00,
-    Geo_StaticVertexBuffer  = 0x08,
-    Geo_StaticIndexBuffer   = 0x10,
-
-    Geo_Dynamic = Geo_DynamicVertexBuffer | Geo_DynamicIndexBuffer,
-    Geo_Static = Geo_StaticVertexBuffer | Geo_StaticIndexBuffer
-};
-
-} // dev
-
 enum VertexFormat
 {
-    VF_Invalid,
-    VF_Standard,                           // pos, normal, tex0
-    VF_Double,                             // pos, color, tex0, tex1
-    VF_Compact                             // pos, color
+    VertexFormat_Invalid,
+    VertexFormat_Standard,          // pos, normal, tex0
+    VertexFormat_Double,            // pos, color, tex0, tex1
+    VertexFormat_Compact            // pos, color
 };
 
-struct VertexStandard   // 32 bytes
+struct VertexStandard               // 32 bytes
 {
     float x, y, z;
     float nx, ny, nz;
     float u, v;
 };
 
-struct VertexDouble     // 32 bytes
+struct VertexDouble                 // 32 bytes
 {
     float x, y, z;
     uint32_t color;
@@ -54,7 +31,7 @@ struct VertexDouble     // 32 bytes
     float u1, v1;
 };
 
-struct VertexCompact    // 16 bytes
+struct VertexCompact                // 16 bytes
 {
     float x, y, z;
     uint32_t color;

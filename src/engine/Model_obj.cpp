@@ -45,10 +45,9 @@ glm::vec2 ReadVec2(const char *&buffer)
 
 glm::vec3 ReadVec3(const char *&buffer)
 {
-    float x = ReadFloat(buffer);
-    float y = ReadFloat(buffer);
+    glm::vec2 xy(ReadVec2(buffer));
     float z = ReadFloat(buffer);
-    return glm::vec3(x, y, z);
+    return glm::vec3(xy, z);
 }
 
 bool ReadToken(const char *&buffer, const char *token)

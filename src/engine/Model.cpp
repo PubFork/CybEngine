@@ -38,25 +38,26 @@ void Model::Render(std::shared_ptr<renderer::RenderDevice> device, const glm::ma
     }
 }
 
-void Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, std::shared_ptr<renderer::ShaderSet> shader, const std::string &filename)
+std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, std::shared_ptr<renderer::ShaderSet> shader, const std::string &filename)
 {
     priv::ObjModel *objModel = priv::OBJ_Load(filename.c_str());
-    InitEmpty(objModel->name.empty() ? "<unknown>" : objModel->name);
+    auto model = std::make_shared<Model>(objModel->name.empty() ? "<unknown>" : objModel->name);
 
     for (auto &objSurf : objModel->surfaces) {
         renderer::Surface surf;
         renderer::SurfaceGeometry *geo = &surf.geometry;
         geo->vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex, &objSurf.vertices[0], VECTOR_BYTESIZE(objSurf.vertices));
-        geo->vfmt = renderer::VF_Standard;
+        geo->vfmt = renderer::VertexFormat_Standard;
         geo->indexBuffer = device->CreateBuffer(renderer::Buffer_Index, &objSurf.indices[0], VECTOR_BYTESIZE(objSurf.indices));
         geo->indexCount = (uint32_t)objSurf.indices.size();
         surf.shader = shader;
         surf.name = objSurf.name;
 
-        AddSurface(surf);
+        model->AddSurface(surf);
     }
 
     priv::OBJ_Free(objModel);
+    return model;
 }
 
 } // engine

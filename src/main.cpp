@@ -9,7 +9,7 @@
 
 #include "core/FileUtils.h"
 
-GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char* title)
+GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 {
     static bool isInitialized = false;
 
@@ -24,8 +24,8 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char* title)
         glfwWindowHint(GLFW_SAMPLES, 64);
         isInitialized = true;
     }
-
-    GLFWwindow* window = glfwCreateWindow(width, height, title, NULL, NULL);
+    
+    GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
 
@@ -42,12 +42,11 @@ int main()
 
     try
     {
-        GLFWwindow* window = OpenWindow(1024, 760, "Cyb engine test");
+        auto window = OpenWindow(1024, 760, "Cyb engine test");
         auto device = renderer::CreateRenderDeviceGL();
 
-        engine::Model model;
         auto litShader = device->CreateShaderSet({ device->LoadBuiltinShader(renderer::Shader_Vertex, renderer::VShader_MVP), device->LoadBuiltinShader(renderer::Shader_Fragment, renderer::FShader_LitGouraud) });
-        model.LoadOBJ(device, litShader, "assets/Street environment_V01.obj");
+        auto model = engine::Model::LoadOBJ(device, litShader, "assets/capsule.obj");
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f));
         glm::mat4 view = glm::lookAt(
@@ -73,12 +72,12 @@ int main()
             device->Clear(renderer::Clear_All, 0xff203040);
 
             glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.4), glm::vec3(0.0f, 1.0f, 0.0f));
-            model.Render(device, view * rotate);
+            model->Render(device, view * rotate);
 
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
-    } catch (const std::exception& e)
+    } catch (const std::exception &e)
     {
         DEBUG_LOG_TEXT("*** Error: %s", e.what());
         MessageBox(0, e.what(), 0, MB_OK | MB_ICONERROR | MB_SETFOREGROUND);

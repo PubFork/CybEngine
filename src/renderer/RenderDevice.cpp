@@ -7,7 +7,7 @@ namespace renderer
 SurfaceGeometry::SurfaceGeometry()
 {
     vertexBuffer = nullptr;
-    vfmt = VF_Invalid;
+    vfmt = VertexFormat_Invalid;
     indexBuffer = nullptr;
     indexCount = 0;
     prim = Prim_Triangles;

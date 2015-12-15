@@ -21,10 +21,13 @@ namespace renderer
 "uniform mat4 u_modelView;\n"                   \
 "layout(location = 1) in vec3 a_position;\n"    \
 "layout(location = 2) in vec3 a_normal;\n"      \
-"layout(location = 3) in vec4 a_color;\n"       \
-"layout(location = 4) in vec2 a_tex0;\n"        \
-"layout(location = 5) in vec2 a_tex1;\n"        \
-"out vec4 o_color;\n"                           \
+"layout(location = 3) in vec2 a_tex0;\n"        \
+"layout(location = 4) in vec2 a_tex1;\n"        \
+"layout(location = 5) in vec2 a_tex2;\n"        \
+"layout(location = 6) in vec2 a_tex3;\n"        \
+"layout(location = 7) in vec4 a_color0;\n"      \
+"layout(location = 8) in vec4 a_color1;\n"      \
+"out vec4 o_color0;\n"                          \
 "out vec3 o_normal;\n"                          \
 "out vec2 o_tex0;\n"                            \
 "out vec2 o_tex1;\n"
@@ -34,7 +37,7 @@ VERTEX_SHADER_COMMON
 "void main()\n"
 "{\n"
 "   gl_Position = u_modelView * vec4(a_position, 1);\n"
-"   o_color = a_color; \n"
+"   o_color0 = a_color0;\n"
 "   o_normal = vec3(u_modelView * vec4(a_normal, 0));\n"
 "   o_tex0 = a_tex0;\n"
 "   o_tex1 = a_tex1;\n"
@@ -45,7 +48,7 @@ VERTEX_SHADER_COMMON
 "void main()\n"
 "{\n"
 "   gl_Position = u_proj * (u_modelView * vec4(a_position, 1));\n"
-"   o_color = a_color;\n"
+"   o_color0 = a_color0;\n"
 "   o_normal = vec3(u_modelView * vec4(a_normal, 0));\n"
 "   o_tex0 = a_tex0;\n"
 "   o_tex1 = a_tex1;\n"
@@ -62,16 +65,16 @@ static const char *fsFlatSource =
 
 static const char *fsGouraudSource =
 "#version 420 core\n"
-"in vec4 o_color;\n"
+"in vec4 o_color0;\n"
 "out vec4 fragColor;\n"
 "void main()\n"
 "{\n"
-"   fragColor = o_color;\n"
+"   fragColor = o_color0;\n"
 "}\n";
 
 static const char *fsLitGouraudSource =
 "#version 420 core\n"
-"in vec4 o_color;\n"
+"in vec4 o_color0;\n"
 "in vec3 o_normal;\n"
 "out vec4 fragColor;\n"
 
@@ -88,9 +91,8 @@ static const char *fsLitGouraudSource =
 "   light.color = vec3(1.0, 1.0, 1.0);\n"
 "   light.direction = vec3(-1.0, -1.0, -1.0);\n"
 "   light.ambientIntensity = 0.2;\n"
-"   vec4 blueColor = vec4(0, 0, 1, 1);\n"
 "   float diffuseIntensity = max(0.0, dot(normalize(o_normal), -normalize(light.direction)));\n"
-"   fragColor = blueColor * vec4(light.color * (light.ambientIntensity + diffuseIntensity), 1.0);\n"
+"   fragColor = o_color0 * vec4(light.color * (light.ambientIntensity + diffuseIntensity), 1.0);\n"
 "}\n";
 
 static const char *vertexShaderSources[VShader_Count] = {
@@ -131,29 +133,42 @@ static const InputElement defaultVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
     { 2, "a_normal",   12, GL_FLOAT,         3, GL_FALSE },
-    { 4, "a_tex0",     24, GL_FLOAT,         2, GL_FALSE }
+    { 3, "a_tex0",     24, GL_FLOAT,         2, GL_FALSE },
+    { 4, "a_tex1",     32, GL_FLOAT,         2, GL_FALSE },
+    { 5, "a_tex2",     40, GL_FLOAT,         2, GL_FALSE },
+    { 6, "a_tex3",     48, GL_FLOAT,         2, GL_FALSE },
+    { 7, "a_color0",   56, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
+    { 8, "a_color1",   60, GL_UNSIGNED_BYTE, 4, GL_TRUE  }
 };
 
-static const InputElement doubleVertexDecl[] =
+static const InputElement shadedTexVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
-    { 3, "a_color",    12, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
-    { 4, "a_tex0",     16, GL_FLOAT,         2, GL_FALSE },
-    { 5, "a_tex1",     24, GL_FLOAT,         2, GL_FALSE }
+    { 2, "a_normal",   12, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
+    { 3, "a_tex0",     24, GL_FLOAT,         2, GL_FALSE },
+};
+
+static const InputElement doubleTexVertexDecl[] =
+{
+    { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
+    { 3, "a_tex0",     12, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
+    { 4, "a_tex1",     20, GL_FLOAT,         2, GL_FALSE },
+    { 7, "a_color0",   28, GL_UNSIGNED_BYTE, 4, GL_TRUE  }
 };
 
 static const InputElement compactVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
-    { 3, "a_color",    12, GL_UNSIGNED_BYTE, 4, GL_TRUE  }
+    { 7, "a_color0",   12, GL_UNSIGNED_BYTE, 4, GL_TRUE  }
 };
 
 static const InputLayout vertexLayouts[] =
 {
-    { 0,  nullptr,           0                           },
-    { 32, defaultVertexDecl, _countof(defaultVertexDecl) },
-    { 32, doubleVertexDecl,  _countof(doubleVertexDecl)  },
-    { 16, compactVertexDecl, _countof(compactVertexDecl) }
+    { 0,  nullptr,             0                             },
+    { 64, defaultVertexDecl,   _countof(defaultVertexDecl)   },
+    { 32, shadedTexVertexDecl, _countof(shadedTexVertexDecl) },
+    { 32, doubleTexVertexDecl, _countof(doubleTexVertexDecl) },
+    { 16, compactVertexDecl,   _countof(compactVertexDecl)   }
 };
 
 /*********************************************************************/
@@ -226,12 +241,12 @@ Buffer_GL::~Buffer_GL()
         glDeleteBuffers(1, &bufferId);
 }
 
-bool Buffer_GL::SetData(BufferUsage usage, const void *buffer, size_t bufSize)
+bool Buffer_GL::SetData(Type usage, const void *buffer, size_t bufSize)
 {
     switch (usage)
     {
-    case Buffer_Index: target = GL_ELEMENT_ARRAY_BUFFER; break;
-    default:           target = GL_ARRAY_BUFFER; break;
+    case Index: target = GL_ELEMENT_ARRAY_BUFFER; break;
+    default:    target = GL_ARRAY_BUFFER; break;
     }
 
     if (!bufferId)
@@ -243,7 +258,7 @@ bool Buffer_GL::SetData(BufferUsage usage, const void *buffer, size_t bufSize)
     return true;
 }
 
-Shader_GL::Shader_GL(ShaderStage type, const char *source) :
+Shader_GL::Shader_GL(Type type, const char *source) :
     Shader(type),
     shaderId(0)
 {
@@ -260,8 +275,8 @@ GLenum Shader_GL::GLStage() const
 {
     static GLenum glStages[] = {
         GL_VERTEX_SHADER,
-        GL_GEOMETRY_SHADER,
         GL_FRAGMENT_SHADER,
+        GL_GEOMETRY_SHADER,
         GL_COMPUTE_SHADER
     };
 
@@ -306,11 +321,14 @@ void ShaderSet_GL::SetShader(std::shared_ptr<Shader> s)
     std::shared_ptr<Shader_GL> gls = std::dynamic_pointer_cast<Shader_GL>(s);
     glAttachShader(progId, gls->shaderId);
 
-    if (shaders[Shader_Vertex] && shaders[Shader_Fragment])
-        THROW_FATAL_COND(Link() != true, "Failed to link shader program.");
+    if (shaders[Shader::Vertex] && shaders[Shader::Fragment])
+    {
+        bool result = Link();
+        THROW_FATAL_COND(result != true, "Failed to link shader program.");
+    }
 }
 
-void ShaderSet_GL::UnsetShader(ShaderStage stage)
+void ShaderSet_GL::UnsetShader(Shader::Type stage)
 {
     std::shared_ptr<Shader_GL> shader = std::dynamic_pointer_cast<Shader_GL>(shaders[stage]);
 
@@ -391,7 +409,7 @@ bool ShaderSet_GL::Link()
     return true;
 }
 
-bool ShaderSet_GL::SetUniform(const char *name, uint32_t numFloats, const float *v)
+bool ShaderSet_GL::SetUniformfv(const char *name, uint32_t numFloats, const float *v)
 {
     for (const auto &uniform : uniformInfo)
     {
@@ -434,14 +452,14 @@ RenderDevice_GL::RenderDevice_GL()
 
     // compile builtin shaders
     for (uint32_t i = 0; i < VShader_Count; i++)
-        vertexShaders[i] = std::make_shared<Shader_GL>(Shader_Vertex, vertexShaderSources[i]);
+        vertexShaders[i] = std::make_shared<Shader_GL>(Shader::Vertex, vertexShaderSources[i]);
 
     for (uint32_t i = 0; i < FShader_Count; i++)
-        fragmentShaders[i] = std::make_shared<Shader_GL>(Shader_Fragment, fragmentShaderSources[i]);
+        fragmentShaders[i] = std::make_shared<Shader_GL>(Shader::Fragment, fragmentShaderSources[i]);
 
     // create default shader set
-    SetDefaultShader(CreateShaderSet({ LoadBuiltinShader(renderer::Shader_Vertex, renderer::VShader_MVP),
-                                       LoadBuiltinShader(renderer::Shader_Fragment, renderer::FShader_Gouraud) }));
+    SetDefaultShader(CreateShaderSet({ LoadBuiltinShader(renderer::Shader::Vertex, renderer::VShader_MVP),
+                                       LoadBuiltinShader(renderer::Shader::Fragment, renderer::FShader_Gouraud) }));
 
     // setup default states
     glEnable(GL_DEPTH_TEST);
@@ -453,7 +471,7 @@ RenderDevice_GL::~RenderDevice_GL()
     glDeleteVertexArrays(1, &vaoId);
 }
 
-std::shared_ptr<Buffer> RenderDevice_GL::CreateBuffer(BufferUsage usage, const void *buf, size_t bufSize)
+std::shared_ptr<Buffer> RenderDevice_GL::CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize)
 {
     auto buffer = std::make_shared<Buffer_GL>();
     buffer->SetData(usage, buf, bufSize);
@@ -513,10 +531,12 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
 
     glBindVertexArray(vaoId);
 
-    std::shared_ptr<ShaderSet_GL> shader = std::dynamic_pointer_cast<ShaderSet_GL>(surf->shader);
+    const SurfaceMaterial *material = &surf->material;
+    std::shared_ptr<ShaderSet_GL> shader = std::dynamic_pointer_cast<ShaderSet_GL>(material->shader);
     if (!shader)
         shader = std::dynamic_pointer_cast<ShaderSet_GL>(defaultShader);
     glUseProgram(shader->progId);
+
     shader->SetUniform4x4f("u_proj", projection);
     shader->SetUniform4x4f("u_modelView", transform);
 
@@ -526,7 +546,7 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
     std::shared_ptr<Buffer_GL> vbo = std::dynamic_pointer_cast<Buffer_GL>(geo->vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vbo->bufferId);
 
-    const InputLayout *inputLayout = &vertexLayouts[geo->vfmt];
+    const InputLayout *inputLayout = &vertexLayouts[geo->format];
     for (uint32_t i = 0; i < inputLayout->numElements; i++)
     {
         const InputElement *elem = &inputLayout->elements[i];

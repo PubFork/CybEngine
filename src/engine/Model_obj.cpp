@@ -124,7 +124,7 @@ ObjFace ReadFace(const char *&buffer)
     return face;
 }
 
-uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &surface, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const ObjIndex &index)
+uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &surface, ObjMaterial *material, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const ObjIndex &index)
 {
     // check vertex cache first
     auto it = vertexCache.find(index);
@@ -133,14 +133,26 @@ uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &sur
 
     // create vertices not found in cache and insert them
     surface.vertices.emplace_back();
-    ObjVertex& vertex = surface.vertices.back();
-    vertex.position = positions[index.v];
+    renderer::VertexStandard& vertex = surface.vertices.back();
+    memset(&vertex, 0, sizeof(vertex));
+    vertex.x = positions[index.v].x;
+    vertex.y = positions[index.v].y;
+    vertex.z = positions[index.v].z;
+
+    vertex.color0 = renderer::PackRGBA(material->diffuseColor.r, material->diffuseColor.g, material->diffuseColor.b, 1.0f);
 
     if (index.vn)
-        vertex.normal = normals[index.vn];
+    {
+        vertex.nx = normals[index.vn].x;
+        vertex.ny = normals[index.vn].y;
+        vertex.nz = normals[index.vn].z;
+    }
 
     if (index.vt)
-        vertex.texCoord = texCoords[index.vt];
+    {
+        vertex.u0 = texCoords[index.vt].x;
+        vertex.v0 = texCoords[index.vt].y;
+    }
 
     uint16_t idx = static_cast<uint16_t>(surface.vertices.size() - 1);
     vertexCache[index] = idx;
@@ -148,7 +160,7 @@ uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &sur
     return idx;
 }
 
-bool ExportFaceGroupToSurface(ObjSurface &surface, const ObjFaceGroup &faceGroup, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const std::string name)
+bool ExportFaceGroupToSurface(ObjSurface &surface, ObjMaterial *material, const ObjFaceGroup &faceGroup, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const std::string name)
 {
     std::map<ObjIndex, uint16_t> vertexCache;
 
@@ -172,12 +184,13 @@ bool ExportFaceGroupToSurface(ObjSurface &surface, const ObjFaceGroup &faceGroup
             i1 = i2;
             i2 = face[k];
 
-            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i0));
-            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i1));
-            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, positions, normals, texCoords, i2));
+            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, material, positions, normals, texCoords, i0));
+            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, material, positions, normals, texCoords, i1));
+            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, material, positions, normals, texCoords, i2));
         }
     }
 
+    surface.material = material;
     surface.name = name;
     return true;
 }
@@ -285,11 +298,8 @@ ObjModel *OBJ_Load(const char *filename)
         else if (ReadToken(linebuf, "g "))
         {
             ObjSurface surf;
-            if (ExportFaceGroupToSurface(surf, facegroup, v, vn, vt, facegroupName))
-            {
-                surf.material = material;
+            if (ExportFaceGroupToSurface(surf, material, facegroup, v, vn, vt, facegroupName))
                 model->surfaces.emplace_back(surf);
-            }
 
             facegroup = ObjFaceGroup();
             facegroupName = ReadString(linebuf);
@@ -323,11 +333,8 @@ ObjModel *OBJ_Load(const char *filename)
     }
 
     ObjSurface surf;
-    if (ExportFaceGroupToSurface(surf, facegroup, v, vn, vt, facegroupName))
-    {
-        surf.material = material;
+    if (ExportFaceGroupToSurface(surf, material, facegroup, v, vn, vt, facegroupName))
         model->surfaces.emplace_back(surf);
-    }
 
     return model;
 }

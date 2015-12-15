@@ -46,17 +46,23 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> de
     for (auto &objSurf : objModel->surfaces) {
         renderer::Surface surf;
         renderer::SurfaceGeometry *geo = &surf.geometry;
-        geo->vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex, &objSurf.vertices[0], VECTOR_BYTESIZE(objSurf.vertices));
-        geo->vfmt = renderer::VertexFormat_Standard;
-        geo->indexBuffer = device->CreateBuffer(renderer::Buffer_Index, &objSurf.indices[0], VECTOR_BYTESIZE(objSurf.indices));
+        geo->vertexBuffer = device->CreateBuffer(renderer::Buffer::Vertex, &objSurf.vertices[0], VECTOR_BYTESIZE(objSurf.vertices));
+        geo->format = renderer::VertexFormat_Standard;
+        geo->indexBuffer = device->CreateBuffer(renderer::Buffer::Index, &objSurf.indices[0], VECTOR_BYTESIZE(objSurf.indices));
         geo->indexCount = (uint32_t)objSurf.indices.size();
-        surf.shader = shader;
-        surf.name = objSurf.name;
 
+        renderer::SurfaceMaterial *mat = &surf.material;
+        mat->shader = shader;
+        mat->color = renderer::Color4f(objSurf.material->diffuseColor);
+        
+        surf.name = objSurf.name;
         model->AddSurface(surf);
     }
 
     priv::OBJ_Free(objModel);
+
+    priv::ObjModel *asd = priv::OBJ_Load(filename.c_str());
+    priv::OBJ_Free(asd);
     return model;
 }
 

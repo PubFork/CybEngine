@@ -1,5 +1,7 @@
 #pragma once
 
+#include "renderer/RenderDevice.h"
+
 namespace engine
 {
 namespace priv
@@ -14,13 +16,6 @@ struct ObjIndex
 
 typedef std::vector<ObjIndex> ObjFace;
 typedef std::vector<ObjFace> ObjFaceGroup;
-
-struct ObjVertex
-{
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec2 texCoord;
-};
 
 struct ObjMaterial
 {
@@ -40,7 +35,7 @@ typedef std::unordered_map<std::string, ObjMaterial> ObjMaterialMap;
 struct ObjSurface
 {
     std::string name;
-    std::vector<ObjVertex> vertices;
+    std::vector<renderer::VertexStandard> vertices;
     std::vector<uint16_t> indices;
     ObjMaterial *material;
 };

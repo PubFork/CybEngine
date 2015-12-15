@@ -35,7 +35,7 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 int main()
 {
 #ifdef _DEBUG
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
     int returnValue = 0;
@@ -45,7 +45,7 @@ int main()
         auto window = OpenWindow(1024, 760, "Cyb engine test");
         auto device = renderer::CreateRenderDeviceGL();
 
-        auto litShader = device->CreateShaderSet({ device->LoadBuiltinShader(renderer::Shader_Vertex, renderer::VShader_MVP), device->LoadBuiltinShader(renderer::Shader_Fragment, renderer::FShader_LitGouraud) });
+        auto litShader = device->CreateShaderSet({ device->LoadBuiltinShader(renderer::Shader::Vertex, renderer::VShader_MVP), device->LoadBuiltinShader(renderer::Shader::Fragment, renderer::FShader_LitGouraud) });
         auto model = engine::Model::LoadOBJ(device, litShader, "assets/capsule.obj");
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f));

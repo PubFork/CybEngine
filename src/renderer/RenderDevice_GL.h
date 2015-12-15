@@ -10,7 +10,7 @@ class Buffer_GL : public Buffer
 public:
     Buffer_GL();
     virtual ~Buffer_GL();
-    virtual bool SetData(BufferUsage usage, const void *buffer, size_t bufSize);
+    virtual bool SetData(Type usage, const void *buffer, size_t bufSize);
 
     GLuint bufferId;
     GLenum target;
@@ -20,7 +20,7 @@ public:
 class Shader_GL : public Shader
 {
 public:
-    Shader_GL(ShaderStage type, const char *source);
+    Shader_GL(Type type, const char *source);
     virtual ~Shader_GL();
 
     GLenum GLStage() const;
@@ -43,13 +43,13 @@ public:
     virtual ~ShaderSet_GL();
 
     virtual void SetShader(std::shared_ptr<Shader> s);
-    virtual void UnsetShader(ShaderStage stage);
-    virtual bool SetUniform(const char *name, uint32_t numFloats, const float *v);
+    virtual void UnsetShader(Shader::Type stage);
+    virtual bool SetUniformfv(const char *name, uint32_t numFloats, const float *v);
 
     bool Link();
 
     GLuint progId;
-    std::shared_ptr<Shader> shaders[Shader_Count];
+    std::shared_ptr<Shader> shaders[Shader::Count];
     std::list<Uniform> uniformInfo;
 };
 
@@ -59,7 +59,7 @@ public:
     RenderDevice_GL();
     virtual ~RenderDevice_GL();
 
-    virtual std::shared_ptr<Buffer> CreateBuffer(BufferUsage usage, const void *buf, size_t bufSize);
+    virtual std::shared_ptr<Buffer> CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize);
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {});
 
     virtual void SetFillMode(FillMode mode);

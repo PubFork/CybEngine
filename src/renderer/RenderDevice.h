@@ -11,48 +11,43 @@ namespace renderer
 enum VertexFormat
 {
     VertexFormat_Invalid,
-    VertexFormat_Standard,          // pos, normal, tex0
-    VertexFormat_Double,            // pos, color, tex0, tex1
-    VertexFormat_Compact            // pos, color
+    VertexFormat_Standard,          // 64 bytes
+    VertexFormat_ShadedTex,         // 32 bytes
+    VertexFormat_DoubleTex,         // 32 bytes
+    VertexFormat_Compact            // 16 bytes
 };
 
-struct VertexStandard               // 32 bytes
+struct VertexStandard
 {
     float x, y, z;
     float nx, ny, nz;
-    float u, v;
+    float u0, v0;
+    float u1, v1;
+    float u2, v2;
+    float u3, v3;
+    uint32_t color0;
+    uint32_t color1;
 };
 
-struct VertexDouble                 // 32 bytes
+struct VertexShadedTex
 {
     float x, y, z;
-    uint32_t color;
+    float nx, ny, nz;
+    float u0, v0;
+};
+
+struct VertexDoubleTex
+{
+    float x, y, z;
+    uint32_t color0;
     float u0, v0;
     float u1, v1;
 };
 
-struct VertexCompact                // 16 bytes
+struct VertexCompact
 {
     float x, y, z;
-    uint32_t color;
-};
-
-enum BufferUsage
-{
-    Buffer_Invalid,
-    Buffer_Vertex,
-    Buffer_Index,
-    Buffer_Uniform,
-    Buffer_Compute
-};
-
-enum ShaderStage
-{
-    Shader_Vertex,
-    Shader_Geometry,
-    Shader_Fragment,
-    Shader_Compute,
-    Shader_Count
+    uint32_t color0;
 };
 
 enum BuiltinShaders
@@ -107,19 +102,36 @@ enum ClearFlags
 class Buffer
 {
 public:
+    enum Type
+    {
+        Invalid,
+        Vertex,
+        Index,
+        Uniform
+    };
+
     virtual ~Buffer() = default;
-    virtual bool SetData(BufferUsage usage, const void *buffer, size_t bufSize) = 0;
+    virtual bool SetData(Type usage, const void *buffer, size_t bufSize) = 0;
 };
 
 class Shader
 {
 public:
-    Shader(ShaderStage s) : stage(s) {}
+    enum Type
+    {
+        Vertex,
+        Fragment,
+        Geometry,
+        Compute,
+        Count
+    };
+
+    Shader(Type s) : stage(s) {}
     virtual ~Shader() = default;
-    ShaderStage GetStage() const { return stage; }
+    Type GetStage() const { return stage; }
 
 protected:
-    ShaderStage stage;
+    Type stage;
 };
 
 class ShaderSet
@@ -129,8 +141,8 @@ public:
     virtual ~ShaderSet() = default;
 
     virtual void SetShader(std::shared_ptr<Shader> s) = 0;
-    virtual void UnsetShader(ShaderStage stage) = 0;
-    virtual bool SetUniform(const char *name, uint32_t numFloats, const float *v) = 0;
+    virtual void UnsetShader(Shader::Type stage) = 0;
+    virtual bool SetUniformfv(const char *name, uint32_t numFloats, const float *v) = 0;
     
     bool SetUniform1f(const char *name, float x);
     bool SetUniform2f(const char *name, float x, float y);
@@ -145,13 +157,33 @@ struct SurfaceGeometry
     SurfaceGeometry();
 
     std::shared_ptr<Buffer> vertexBuffer;
-    VertexFormat vfmt;
+    VertexFormat format;
     std::shared_ptr<Buffer> indexBuffer;
     uint32_t indexCount;
 
     PrimitiveType prim;
     CullMode culling;
     WindingOrder winding;
+};
+
+struct Color4f
+{
+    Color4f() : r(0.0f), g(0.0f), b(0.0f), a(1.0f) {}
+    Color4f(const glm::vec3 &v) : r(v.x), g(v.y), b(v.z), a(1.0f) {}
+    Color4f(float ir, float ig, float ib, float ia) : r(ir), g(ig), b(ib), a(ia) {}
+
+    float r;
+    float g;
+    float b;
+    float a;
+};
+
+uint32_t PackRGBA(float r, float g, float b, float a);
+
+struct SurfaceMaterial
+{
+    Color4f color;
+    std::shared_ptr<ShaderSet> shader;
 };
 
 struct Surface
@@ -163,7 +195,7 @@ struct Surface
 
     std::string name;
     SurfaceGeometry geometry;
-    std::shared_ptr<ShaderSet> shader;
+    SurfaceMaterial material;
 };
 
 class RenderDevice
@@ -173,10 +205,10 @@ public:
     virtual ~RenderDevice() = default;
 
     void SetProjection(const glm::mat4 &proj);
-    std::shared_ptr<Shader> LoadBuiltinShader(ShaderStage stage, BuiltinShaders shader);
+    std::shared_ptr<Shader> LoadBuiltinShader(Shader::Type stage, BuiltinShaders shader);
     void SetDefaultShader(std::shared_ptr<ShaderSet> shader);
 
-    virtual std::shared_ptr<Buffer> CreateBuffer(BufferUsage usage, const void *buf, size_t bufSize) = 0;
+    virtual std::shared_ptr<Buffer> CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize) = 0;
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {}) = 0;
     
     virtual void SetFillMode(FillMode mode) = 0;

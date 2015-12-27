@@ -197,7 +197,7 @@ void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenu
         { GL_DEBUG_SEVERITY_NOTIFICATION,           "Notification"          }
     };
 
-    DEBUG_LOG_TEXT("[GL DEBUG] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
+    DEBUG_LOG_TEXT("[glDebug] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
 }
 
 void SetCullFlags(CullMode culling, WindingOrder winding)
@@ -262,7 +262,8 @@ Shader_GL::Shader_GL(Type type, const char *source) :
     Shader(type),
     shaderId(0)
 {
-    THROW_FATAL_COND(Compile(source) != true, "Failed to compile shader source");
+    bool result = Compile(source);
+    THROW_FATAL_COND(result != true, "Failed to compile shader source");
 }
 
 Shader_GL::~Shader_GL()
@@ -450,16 +451,8 @@ RenderDevice_GL::RenderDevice_GL()
 
     glGenVertexArrays(1, &vaoId);
 
-    // compile builtin shaders
-    for (uint32_t i = 0; i < VShader_Count; i++)
-        vertexShaders[i] = std::make_shared<Shader_GL>(Shader::Vertex, vertexShaderSources[i]);
-
-    for (uint32_t i = 0; i < FShader_Count; i++)
-        fragmentShaders[i] = std::make_shared<Shader_GL>(Shader::Fragment, fragmentShaderSources[i]);
-
     // create default shader set
-    SetDefaultShader(CreateShaderSet({ LoadBuiltinShader(renderer::Shader::Vertex, renderer::VShader_MVP),
-                                       LoadBuiltinShader(renderer::Shader::Fragment, renderer::FShader_Gouraud) }));
+    SetDefaultShader(LoadBuiltinShaderSet(ShaderSet::Builtin_Color));
 
     // setup default states
     glEnable(GL_DEPTH_TEST);
@@ -469,6 +462,25 @@ RenderDevice_GL::RenderDevice_GL()
 RenderDevice_GL::~RenderDevice_GL()
 {
     glDeleteVertexArrays(1, &vaoId);
+}
+
+std::shared_ptr<Shader> RenderDevice_GL::LoadBuiltinShader(Shader::Type stage, BuiltinShaders shader)
+{
+    if (stage == Shader::Vertex)
+    {
+        if (!vertexShaders[shader])
+            vertexShaders[shader] = std::make_shared<Shader_GL>(Shader::Vertex, vertexShaderSources[shader]);
+        return vertexShaders[shader];
+    }
+
+    if (stage == Shader::Fragment)
+    {
+        if (!fragmentShaders[shader])
+            fragmentShaders[shader] = std::make_shared<Shader_GL>(Shader::Fragment, fragmentShaderSources[shader]);
+        return fragmentShaders[shader];
+    }
+
+    return nullptr;
 }
 
 std::shared_ptr<Buffer> RenderDevice_GL::CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize)
@@ -501,10 +513,8 @@ void RenderDevice_GL::SetFillMode(FillMode mode)
 
 void RenderDevice_GL::Clear(int32_t flags, uint32_t color)
 {
-    float a = ((color >> 24) & 255) * (1.f / 255.f);
-    float r = ((color >> 16) & 255) * (1.f / 255.f);
-    float g = ((color >> 8) & 255) * (1.f / 255.f);
-    float b = (color & 255) * (1.f / 255.f);
+    float r, g, b, a;
+    UnpackRGBA(color, r, g, b, a);
     glClearColor(r, g, b, a);
 
     GLbitfield mask = 0;

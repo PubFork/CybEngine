@@ -150,6 +150,13 @@ public:
     bool SetUniform4f(const char *name, float x, float y, float z, float w = 1.0f);
     bool SetUniform4fv(const char *name, const float *v);
     bool SetUniform4x4f(const char *name, const glm::mat4 &m);
+
+    enum Builtin
+    {
+        Builtin_Color,
+        Builtin_Texture,
+        Builtin_Max
+    };
 };
 
 struct SurfaceGeometry
@@ -179,6 +186,7 @@ struct Color4f
 };
 
 uint32_t PackRGBA(float r, float g, float b, float a);
+void UnpackRGBA(uint32_t color, float &r, float &g, float &b, float &a);
 
 struct SurfaceMaterial
 {
@@ -205,12 +213,13 @@ public:
     virtual ~RenderDevice() = default;
 
     void SetProjection(const glm::mat4 &proj);
-    std::shared_ptr<Shader> LoadBuiltinShader(Shader::Type stage, BuiltinShaders shader);
+    virtual std::shared_ptr<Shader> LoadBuiltinShader(Shader::Type stage, BuiltinShaders shader) = 0;
     void SetDefaultShader(std::shared_ptr<ShaderSet> shader);
 
     virtual std::shared_ptr<Buffer> CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize) = 0;
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {}) = 0;
-    
+    std::shared_ptr<ShaderSet> LoadBuiltinShaderSet(ShaderSet::Builtin shader);
+
     virtual void SetFillMode(FillMode mode) = 0;
     virtual void Clear(int32_t flags, uint32_t color) = 0;
     virtual void Render(const Surface *surf, const glm::mat4 &transform) = 0;
@@ -219,6 +228,7 @@ protected:
     glm::mat4 projection;
     std::shared_ptr<Shader> vertexShaders[VShader_Count];
     std::shared_ptr<Shader> fragmentShaders[FShader_Count];
+    std::shared_ptr<ShaderSet> builtinShaderSets[ShaderSet::Builtin_Max];
     std::shared_ptr<ShaderSet> defaultShader;
 };
 

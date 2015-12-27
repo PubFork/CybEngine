@@ -59,6 +59,8 @@ public:
     RenderDevice_GL();
     virtual ~RenderDevice_GL();
 
+    virtual std::shared_ptr<Shader> LoadBuiltinShader(Shader::Type stage, BuiltinShaders shader);
+
     virtual std::shared_ptr<Buffer> CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize);
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {});
 

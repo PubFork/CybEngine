@@ -4,6 +4,18 @@
 namespace renderer
 {
 
+struct BuiltinShaderSet
+{
+    ShaderSet::Builtin builtin;
+    BuiltinShaders vertShader;
+    BuiltinShaders fragShader;
+};
+
+static const BuiltinShaderSet builtinShaders[] = {
+    { ShaderSet::Builtin_Color,   VShader_MVP, FShader_LitGouraud },
+    { ShaderSet::Builtin_Texture, VShader_MVP, FShader_LitGouraud }
+};
+
 SurfaceGeometry::SurfaceGeometry()
 {
     vertexBuffer = nullptr;
@@ -22,6 +34,14 @@ uint32_t PackRGBA(float r, float g, float b, float a)
                      ((uint32_t)(b * 255) << 8) |
                       (uint32_t)(a * 255);
     return color;
+}
+
+void UnpackRGBA(uint32_t color, float &r, float &g, float &b, float &a)
+{
+    r = ((color >> 24) & 255) * (1.f / 255.f);
+    g = ((color >> 16) & 255) * (1.f / 255.f);
+    b = ((color >> 8) & 255) * (1.f / 255.f);
+    a = (color & 255) * (1.f / 255.f);
 }
 
 bool ShaderSet::SetUniform1f(const char *name, float x)
@@ -58,23 +78,24 @@ bool ShaderSet::SetUniform4x4f(const char *name, const glm::mat4 &m)
     return SetUniformfv(name, 16, glm::value_ptr(m));
 }
 
-std::shared_ptr<Shader> RenderDevice::LoadBuiltinShader(Shader::Type stage, BuiltinShaders shader)
-{
-    switch (stage) {
-    case Shader::Vertex:   return vertexShaders[shader];
-    case Shader::Fragment: return fragmentShaders[shader];
-    default: break;
-    }
-
-    return nullptr;
-}
-
 void RenderDevice::SetDefaultShader(std::shared_ptr<ShaderSet> shader)
 {
     if (!shader)
         return;
 
     defaultShader = shader;
+}
+
+std::shared_ptr<ShaderSet> RenderDevice::LoadBuiltinShaderSet(ShaderSet::Builtin shader)
+{
+    if (!builtinShaderSets[shader])
+    {
+        auto vertShader = LoadBuiltinShader(Shader::Vertex,   builtinShaders[shader].vertShader);
+        auto fragShader = LoadBuiltinShader(Shader::Fragment, builtinShaders[shader].fragShader);
+        builtinShaderSets[shader] = CreateShaderSet({ vertShader, fragShader });
+    }
+
+    return builtinShaderSets[shader];
 }
 
 void RenderDevice::SetProjection(const glm::mat4 &proj)

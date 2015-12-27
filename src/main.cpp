@@ -7,7 +7,8 @@
 #include "renderer/RenderDevice.h"
 #include "engine/Model.h"
 
-#include "core/FileUtils.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "engine/stb_image.h"
 
 GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 {
@@ -15,7 +16,7 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 
     if (!isInitialized)
     {
-        glfwSetErrorCallback([](int, const char* msg) { throw core::FatalException(msg); });
+        glfwSetErrorCallback([](int, const char *msg) { throw core::FatalException(msg); });
         glfwInit();
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -35,7 +36,7 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 int main()
 {
 #ifdef _DEBUG
-    //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
     int returnValue = 0;
@@ -45,8 +46,7 @@ int main()
         auto window = OpenWindow(1024, 760, "Cyb engine test");
         auto device = renderer::CreateRenderDeviceGL();
 
-        auto litShader = device->CreateShaderSet({ device->LoadBuiltinShader(renderer::Shader::Vertex, renderer::VShader_MVP), device->LoadBuiltinShader(renderer::Shader::Fragment, renderer::FShader_LitGouraud) });
-        auto model = engine::Model::LoadOBJ(device, litShader, "assets/capsule.obj");
+        auto model = engine::Model::LoadOBJ(device, device->LoadBuiltinShaderSet(renderer::ShaderSet::Builtin_Color), "assets/capsule.obj");
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f));
         glm::mat4 view = glm::lookAt(
@@ -69,7 +69,7 @@ int main()
             _snprintf_s(titleBuffer, sizeof(titleBuffer), "FrameTime: %.0fms", frametime * core::Timer::MsPerSecond);
             glfwSetWindowTitle(window, titleBuffer);
 
-            device->Clear(renderer::Clear_All, 0xff203040);
+            device->Clear(renderer::Clear_All, 0x203040ff);
 
             glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.4), glm::vec3(0.0f, 1.0f, 0.0f));
             model->Render(device, view * rotate);

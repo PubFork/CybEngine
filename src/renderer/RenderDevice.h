@@ -52,8 +52,7 @@ struct VertexCompact
 
 enum BuiltinShaders
 {
-    VShader_MV = 0,
-    VShader_MVP,
+    VShader_MVP = 0,
     VShader_Count,
 
     FShader_Solid = 0,
@@ -137,6 +136,15 @@ protected:
 class ShaderSet
 {
 public:
+    enum { MAX_TEXTURES = 4 };
+    
+    enum Builtin
+    {
+        Builtin_Color,
+        Builtin_Texture,
+        Builtin_Max
+    };
+
     ShaderSet() = default;
     virtual ~ShaderSet() = default;
 
@@ -150,13 +158,38 @@ public:
     bool SetUniform4f(const char *name, float x, float y, float z, float w = 1.0f);
     bool SetUniform4fv(const char *name, const float *v);
     bool SetUniform4x4f(const char *name, const glm::mat4 &m);
+};
 
-    enum Builtin
-    {
-        Builtin_Color,
-        Builtin_Texture,
-        Builtin_Max
-    };
+enum TextureFormat
+{
+    Texture_RGBA = 0x100,
+    Texture_BGRA,
+    Texture_DXT1,       // unsupported
+    Texture_DXT3,       // unsupported
+    Texture_DXT5        // unsupported
+};
+
+enum SampleMode
+{
+    Sample_Linear = 0,
+    Sample_Nearest = 1,
+    Sample_Anisotropic = 2,
+    Sample_FilterMask = 3,
+
+    Sample_Repeat = 0,
+    Sample_Clamp = 4,
+    Sample_ClampBorder = 8,
+    Sample_AddressMask = 12
+};
+
+class Texture
+{
+public:
+    virtual ~Texture() = default;
+    virtual uint32_t GetWidth() const = 0;
+    virtual uint32_t GetHeight() const = 0;
+    virtual uint32_t GetFormat() const = 0;
+    virtual void SetSampleMode(uint32_t sample) = 0;
 };
 
 struct SurfaceGeometry
@@ -190,8 +223,8 @@ void UnpackRGBA(uint32_t color, float &r, float &g, float &b, float &a);
 
 struct SurfaceMaterial
 {
-    Color4f color;
     std::shared_ptr<ShaderSet> shader;
+    std::shared_ptr<Texture> texture[ShaderSet::MAX_TEXTURES];
 };
 
 struct Surface
@@ -216,9 +249,12 @@ public:
     virtual std::shared_ptr<Shader> LoadBuiltinShader(Shader::Type stage, BuiltinShaders shader) = 0;
     void SetDefaultShader(std::shared_ptr<ShaderSet> shader);
 
-    virtual std::shared_ptr<Buffer> CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize) = 0;
+    virtual std::shared_ptr<Buffer>    CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize) = 0;
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {}) = 0;
+    virtual std::shared_ptr<Texture>   CreateTexture(uint32_t format, uint32_t width, uint32_t height, const void *data) = 0;
+    
     std::shared_ptr<ShaderSet> LoadBuiltinShaderSet(ShaderSet::Builtin shader);
+    virtual void SetTexture(uint32_t slot, std::shared_ptr<Texture> tex) = 0;
 
     virtual void SetFillMode(FillMode mode) = 0;
     virtual void Clear(int32_t flags, uint32_t color) = 0;
@@ -231,6 +267,8 @@ protected:
     std::shared_ptr<ShaderSet> builtinShaderSets[ShaderSet::Builtin_Max];
     std::shared_ptr<ShaderSet> defaultShader;
 };
+
+std::shared_ptr<Texture> LoadTexture(std::shared_ptr<RenderDevice> device, const char *filename);
 
 std::shared_ptr<RenderDevice> CreateRenderDeviceGL();
 

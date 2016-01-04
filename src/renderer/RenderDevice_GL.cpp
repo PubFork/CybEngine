@@ -21,27 +21,16 @@ namespace renderer
 "uniform mat4 u_modelView;\n"                   \
 "layout(location = 1) in vec3 a_position;\n"    \
 "layout(location = 2) in vec3 a_normal;\n"      \
-"layout(location = 3) in vec2 a_tex0;\n"        \
-"layout(location = 4) in vec2 a_tex1;\n"        \
-"layout(location = 5) in vec2 a_tex2;\n"        \
-"layout(location = 6) in vec2 a_tex3;\n"        \
+"layout(location = 3) in vec2 a_texCoord0;\n"   \
+"layout(location = 4) in vec2 a_texCoord1;\n"   \
+"layout(location = 5) in vec2 a_texCoord2;\n"   \
+"layout(location = 6) in vec2 a_texCoord3;\n"   \
 "layout(location = 7) in vec4 a_color0;\n"      \
 "layout(location = 8) in vec4 a_color1;\n"      \
 "out vec4 o_color0;\n"                          \
 "out vec3 o_normal;\n"                          \
-"out vec2 o_tex0;\n"                            \
-"out vec2 o_tex1;\n"
-
-static const char *vertexShaderMVSource =
-VERTEX_SHADER_COMMON
-"void main()\n"
-"{\n"
-"   gl_Position = u_modelView * vec4(a_position, 1);\n"
-"   o_color0 = a_color0;\n"
-"   o_normal = vec3(u_modelView * vec4(a_normal, 0));\n"
-"   o_tex0 = a_tex0;\n"
-"   o_tex1 = a_tex1;\n"
-"}\n";
+"out vec2 o_texCoord0;\n"                       \
+"out vec2 o_texCoord1;\n"
 
 static const char *vertexShaderMVPSource =
 VERTEX_SHADER_COMMON
@@ -50,8 +39,8 @@ VERTEX_SHADER_COMMON
 "   gl_Position = u_proj * (u_modelView * vec4(a_position, 1));\n"
 "   o_color0 = a_color0;\n"
 "   o_normal = vec3(u_modelView * vec4(a_normal, 0));\n"
-"   o_tex0 = a_tex0;\n"
-"   o_tex1 = a_tex1;\n"
+"   o_texCoord0 = a_texCoord0;\n"
+"   o_texCoord1 = a_texCoord1;\n"
 "}\n";
 
 static const char *fsFlatSource =
@@ -76,7 +65,10 @@ static const char *fsLitGouraudSource =
 "#version 420 core\n"
 "in vec4 o_color0;\n"
 "in vec3 o_normal;\n"
+"in vec2 o_texCoord0;\n"    //!
 "out vec4 fragColor;\n"
+
+"uniform sampler2D tex0;\n" //!
 
 "struct DirectionalLight\n"
 "{\n"
@@ -92,11 +84,11 @@ static const char *fsLitGouraudSource =
 "   light.direction = vec3(-1.0, -1.0, -1.0);\n"
 "   light.ambientIntensity = 0.2;\n"
 "   float diffuseIntensity = max(0.0, dot(normalize(o_normal), -normalize(light.direction)));\n"
-"   fragColor = o_color0 * vec4(light.color * (light.ambientIntensity + diffuseIntensity), 1.0);\n"
+"   //fragColor = o_color0 * vec4(light.color * (light.ambientIntensity + diffuseIntensity), 1.0);\n"
+"   fragColor = texture(tex0, o_texCoord0)  * vec4(light.color * (light.ambientIntensity + diffuseIntensity), 1.0);\n"
 "}\n";
 
 static const char *vertexShaderSources[VShader_Count] = {
-    vertexShaderMVSource,
     vertexShaderMVPSource
 };
 
@@ -133,10 +125,10 @@ static const InputElement defaultVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
     { 2, "a_normal",   12, GL_FLOAT,         3, GL_FALSE },
-    { 3, "a_tex0",     24, GL_FLOAT,         2, GL_FALSE },
-    { 4, "a_tex1",     32, GL_FLOAT,         2, GL_FALSE },
-    { 5, "a_tex2",     40, GL_FLOAT,         2, GL_FALSE },
-    { 6, "a_tex3",     48, GL_FLOAT,         2, GL_FALSE },
+    { 3, "a_texCoord0",     24, GL_FLOAT,         2, GL_FALSE },
+    { 4, "a_texCoord1",     32, GL_FLOAT,         2, GL_FALSE },
+    { 5, "a_texCoord2",     40, GL_FLOAT,         2, GL_FALSE },
+    { 6, "a_texCoord3",     48, GL_FLOAT,         2, GL_FALSE },
     { 7, "a_color0",   56, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
     { 8, "a_color1",   60, GL_UNSIGNED_BYTE, 4, GL_TRUE  }
 };
@@ -145,14 +137,14 @@ static const InputElement shadedTexVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
     { 2, "a_normal",   12, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
-    { 3, "a_tex0",     24, GL_FLOAT,         2, GL_FALSE },
+    { 3, "a_texCoord0",     24, GL_FLOAT,         2, GL_FALSE },
 };
 
 static const InputElement doubleTexVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
-    { 3, "a_tex0",     12, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
-    { 4, "a_tex1",     20, GL_FLOAT,         2, GL_FALSE },
+    { 3, "a_texCoord0",     12, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
+    { 4, "a_texCoord1",     20, GL_FLOAT,         2, GL_FALSE },
     { 7, "a_color0",   28, GL_UNSIGNED_BYTE, 4, GL_TRUE  }
 };
 
@@ -170,6 +162,10 @@ static const InputLayout vertexLayouts[] =
     { 32, doubleTexVertexDecl, _countof(doubleTexVertexDecl) },
     { 16, compactVertexDecl,   _countof(compactVertexDecl)   }
 };
+
+/*********************************************************************/
+
+static GLint maxTextureAnisotroy = 1;
 
 /*********************************************************************/
 
@@ -407,6 +403,14 @@ bool ShaderSet_GL::Link()
         }
     }
 
+    char textureName[16];
+    for (int i = 0; i < MAX_TEXTURES; i++)
+    {
+        sprintf_s(textureName, "tex%d", i);
+        textureLocation[i] = glGetUniformLocation(progId, textureName);
+        glUniform1i(textureLocation[i], i);
+    }
+
     return true;
 }
 
@@ -437,6 +441,63 @@ bool ShaderSet_GL::SetUniformfv(const char *name, uint32_t numFloats, const floa
     return 0;
 }
 
+GLTexture::GLTexture(uint32_t fmt, uint32_t w, uint32_t h) :
+    format(fmt),
+    width(w),
+    height(h),
+    textureId(0)
+{
+}
+
+GLTexture::~GLTexture()
+{
+    if (textureId != 0)
+        glDeleteTextures(1, &textureId);
+}
+
+void GLTexture::SetSampleMode(uint32_t sample)
+{
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    switch (sample & Sample_FilterMask)
+    {
+    case Sample_Linear:
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1);
+        break;
+
+    case Sample_Anisotropic:
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxTextureAnisotroy);
+        break;
+
+    case Sample_Nearest:
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1);
+        break;
+    }
+
+    switch (sample & Sample_AddressMask)
+    {
+    case Sample_Repeat:
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        break;
+
+    case Sample_Clamp:
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        break;
+
+    case Sample_ClampBorder:
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        break;
+    }
+}
+
 RenderDevice_GL::RenderDevice_GL()
 {
     glewExperimental = true;
@@ -446,7 +507,12 @@ RenderDevice_GL::RenderDevice_GL()
     DEBUG_LOG_TEXT("Shader language %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
     DEBUG_LOG_TEXT("GLEW %s", glewGetString(GLEW_VERSION));
 
+    glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
+    maxTextureAnisotroy = maxAnisotropy;
+    DEBUG_LOG_TEXT("Max texture anisotropy: %d", maxAnisotropy);
+
     glDebugMessageCallback(DebugOutputCallback, NULL);
+    glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_OTHER, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 
     glGenVertexArrays(1, &vaoId);
@@ -500,6 +566,34 @@ std::shared_ptr<ShaderSet> RenderDevice_GL::CreateShaderSet(std::initializer_lis
     return shaderSet;
 }
 
+std::shared_ptr<Texture> RenderDevice_GL::CreateTexture(uint32_t format, uint32_t width, uint32_t height, const void *data)
+{
+    GLenum glFormat = 0;
+    switch (format)
+    {
+    case Texture_RGBA: glFormat = GL_RGBA; break;
+    case Texture_BGRA: glFormat = GL_BGRA; break;
+    default: assert(0); break; // unsupported format
+    }
+
+    auto texture = std::make_shared<GLTexture>(format, width, height);
+    glGenTextures(1, &texture->textureId);
+    glBindTexture(GL_TEXTURE_2D, texture->textureId);
+
+    texture->SetSampleMode(Sample_Anisotropic | Sample_Repeat);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    return texture;
+}
+
+void RenderDevice_GL::SetTexture(uint32_t slot, std::shared_ptr<Texture> tex)
+{
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, std::dynamic_pointer_cast<GLTexture>(tex)->textureId);
+}
+
 void RenderDevice_GL::SetFillMode(FillMode mode)
 {
     static const GLenum glFillMode[] = {
@@ -541,6 +635,7 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
 
     glBindVertexArray(vaoId);
 
+    // setup material
     const SurfaceMaterial *material = &surf->material;
     std::shared_ptr<ShaderSet_GL> shader = std::dynamic_pointer_cast<ShaderSet_GL>(material->shader);
     if (!shader)
@@ -550,6 +645,10 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
     shader->SetUniform4x4f("u_proj", projection);
     shader->SetUniform4x4f("u_modelView", transform);
 
+    if (material->texture[0])
+        SetTexture(0, material->texture[0]);
+
+    // setup geometry
     const SurfaceGeometry *geo = &surf->geometry;
     SetCullFlags(geo->culling, geo->winding);
 
@@ -565,6 +664,7 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
         glVertexAttribPointer(elem->location, elem->size, elem->type, elem->normalized, inputLayout->stride, (void *)elem->offset);
     }
 
+    // draw
     std::shared_ptr<Buffer_GL> ibo = std::dynamic_pointer_cast<Buffer_GL>(geo->indexBuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo->bufferId);
     glDrawElements(glPrimType[geo->prim], geo->indexCount, GL_UNSIGNED_SHORT, NULL);

@@ -7,9 +7,6 @@
 #include "renderer/RenderDevice.h"
 #include "engine/Model.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "engine/stb_image.h"
-
 GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 {
     static bool isInitialized = false;
@@ -28,7 +25,7 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
     
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(0);
+    glfwSwapInterval(1);
 
     return window;
 }
@@ -46,11 +43,11 @@ int main()
         auto window = OpenWindow(1024, 760, "Cyb engine test");
         auto device = renderer::CreateRenderDeviceGL();
 
-        auto model = engine::Model::LoadOBJ(device, device->LoadBuiltinShaderSet(renderer::ShaderSet::Builtin_Color), "assets/capsule.obj");
+        auto model = engine::Model::LoadOBJ(device, device->LoadBuiltinShaderSet(renderer::ShaderSet::Builtin_Color), "assets/Street environment_V01.obj");
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f));
         glm::mat4 view = glm::lookAt(
-            glm::vec3(0, 0, -3),    // position
+            glm::vec3(0, 1.5f, -10),   // position
             glm::vec3(0, 0, 0),     // target
             glm::vec3(0, 1, 0));    // up
 
@@ -63,15 +60,15 @@ int main()
         while (!glfwWindowShouldClose(window))
         {
             double currentTime = core::Timer::GetSeconds() - startTime;
-            double frametime = currentTime - previousFrametime;
+            double frameTime = currentTime - previousFrametime;
             previousFrametime = currentTime;
 
-            _snprintf_s(titleBuffer, sizeof(titleBuffer), "FrameTime: %.0fms", frametime * core::Timer::MsPerSecond);
+            _snprintf_s(titleBuffer, sizeof(titleBuffer), "FrameTime: %.0fms", frameTime * core::Timer::MsPerSecond);
             glfwSetWindowTitle(window, titleBuffer);
 
             device->Clear(renderer::Clear_All, 0x203040ff);
 
-            glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.4), glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.2), glm::vec3(0.0f, 1.0f, 0.0f));
             model->Render(device, view * rotate);
 
             glfwSwapBuffers(window);

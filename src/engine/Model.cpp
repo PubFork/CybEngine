@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "Model.h"
 
+#include "core/Log.h"
+#include "core/FileUtils.h"
 #include "Model_obj.h"
 
 namespace engine
@@ -41,6 +43,7 @@ void Model::Render(std::shared_ptr<renderer::RenderDevice> device, const glm::ma
 std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, std::shared_ptr<renderer::ShaderSet> shader, const std::string &filename)
 {
     priv::ObjModel *objModel = priv::OBJ_Load(filename.c_str());
+    THROW_FATAL_COND(!objModel, std::string("Failed to read model " + filename));
     auto model = std::make_shared<Model>(objModel->name.empty() ? "<unknown>" : objModel->name);
 
     for (auto &objSurf : objModel->surfaces) {
@@ -53,16 +56,17 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> de
 
         renderer::SurfaceMaterial *mat = &surf.material;
         mat->shader = shader;
-        mat->color = renderer::Color4f(objSurf.material->diffuseColor);
+        if (!objSurf.material->diffuseTexture.empty())
+        {
+            std::string path = core::GetBasePath(filename.c_str()) + objSurf.material->diffuseTexture;
+            mat->texture[0] = renderer::LoadTexture(device, path.c_str());
+        }
         
         surf.name = objSurf.name;
         model->AddSurface(surf);
     }
 
     priv::OBJ_Free(objModel);
-
-    priv::ObjModel *asd = priv::OBJ_Load(filename.c_str());
-    priv::OBJ_Free(asd);
     return model;
 }
 

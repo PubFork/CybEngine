@@ -51,6 +51,24 @@ public:
     GLuint progId;
     std::shared_ptr<Shader> shaders[Shader::Count];
     std::list<Uniform> uniformInfo;
+    GLint textureLocation[MAX_TEXTURES];
+};
+
+class GLTexture : public Texture
+{
+public:
+    GLTexture(uint32_t fmt, uint32_t w, uint32_t h);
+    virtual ~GLTexture();
+
+    virtual uint32_t GetWidth() const { return width; }
+    virtual uint32_t GetHeight() const { return height; }
+    virtual uint32_t GetFormat() const { return format; }
+    virtual void SetSampleMode(uint32_t sample);
+
+    uint32_t width;
+    uint32_t height;
+    uint32_t format;
+    GLuint textureId;
 };
 
 class RenderDevice_GL : public RenderDevice
@@ -61,8 +79,10 @@ public:
 
     virtual std::shared_ptr<Shader> LoadBuiltinShader(Shader::Type stage, BuiltinShaders shader);
 
-    virtual std::shared_ptr<Buffer> CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize);
+    virtual std::shared_ptr<Buffer>    CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize);
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {});
+    virtual std::shared_ptr<Texture>   CreateTexture(uint32_t format, uint32_t width, uint32_t height, const void *data);
+    virtual void RenderDevice_GL::SetTexture(uint32_t slot, std::shared_ptr<Texture> tex);
 
     virtual void SetFillMode(FillMode mode);
     virtual void Clear(int32_t flags, uint32_t color);
@@ -70,6 +90,7 @@ public:
 
 private:
     GLuint vaoId;
+    GLint maxAnisotropy;
 };
 
 } // renderer

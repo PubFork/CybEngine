@@ -33,6 +33,9 @@ public:
     size_t ReadSInt32(int32_t &value);
     size_t ReadFloat(float &value);
 
+    const char *RawBuffer() const { return fileBuffer; }
+    size_t Size() const { return fileSize; }
+
     const char *GetLine(size_t *length);    // deprecated
 
 private:

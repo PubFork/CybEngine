@@ -32,7 +32,7 @@ float ReadFloat(const char *&buffer)
 {
     buffer += strspn(buffer, " \t");
     float value = (float)atof(buffer);
-    buffer += strcspn(buffer, " \t\n");
+    buffer += strcspn(buffer, " \t\r\n");
     return value;
 }
 
@@ -66,7 +66,7 @@ bool ReadToken(const char *&buffer, const char *token)
 // read a string from token, using newline as string terminator
 std::string ReadString(const char *&buffer)
 {
-    size_t end = strcspn(buffer, "\n");
+    size_t end = strcspn(buffer, "\r\n");
     std::string str(buffer, &buffer[end]);
     buffer += end;
     return str;
@@ -82,7 +82,7 @@ ObjIndex ReadFaceIndex(const char *&token)
     ObjIndex vi = { 0, 0, 0 };
 
     vi.v = FixIndex(atoi(token));
-    token += strcspn(token, "/ \t\n");
+    token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
         return vi;
 
@@ -92,20 +92,20 @@ ObjIndex ReadFaceIndex(const char *&token)
     {
         token++;
         vi.vn = FixIndex(atoi(token));
-        token += strcspn(token, "/ \t\n");
+        token += strcspn(token, "/ \t\r\n");
         return vi;
     }
 
     // i/j/k or i/j
     vi.vt = FixIndex(atoi(token));
-    token += strcspn(token, "/ \t\n");
+    token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
         return vi;
 
     // i/j/k
     token++;
     vi.vn = FixIndex(atoi(token));
-    token += strcspn(token, "/ \t\n");
+    token += strcspn(token, "/ \t\r\n");
 
     return vi;
 }
@@ -114,7 +114,7 @@ ObjFace ReadFace(const char *&buffer)
 {
     ObjFace face;
 
-    while ((buffer[0] != '\n') && (buffer[0] != '\0'))
+    while (buffer[0] != '\r' && buffer[0] != '\n' && buffer[0] != '\0')
     {
         face.emplace_back(ReadFaceIndex(buffer));
         size_t n = strspn(buffer, " \t");

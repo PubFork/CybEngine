@@ -25,7 +25,7 @@ bool FileReader::Open(const char *filename)
     assert(filename);
     
     Close();
-    std::ifstream file(filename);
+    std::ifstream file(filename, std::ios::binary);
     if (!file)
         return false;
 

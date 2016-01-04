@@ -1,6 +1,11 @@
 #include "stdafx.h"
 #include "RenderDevice.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "core/FileUtils.h"
+#include "core/Log.h"
+#include "stb_image.h"
+
 namespace renderer
 {
 
@@ -103,5 +108,24 @@ void RenderDevice::SetProjection(const glm::mat4 &proj)
     projection = proj;
 }
 
+std::shared_ptr<Texture> LoadTexture(std::shared_ptr<RenderDevice> device, const char *filename)
+{
+    core::FileReader file(filename, true);
+    DEBUG_LOG_TEXT("Loading %s...", filename);
+
+    int width, height, bpp;
+    stbi_set_flip_vertically_on_load(1);        // convert to opengl texture coordniate system
+    unsigned char *data = stbi_load_from_memory((const stbi_uc*) file.RawBuffer(), (int)file.Size(), &width, &height, &bpp, 4);
+    if (!data)
+    {
+        DEBUG_LOG_TEXT("Failed to load image %s: %s", filename, stbi_failure_reason());
+        throw core::FatalException(std::string("Failed to load texture ") + filename);
+    }
+
+    auto texture = device->CreateTexture(Texture_RGBA, width, height, data);
+    stbi_image_free(data);
+
+    return texture;
+}
 
 } // renderer

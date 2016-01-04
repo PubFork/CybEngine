@@ -98,7 +98,7 @@
     <ClInclude Include="src\core\Macros.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\engine\stb_image.h">
+    <ClInclude Include="src\renderer\stb_image.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>
   </ItemGroup>

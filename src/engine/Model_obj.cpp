@@ -4,8 +4,6 @@
 #include "core/FileUtils.h"
 #include "core/Log.h"
 
-#define DEFAULT_MATERIAL_NAME   "default"
-
 /*
  * Some parts are based of syoyo's tinyobjloader:
  * https://github.com/syoyo/tinyobjloader
@@ -197,13 +195,13 @@ bool ExportFaceGroupToSurface(ObjSurface &surface, ObjMaterial *material, const 
 
 void MakeDefaultMaterial(ObjMaterial &material)
 {
-    material.name            = "";
+    material.name            = "_default";
     material.ambientColor    = glm::vec3(0.0f, 0.0f, 0.0f);
-    material.diffuseColor    = glm::vec3(0.0f, 0.0f, 0.0f);
+    material.diffuseColor    = glm::vec3(1.0f, 1.0f, 1.0f);
     material.specularColor   = glm::vec3(0.0f, 0.0f, 0.0f);
-    material.ambientTexture  = "";
-    material.diffuseTexture  = "";
-    material.specularTexture = "";
+    material.ambientTexture.clear();
+    material.diffuseTexture.clear();
+    material.specularTexture.clear();
     material.dissolve        = 1.0f;
     material.shininess       = 1.0f;
 }
@@ -221,7 +219,7 @@ bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
     {
         const char *lineBuffer = file.GetLine(nullptr);
         lineBuffer += strspn(lineBuffer, " \t");
-        if (lineBuffer[0] == '#' || lineBuffer[0] == '\n' || lineBuffer[0] == '\0')
+        if (lineBuffer[0] == '#' || lineBuffer[0] == '\r'|| lineBuffer[0] == '\n' || lineBuffer[0] == '\0')
             continue;
 
         if (ReadToken(lineBuffer, "newmtl "))
@@ -273,7 +271,6 @@ ObjModel *OBJ_Load(const char *filename)
     ObjMaterial *material = &defaultMaterial;
 
     MakeDefaultMaterial(defaultMaterial);
-    defaultMaterial.name = DEFAULT_MATERIAL_NAME;   // default material name is ""
 
     while (file.Peek() != -1)
     {
@@ -281,7 +278,7 @@ ObjModel *OBJ_Load(const char *filename)
 
         // skip comments and empty lines
         linebuf += strspn(linebuf, " \t");
-        if (linebuf[0] == '#' || linebuf[0] == '\n' || linebuf[0] == '\0')
+        if (linebuf[0] == '#' || linebuf[0] == '\r' || linebuf[0] == '\n' || linebuf[0] == '\0')
             continue;
 
         // parse all tokens
@@ -298,6 +295,12 @@ ObjModel *OBJ_Load(const char *filename)
         else if (ReadToken(linebuf, "g "))
         {
             ObjSurface surf;
+            if (material->name == defaultMaterial.name)
+            {
+                model->materials[defaultMaterial.name] = defaultMaterial;
+                material = &model->materials[defaultMaterial.name];
+            }
+
             if (ExportFaceGroupToSurface(surf, material, facegroup, v, vn, vt, facegroupName))
                 model->surfaces.emplace_back(surf);
 
@@ -311,7 +314,7 @@ ObjModel *OBJ_Load(const char *filename)
             if (!result || model->materials.empty())
             {
                 DEBUG_LOG_TEXT_COND(true, "Failed to read MTL file %s (Using default)", materialFilename.c_str());
-                model->materials[DEFAULT_MATERIAL_NAME] = defaultMaterial;  // fallback to default material if none is defined
+                model->materials[defaultMaterial.name] = defaultMaterial;  // fallback to default material if none is defined
             }
 
             material = &model->materials.begin()->second;
@@ -326,8 +329,8 @@ ObjModel *OBJ_Load(const char *filename)
             {
                 // if the material isn't found, create a default one in the model
                 // and point the material pointer to it.
-                model->materials[DEFAULT_MATERIAL_NAME] = defaultMaterial;
-                material = &model->materials[DEFAULT_MATERIAL_NAME];
+                model->materials[defaultMaterial.name] = defaultMaterial;
+                material = &model->materials[defaultMaterial.name];
             }
         }
     }

@@ -104,24 +104,7 @@ static const char *fragmentShaderSources[FShader_Count] = {
  *
  *********************************************************************/
 
-struct InputElement
-{
-    GLint location;
-    const char *attribute;
-    uintptr_t offset;
-    GLenum type;
-    GLint size;
-    GLboolean normalized;
-};
-
-struct InputLayout
-{
-    GLint stride;       // size in bytes
-    const InputElement *elements;
-    uint32_t numElements;
-};
-
-static const InputElement defaultVertexDecl[] =
+static const VertexInputElement defaultVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
     { 2, "a_normal",   12, GL_FLOAT,         3, GL_FALSE },
@@ -133,14 +116,14 @@ static const InputElement defaultVertexDecl[] =
     { 8, "a_color1",   60, GL_UNSIGNED_BYTE, 4, GL_TRUE  }
 };
 
-static const InputElement shadedTexVertexDecl[] =
+static const VertexInputElement shadedTexVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
     { 2, "a_normal",   12, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
     { 3, "a_texCoord0",     24, GL_FLOAT,         2, GL_FALSE },
 };
 
-static const InputElement doubleTexVertexDecl[] =
+static const VertexInputElement doubleTexVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
     { 3, "a_texCoord0",     12, GL_UNSIGNED_BYTE, 4, GL_TRUE  },
@@ -148,13 +131,13 @@ static const InputElement doubleTexVertexDecl[] =
     { 7, "a_color0",   28, GL_UNSIGNED_BYTE, 4, GL_TRUE  }
 };
 
-static const InputElement compactVertexDecl[] =
+static const VertexInputElement compactVertexDecl[] =
 {
     { 1, "a_position",  0, GL_FLOAT,         3, GL_FALSE },
     { 7, "a_color0",   12, GL_UNSIGNED_BYTE, 4, GL_TRUE  }
 };
 
-static const InputLayout vertexLayouts[] =
+static const VertexInputLayout vertexLayouts[] =
 {
     { 0,  nullptr,             0                             },
     { 64, defaultVertexDecl,   _countof(defaultVertexDecl)   },
@@ -166,6 +149,13 @@ static const InputLayout vertexLayouts[] =
 /*********************************************************************/
 
 static GLint maxTextureAnisotroy = 1;
+
+static const GLenum glPrimType[] = {
+    GL_TRIANGLES,
+    GL_LINES,
+    GL_QUADS,
+    GL_TRIANGLE_STRIP
+};
 
 /*********************************************************************/
 
@@ -196,32 +186,30 @@ void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenu
     DEBUG_LOG_TEXT("[glDebug] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
 }
 
-void SetCullFlags(CullMode culling, WindingOrder winding)
+void SetRasterState(uint32_t state)
 {
-    switch (winding)
+    GLenum drawMode = 0;
+
+    switch (state & Raster_DrawMask)
     {
-    case Winding_CCW: glFrontFace(GL_CCW); break;
-    case Winding_CW:  glFrontFace(GL_CW); break;
+    case Raster_DrawSolid: drawMode = GL_FILL;  break;
+    case Raster_DrawWire:  drawMode = GL_LINE;  break;
+    case Raster_DrawPoint: drawMode = GL_POINT; break;
     default: assert(0);
     }
 
-    switch (culling)
+    uint32_t cullMode = state & Raster_CullMask;
+    if (cullMode == Raster_CullNone)
     {
-    case Cull_None:
         glDisable(GL_CULL_FACE);
-        break;
-    case Cull_Back:
+    } else
+    {
         glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        break;
-    case Cull_Front:
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        break;
-    default:
-        assert(0);
-        break;
+        glCullFace(cullMode == Raster_CullBack ? GL_BACK : GL_FRONT);
     }
+
+    glFrontFace((state & Raster_OrderMask) == Raster_OrderCCW ? GL_CCW : GL_CW);
+    glPolygonMode(GL_FRONT_AND_BACK, drawMode);
 }
 
 Buffer_GL::Buffer_GL() :
@@ -441,63 +429,6 @@ bool ShaderSet_GL::SetUniformfv(const char *name, uint32_t numFloats, const floa
     return 0;
 }
 
-GLTexture::GLTexture(uint32_t fmt, uint32_t w, uint32_t h) :
-    format(fmt),
-    width(w),
-    height(h),
-    textureId(0)
-{
-}
-
-GLTexture::~GLTexture()
-{
-    if (textureId != 0)
-        glDeleteTextures(1, &textureId);
-}
-
-void GLTexture::SetSampleMode(uint32_t sample)
-{
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    switch (sample & Sample_FilterMask)
-    {
-    case Sample_Linear:
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1);
-        break;
-
-    case Sample_Anisotropic:
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxTextureAnisotroy);
-        break;
-
-    case Sample_Nearest:
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1);
-        break;
-    }
-
-    switch (sample & Sample_AddressMask)
-    {
-    case Sample_Repeat:
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        break;
-
-    case Sample_Clamp:
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        break;
-
-    case Sample_ClampBorder:
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        break;
-    }
-}
-
 RenderDevice_GL::RenderDevice_GL()
 {
     glewExperimental = true;
@@ -521,6 +452,8 @@ RenderDevice_GL::RenderDevice_GL()
     SetDefaultShader(LoadBuiltinShaderSet(ShaderSet::Builtin_Color));
 
     // setup default states
+    currentRasterState = Raster_DrawSolid | Raster_CullBack | Raster_OrderCCW;
+    SetRasterState(currentRasterState);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 }
@@ -566,45 +499,6 @@ std::shared_ptr<ShaderSet> RenderDevice_GL::CreateShaderSet(std::initializer_lis
     return shaderSet;
 }
 
-std::shared_ptr<Texture> RenderDevice_GL::CreateTexture(uint32_t format, uint32_t width, uint32_t height, const void *data)
-{
-    GLenum glFormat = 0;
-    switch (format)
-    {
-    case Texture_RGBA: glFormat = GL_RGBA; break;
-    case Texture_BGRA: glFormat = GL_BGRA; break;
-    default: assert(0); break; // unsupported format
-    }
-
-    auto texture = std::make_shared<GLTexture>(format, width, height);
-    glGenTextures(1, &texture->textureId);
-    glBindTexture(GL_TEXTURE_2D, texture->textureId);
-
-    texture->SetSampleMode(Sample_Anisotropic | Sample_Repeat);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    return texture;
-}
-
-void RenderDevice_GL::SetTexture(uint32_t slot, std::shared_ptr<Texture> tex)
-{
-    glActiveTexture(GL_TEXTURE0 + slot);
-    glBindTexture(GL_TEXTURE_2D, std::dynamic_pointer_cast<GLTexture>(tex)->textureId);
-}
-
-void RenderDevice_GL::SetFillMode(FillMode mode)
-{
-    static const GLenum glFillMode[] = {
-        GL_FILL,
-        GL_LINE,
-        GL_POINT
-    };
-
-    glPolygonMode(GL_FRONT_AND_BACK, glFillMode[mode]);
-}
-
 void RenderDevice_GL::Clear(int32_t flags, uint32_t color)
 {
     float r, g, b, a;
@@ -622,15 +516,34 @@ void RenderDevice_GL::Clear(int32_t flags, uint32_t color)
     glClear(mask);
 }
 
+void RenderDevice_GL::UpdateRasterState(uint32_t state)
+{
+    if (currentRasterState != state)
+    {
+        currentRasterState = state;
+        SetRasterState(state);
+    }
+}
+
+void RenderDevice_GL::SetupVertexLayout(const VertexInputLayout *layout, bool enable)
+{
+    for (uint32_t i = 0; i < layout->numElements; i++)
+    {
+        const VertexInputElement *element = &layout->elements[i];
+
+        if (enable)
+        {
+            glEnableVertexAttribArray(element->location);
+            glVertexAttribPointer(element->location, element->size, element->type, element->normalized, layout->stride, (void *)element->offset);
+        } else
+        {
+            glDisableVertexAttribArray(element->location);
+        }
+    }
+}
+
 void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
 {
-    static const GLenum glPrimType[] = {
-        GL_LINES,
-        GL_TRIANGLES,
-        GL_TRIANGLE_STRIP,
-        GL_QUADS
-    };
-
     assert(surf);
 
     glBindVertexArray(vaoId);
@@ -646,34 +559,21 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
     shader->SetUniform4x4f("u_modelView", transform);
 
     if (material->texture[0])
-        SetTexture(0, material->texture[0]);
+        material->texture[0]->Bind(0);
 
     // setup geometry
     const SurfaceGeometry *geo = &surf->geometry;
-    SetCullFlags(geo->culling, geo->winding);
-
-    std::shared_ptr<Buffer_GL> vbo = std::dynamic_pointer_cast<Buffer_GL>(geo->vertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo->bufferId);
-
-    const InputLayout *inputLayout = &vertexLayouts[geo->format];
-    for (uint32_t i = 0; i < inputLayout->numElements; i++)
-    {
-        const InputElement *elem = &inputLayout->elements[i];
-
-        glEnableVertexAttribArray(elem->location);
-        glVertexAttribPointer(elem->location, elem->size, elem->type, elem->normalized, inputLayout->stride, (void *)elem->offset);
-    }
-
+    UpdateRasterState(geo->rasterState);
+    
     // draw
+    std::shared_ptr<Buffer_GL> vbo = std::dynamic_pointer_cast<Buffer_GL>(geo->vertexBuffer);
     std::shared_ptr<Buffer_GL> ibo = std::dynamic_pointer_cast<Buffer_GL>(geo->indexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo->bufferId);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo->bufferId);
-    glDrawElements(glPrimType[geo->prim], geo->indexCount, GL_UNSIGNED_SHORT, NULL);
 
-    for (uint32_t i = 0; i < inputLayout->numElements; i++)
-    {
-        const InputElement *elem = &inputLayout->elements[i];
-        glDisableVertexAttribArray(elem->location);
-    }
+    SetupVertexLayout(&vertexLayouts[geo->format], true);
+    glDrawElements(glPrimType[geo->rasterState & Raster_PrimMask], geo->indexCount, GL_UNSIGNED_SHORT, NULL);
+    SetupVertexLayout(&vertexLayouts[geo->format], false);
 }
 
 std::shared_ptr<RenderDevice> CreateRenderDeviceGL()

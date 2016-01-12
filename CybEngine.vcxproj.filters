@@ -60,6 +60,9 @@
     <ClCompile Include="src\core\FileUtils.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\renderer\Image.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\core\Log.h">
@@ -99,6 +102,9 @@
       <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\renderer\stb_image.h">
+      <Filter>Header Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\Image.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>
   </ItemGroup>

@@ -7,6 +7,10 @@
 #include "renderer/RenderDevice.h"
 #include "engine/Model.h"
 
+#include "core/MurmurHash.h"
+
+#include "renderer/Image.h"
+
 GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
 {
     static bool isInitialized = false;
@@ -25,7 +29,7 @@ GLFWwindow *OpenWindow(uint32_t width, uint32_t height, const char *title)
     
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
 
     return window;
 }
@@ -47,8 +51,8 @@ int main()
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f));
         glm::mat4 view = glm::lookAt(
-            glm::vec3(0, 1.5f, -10),   // position
-            glm::vec3(0, 0, 0),     // target
+            glm::vec3(0, 2, 0),   // position
+            glm::vec3(0, 2, 1),     // target
             glm::vec3(0, 1, 0));    // up
 
         char titleBuffer[64];
@@ -68,7 +72,7 @@ int main()
 
             device->Clear(renderer::Clear_All, 0x203040ff);
 
-            glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.2), glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.4), glm::vec3(0.0f, 1.0f, 0.0f));
             model->Render(device, view * rotate);
 
             glfwSwapBuffers(window);

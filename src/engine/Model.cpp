@@ -53,13 +53,14 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> de
         geo->format = renderer::VertexFormat_Standard;
         geo->indexBuffer = device->CreateBuffer(renderer::Buffer::Index, &objSurf.indices[0], VECTOR_BYTESIZE(objSurf.indices));
         geo->indexCount = (uint32_t)objSurf.indices.size();
+        geo->rasterState = renderer::Raster_DrawSolid | renderer::Raster_PrimTriangle | renderer::Raster_CullBack;
 
         renderer::SurfaceMaterial *mat = &surf.material;
         mat->shader = shader;
         if (!objSurf.material->diffuseTexture.empty())
         {
             std::string path = core::GetBasePath(filename.c_str()) + objSurf.material->diffuseTexture;
-            mat->texture[0] = renderer::LoadTexture(device, path.c_str());
+            mat->texture[0] = renderer::globalImages->ImageFromFile(path.c_str(), renderer::Sample_Anisotropic);
         }
         
         surf.name = objSurf.name;

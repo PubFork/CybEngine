@@ -25,6 +25,7 @@
     <ClCompile Include="src\engine\Model.cpp" />
     <ClCompile Include="src\engine\Model_obj.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\renderer\Image.cpp" />
     <ClCompile Include="src\renderer\RenderDevice.cpp" />
     <ClCompile Include="src\renderer\RenderDevice_GL.cpp" />
   </ItemGroup>
@@ -38,6 +39,7 @@
     <ClInclude Include="src\core\Timer.h" />
     <ClInclude Include="src\engine\Model.h" />
     <ClInclude Include="src\engine\Model_obj.h" />
+    <ClInclude Include="src\renderer\Image.h" />
     <ClInclude Include="src\renderer\RenderDevice_GL.h" />
     <ClInclude Include="src\renderer\RenderDevice.h" />
     <ClInclude Include="src\renderer\stb_image.h" />

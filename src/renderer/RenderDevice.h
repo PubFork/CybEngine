@@ -5,16 +5,83 @@
 #include <glm/mat4x4.hpp>
 #include "core/Macros.h"
 
+#include "Image.h"
+
 namespace renderer
 {
 
 enum VertexFormat
 {
     VertexFormat_Invalid,
-    VertexFormat_Standard,          // 64 bytes
-    VertexFormat_ShadedTex,         // 32 bytes
-    VertexFormat_DoubleTex,         // 32 bytes
-    VertexFormat_Compact            // 16 bytes
+    VertexFormat_Standard,                          // 64 bytes
+    VertexFormat_ShadedTex,                         // 32 bytes
+    VertexFormat_DoubleTex,                         // 32 bytes
+    VertexFormat_Compact                            // 16 bytes
+};
+
+enum BuiltinShaders
+{
+    VShader_MVP                 = 0,
+    VShader_Count,
+
+    FShader_Solid               = 0,
+    FShader_Gouraud,
+    FShader_LitGouraud,
+    FShader_Count
+};
+
+enum RasterStateFlags
+{
+    Raster_DrawSolid            = 0x00000000,       // draw solid primitives
+    Raster_DrawWire             = 0x00000001,       // draw the edges of the primitives
+    Raster_DrawPoint            = 0x00000010,       // draw the dots of the primitive vertices
+    Raster_DrawMask             = 0x00000011,
+
+    Raster_PrimTriangle         = 0x00000000,       // draw triangle primitives
+    Raster_PrimLine             = 0x00000100,       // draw line primitives
+    Raster_PrimQuad             = 0x00001000,       // draw quad primitives
+    Raster_PrimTriangleStrip    = 0x00010000,       // draw triangle-strip primitives
+    Raster_PrimMask             = 0x00011100,
+
+    Raster_CullBack             = 0x00000000,       // cull back facing faces
+    Raster_CullFront            = 0x00100000,       // cull front facing faces
+    Raster_CullNone             = 0x01000000,       // dont't cull and faces at rasterer level
+    Raster_CullMask             = 0x01100000,
+
+    Raster_OrderCCW             = 0x00000000,       // counter-clockwise ordered face indices
+    Raster_OrderCW              = 0x10000000,       // clockwise ordered face indices
+    Raster_OrderMask            = 0x10000000
+};
+
+enum TextureFormat
+{
+    Texture_RGBA                = 0x00001000,
+    Texture_BGRA                = 0x00001001,
+    Texture_DXT1                = 0x00001010,       // unsupported
+    Texture_DXT3                = 0x00001011,       // unsupported
+    Texture_DXT5                = 0x00001110        // unsupported
+};
+
+enum SampleMode
+{
+    Sample_Linear               = 0x00000000,
+    Sample_Nearest              = 0x00000001,
+    Sample_Anisotropic          = 0x00000010,
+    Sample_FilterMask           = 0x00000011,
+
+    Sample_Repeat               = 0x00000000,
+    Sample_Clamp                = 0x00000100,
+    Sample_ClampBorder          = 0x00001000,
+    Sample_AddressMask          = 0x00001100
+};
+
+enum ClearFlags
+{
+    Clear_None                  = 0x00000000,
+    Clear_Color                 = 0x00000001,
+    Clear_Depth                 = 0x00000002,
+    Clear_Stencil               = 0x00000004,
+    Clear_All                   = Clear_Color | Clear_Depth | Clear_Stencil
 };
 
 struct VertexStandard
@@ -48,54 +115,6 @@ struct VertexCompact
 {
     float x, y, z;
     uint32_t color0;
-};
-
-enum BuiltinShaders
-{
-    VShader_MVP = 0,
-    VShader_Count,
-
-    FShader_Solid = 0,
-    FShader_Gouraud,
-    FShader_LitGouraud,
-    FShader_Count
-};
-
-enum FillMode
-{
-    Fill_Solid,
-    Fill_Wire,
-    Fill_Point
-};
-
-enum PrimitiveType
-{
-    Prim_Lines,
-    Prim_Triangles,
-    Prim_TriangleStrip,
-    Prim_Quads
-};
-
-enum CullMode
-{
-    Cull_Back,                      // cull back facing faces
-    Cull_Front,                     // cull front facing faces
-    Cull_None                       // don't cull any faces based on winding
-};
-
-enum WindingOrder
-{
-    Winding_CW,                     // clockwise
-    Winding_CCW                     // counter-clockwise
-};
-
-enum ClearFlags
-{
-    Clear_None      = BIT(0),
-    Clear_Color     = BIT(1),
-    Clear_Depth     = BIT(2),
-    Clear_Stencil   = BIT(3),
-    Clear_All = Clear_Color | Clear_Depth | Clear_Stencil
 };
 
 class Buffer
@@ -160,50 +179,15 @@ public:
     bool SetUniform4x4f(const char *name, const glm::mat4 &m);
 };
 
-enum TextureFormat
-{
-    Texture_RGBA = 0x100,
-    Texture_BGRA,
-    Texture_DXT1,       // unsupported
-    Texture_DXT3,       // unsupported
-    Texture_DXT5        // unsupported
-};
-
-enum SampleMode
-{
-    Sample_Linear = 0,
-    Sample_Nearest = 1,
-    Sample_Anisotropic = 2,
-    Sample_FilterMask = 3,
-
-    Sample_Repeat = 0,
-    Sample_Clamp = 4,
-    Sample_ClampBorder = 8,
-    Sample_AddressMask = 12
-};
-
-class Texture
-{
-public:
-    virtual ~Texture() = default;
-    virtual uint32_t GetWidth() const = 0;
-    virtual uint32_t GetHeight() const = 0;
-    virtual uint32_t GetFormat() const = 0;
-    virtual void SetSampleMode(uint32_t sample) = 0;
-};
-
 struct SurfaceGeometry
 {
     SurfaceGeometry();
 
-    std::shared_ptr<Buffer> vertexBuffer;
     VertexFormat format;
-    std::shared_ptr<Buffer> indexBuffer;
     uint32_t indexCount;
-
-    PrimitiveType prim;
-    CullMode culling;
-    WindingOrder winding;
+    uint32_t rasterState;
+    std::shared_ptr<Buffer> vertexBuffer;
+    std::shared_ptr<Buffer> indexBuffer;
 };
 
 struct Color4f
@@ -224,7 +208,7 @@ void UnpackRGBA(uint32_t color, float &r, float &g, float &b, float &a);
 struct SurfaceMaterial
 {
     std::shared_ptr<ShaderSet> shader;
-    std::shared_ptr<Texture> texture[ShaderSet::MAX_TEXTURES];
+    std::shared_ptr<Image> texture[ShaderSet::MAX_TEXTURES];
 };
 
 struct Surface
@@ -251,12 +235,9 @@ public:
 
     virtual std::shared_ptr<Buffer>    CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize) = 0;
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {}) = 0;
-    virtual std::shared_ptr<Texture>   CreateTexture(uint32_t format, uint32_t width, uint32_t height, const void *data) = 0;
     
     std::shared_ptr<ShaderSet> LoadBuiltinShaderSet(ShaderSet::Builtin shader);
-    virtual void SetTexture(uint32_t slot, std::shared_ptr<Texture> tex) = 0;
 
-    virtual void SetFillMode(FillMode mode) = 0;
     virtual void Clear(int32_t flags, uint32_t color) = 0;
     virtual void Render(const Surface *surf, const glm::mat4 &transform) = 0;
 
@@ -267,8 +248,6 @@ protected:
     std::shared_ptr<ShaderSet> builtinShaderSets[ShaderSet::Builtin_Max];
     std::shared_ptr<ShaderSet> defaultShader;
 };
-
-std::shared_ptr<Texture> LoadTexture(std::shared_ptr<RenderDevice> device, const char *filename);
 
 std::shared_ptr<RenderDevice> CreateRenderDeviceGL();
 

@@ -5,6 +5,23 @@
 namespace renderer
 {
 
+struct VertexInputElement
+{
+    GLint location;
+    const char *attribute;
+    uintptr_t offset;
+    GLenum type;
+    GLint size;
+    GLboolean normalized;
+};
+
+struct VertexInputLayout
+{
+    GLint stride;       // size in bytes
+    const VertexInputElement *elements;
+    uint32_t numElements;
+};
+
 class Buffer_GL : public Buffer
 {
 public:
@@ -54,23 +71,6 @@ public:
     GLint textureLocation[MAX_TEXTURES];
 };
 
-class GLTexture : public Texture
-{
-public:
-    GLTexture(uint32_t fmt, uint32_t w, uint32_t h);
-    virtual ~GLTexture();
-
-    virtual uint32_t GetWidth() const { return width; }
-    virtual uint32_t GetHeight() const { return height; }
-    virtual uint32_t GetFormat() const { return format; }
-    virtual void SetSampleMode(uint32_t sample);
-
-    uint32_t width;
-    uint32_t height;
-    uint32_t format;
-    GLuint textureId;
-};
-
 class RenderDevice_GL : public RenderDevice
 {
 public:
@@ -81,16 +81,17 @@ public:
 
     virtual std::shared_ptr<Buffer>    CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize);
     virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {});
-    virtual std::shared_ptr<Texture>   CreateTexture(uint32_t format, uint32_t width, uint32_t height, const void *data);
-    virtual void RenderDevice_GL::SetTexture(uint32_t slot, std::shared_ptr<Texture> tex);
 
-    virtual void SetFillMode(FillMode mode);
     virtual void Clear(int32_t flags, uint32_t color);
+
+    void UpdateRasterState(uint32_t state);
+    void SetupVertexLayout(const VertexInputLayout *layout, bool enable);
     virtual void Render(const Surface *surf, const glm::mat4 &transform);
 
 private:
     GLuint vaoId;
     GLint maxAnisotropy;
+    uint32_t currentRasterState;
 };
 
 } // renderer

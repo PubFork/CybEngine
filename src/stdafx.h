@@ -23,6 +23,7 @@
 #include <cinttypes>        // PRIu64 etc...
 
 #include <string>
+#include <algorithm>
 #include <vector>
 #include <list>
 #include <map>

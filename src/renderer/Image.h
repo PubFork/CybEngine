@@ -66,9 +66,6 @@ private:
     uint32_t glType;
 };
 
-namespace _internal
-{
-
 class ImageManager
 {
 public:
@@ -83,8 +80,6 @@ private:
     std::unordered_map<uint32_t/*hash*/, std::shared_ptr<Image>> images;
 };
 
-} // _internal
-
-extern _internal::ImageManager *globalImages;
+extern ImageManager *globalImages;
 
 } // renderer

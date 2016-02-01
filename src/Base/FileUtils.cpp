@@ -1,10 +1,6 @@
 #include "stdafx.h"
 #include "FileUtils.h"
-
-#include "Log.h"
-
-namespace core
-{
+#include "Debug.h"
 
 FileReader::FileReader(const char *filename, bool throwOnFailure) :
     fileBuffer(nullptr),
@@ -33,9 +29,10 @@ bool FileReader::Open(const char *filename)
     fileSize = file.tellg();
     file.seekg(0, std::ios_base::beg);
 
-    fileBuffer = new char[fileSize];
+    fileBuffer = new char[fileSize + 1];
     currentPosition = fileBuffer;
     file.read(fileBuffer, fileSize);
+    fileBuffer[fileSize] = '\0';
 
     return true;
 }
@@ -168,7 +165,7 @@ bool FileWriter::Open(const char *filename, bool truncate)
     if (truncate)
         mode |= std::ios_base::trunc;
 
-    file.open(filename, mode);
+    file.open(filename, mode | std::ios::binary);
     return file.is_open();
 }
 
@@ -211,5 +208,3 @@ std::string GetBasePath(const char *filename)
 
     return std::string(filename, lastPathSeperatorPos + 1);
 }
-
-} // core

@@ -1,8 +1,5 @@
 #pragma once
 
-namespace core
-{
-
 enum SeekOrigin
 {
     Seek_Beg,
@@ -62,5 +59,3 @@ private:
 
 size_t WriteDataToFile(const char* filename, const void* buffer, size_t numBytes);
 std::string GetBasePath(const char* filename);
-
-} // core

@@ -1,15 +1,15 @@
 #include "stdafx.h"
 #include "Model_obj.h"
 
-#include "core/FileUtils.h"
-#include "core/Log.h"
+#include "Base/Debug.h"
+#include "Base/FileUtils.h"
 
 /*
  * Some parts are based of syoyo's tinyobjloader:
  * https://github.com/syoyo/tinyobjloader
  */
 
-namespace engine
+namespace renderer
 {
 namespace priv
 {
@@ -122,7 +122,7 @@ ObjFace ReadFace(const char *&buffer)
     return face;
 }
 
-uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &surface, ObjMaterial *material, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const ObjIndex &index)
+uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &surface, ObjMaterial * /*material*/, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const ObjIndex &index)
 {
     // check vertex cache first
     auto it = vertexCache.find(index);
@@ -137,7 +137,7 @@ uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &sur
     vertex.y = positions[index.v].y;
     vertex.z = positions[index.v].z;
 
-    vertex.color0 = renderer::PackRGBA(material->diffuseColor.r, material->diffuseColor.g, material->diffuseColor.b, 1.0f);
+//    vertex.color0 = renderer::PackRGBA(material->diffuseColor.r, material->diffuseColor.g, material->diffuseColor.b, 1.0f);
 
     if (index.vn)
     {
@@ -208,7 +208,7 @@ void MakeDefaultMaterial(ObjMaterial &material)
 
 bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
 {
-    core::FileReader file(filename);
+    FileReader file(filename);
     if (!file.IsOpen())
         return false;
 
@@ -255,7 +255,7 @@ bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
 
 ObjModel *OBJ_Load(const char *filename)
 {
-    core::FileReader file(filename);
+    FileReader file(filename);
     if (!file.IsOpen())
         return nullptr;
 
@@ -308,7 +308,7 @@ ObjModel *OBJ_Load(const char *filename)
             facegroupName = ReadString(linebuf);
         } else if (ReadToken(linebuf, "mtllib "))
         {
-            std::string materialFilename = core::GetBasePath(filename) + ReadString(linebuf);
+            std::string materialFilename = GetBasePath(filename) + ReadString(linebuf);
             bool result = MTL_Load(materialFilename.c_str(), model->materials);
             
             if (!result || model->materials.empty())

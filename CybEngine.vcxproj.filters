@@ -5,45 +5,29 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
-    <Filter Include="Header Files\Core">
-      <UniqueIdentifier>{3fabcc2c-0b17-4eb6-808e-20f5134721f9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Core">
-      <UniqueIdentifier>{949d2920-1bff-42b4-a76c-bd0b95aa6652}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\Core\Containers">
-      <UniqueIdentifier>{640cc6c8-0028-4c34-b8db-be87b42c3b71}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\Renderer">
-      <UniqueIdentifier>{f8a2e413-b3f4-4039-9774-8234f74d00ba}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Renderer">
       <UniqueIdentifier>{375cb722-8c5c-4e48-8eae-6462c653d952}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Engine">
-      <UniqueIdentifier>{6d1e6dc4-795d-443c-99d1-0e3566896f2d}</UniqueIdentifier>
+    <Filter Include="Source Files\Base">
+      <UniqueIdentifier>{949d2920-1bff-42b4-a76c-bd0b95aa6652}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Engine">
-      <UniqueIdentifier>{8f822ea4-00cc-4de6-9e0a-cda36d0b7b32}</UniqueIdentifier>
+    <Filter Include="Source Files\Base\Container">
+      <UniqueIdentifier>{c5ba8849-3b12-47a3-ba65-0c785e726c1b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Game">
+      <UniqueIdentifier>{6a4a3deb-b5a1-4f27-b773-41b7491564fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\shaders">
+      <UniqueIdentifier>{3a603afa-adfd-41f3-9f28-adaed72575d8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\Log.cpp">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\Timer.cpp">
-      <Filter>Source Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\renderer\RenderDevice.cpp">
       <Filter>Source Files\Renderer</Filter>
@@ -51,61 +35,87 @@
     <ClCompile Include="src\renderer\RenderDevice_GL.cpp">
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\engine\Model.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="src\engine\Model_obj.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\FileUtils.cpp">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
     <ClCompile Include="src\renderer\Image.cpp">
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Base\FileUtils.cpp">
+      <Filter>Source Files\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Base\Timer.cpp">
+      <Filter>Source Files\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Base\Debug.cpp">
+      <Filter>Source Files\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\Model_obj.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\Model.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\PipelineState.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\core\Log.h">
-      <Filter>Header Files\Core</Filter>
+    <ClInclude Include="src\Base\Container\TempArray.h">
+      <Filter>Source Files\Base\Container</Filter>
     </ClInclude>
-    <ClInclude Include="src\core\MurmurHash.h">
-      <Filter>Header Files\Core</Filter>
+    <ClInclude Include="src\Base\Container\LinkedList.h">
+      <Filter>Source Files\Base\Container</Filter>
     </ClInclude>
-    <ClInclude Include="src\core\Timer.h">
-      <Filter>Header Files\Core</Filter>
+    <ClInclude Include="src\Base\Debug.h">
+      <Filter>Source Files\Base</Filter>
     </ClInclude>
-    <ClInclude Include="src\core\containers\TempArray.h">
-      <Filter>Header Files\Core\Containers</Filter>
+    <ClInclude Include="src\Base\FileUtils.h">
+      <Filter>Source Files\Base</Filter>
     </ClInclude>
-    <ClInclude Include="src\core\containers\LinkedList.h">
-      <Filter>Header Files\Core\Containers</Filter>
+    <ClInclude Include="src\Base\Macros.h">
+      <Filter>Source Files\Base</Filter>
     </ClInclude>
-    <ClInclude Include="src\stdafx.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\Base\MurmurHash.h">
+      <Filter>Source Files\Base</Filter>
     </ClInclude>
-    <ClInclude Include="src\renderer\RenderDevice.h">
-      <Filter>Header Files\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\RenderDevice_GL.h">
-      <Filter>Header Files\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\engine\Model.h">
-      <Filter>Header Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="src\engine\Model_obj.h">
-      <Filter>Header Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="src\core\FileUtils.h">
-      <Filter>Header Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\core\Macros.h">
-      <Filter>Header Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\stb_image.h">
-      <Filter>Header Files\Renderer</Filter>
+    <ClInclude Include="src\Base\Timer.h">
+      <Filter>Source Files\Base</Filter>
     </ClInclude>
     <ClInclude Include="src\renderer\Image.h">
-      <Filter>Header Files\Renderer</Filter>
+      <Filter>Source Files\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\renderer\RenderDevice.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\RenderDevice_GL.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\stb_image.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\stdafx.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\Model_obj.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\Model.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Game\GameApp.h">
+      <Filter>Source Files\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\PipelineState.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\shaders\standard.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\standard.vert">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

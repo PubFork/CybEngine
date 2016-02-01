@@ -2,17 +2,17 @@
 #include <GL/glew.h>
 #include <Windows.h>
 #include "Image.h"
-#include "core/Log.h"
-#include "core/FileUtils.h"
-#include "core/MurmurHash.h"
+#include "Base/Debug.h"
+#include "Base/FileUtils.h"
+#include "Base/MurmurHash.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 namespace renderer
 {
 
-static _internal::ImageManager staticGlobalImages;
-_internal::ImageManager *globalImages = &staticGlobalImages;
+static ImageManager staticGlobalImages;
+ImageManager *globalImages = &staticGlobalImages;
 
 void FilterRgba2x2(const uint8_t *src, int w, int h, uint8_t *dest)
 {
@@ -121,7 +121,7 @@ void Image::AllocImage()
         break;
 
     default:
-        throw core::FatalException(std::string("Unsupported image format ") + std::to_string(param.format));
+        throw FatalException(std::string("Unsupported image format ") + std::to_string(param.format));
     }
 
     glCreateTextures(GL_TEXTURE_2D, 1, &textureId);
@@ -207,9 +207,6 @@ void Image::UpdateTextureParams() const
     }
 }
 
-namespace _internal
-{
-
 std::shared_ptr<Image> ImageManager::ImageFromFile(const char *filename, uint32_t sampleFlags)
 {
     // first check if image allready exists in cache
@@ -218,7 +215,7 @@ std::shared_ptr<Image> ImageManager::ImageFromFile(const char *filename, uint32_
         return image;
 
     // load imag using stbi_image
-    core::FileReader file(filename, true);
+    FileReader file(filename, true);
     DEBUG_LOG_TEXT("Loading image from file %s [hash 0x%x]...", filename, CalculateMurmurHash(filename, strlen(filename)));
 
     int width, height, bpp;
@@ -227,7 +224,7 @@ std::shared_ptr<Image> ImageManager::ImageFromFile(const char *filename, uint32_
     if (!data)
     {
         DEBUG_LOG_TEXT("Failed to load image %s: %s", filename, stbi_failure_reason());
-        throw core::FatalException(std::string("Failed to load texture ") + filename);
+        throw FatalException(std::string("Failed to load texture ") + filename);
     }
 
     image = AllocImage(filename);
@@ -253,8 +250,6 @@ std::shared_ptr<Image> ImageManager::Find(const char *name)
     auto searchResult = images.find(hash);
     return searchResult != images.end() ? searchResult->second : nullptr;
 }
-
-} // _internal
 
 } // renderer
 

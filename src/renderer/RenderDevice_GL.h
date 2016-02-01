@@ -5,23 +5,6 @@
 namespace renderer
 {
 
-struct VertexInputElement
-{
-    GLint location;
-    const char *attribute;
-    uintptr_t offset;
-    GLenum type;
-    GLint size;
-    GLboolean normalized;
-};
-
-struct VertexInputLayout
-{
-    GLint stride;       // size in bytes
-    const VertexInputElement *elements;
-    uint32_t numElements;
-};
-
 class Buffer_GL : public Buffer
 {
 public:
@@ -34,64 +17,20 @@ public:
     GLsizeiptr size;
 };
 
-class Shader_GL : public Shader
-{
-public:
-    Shader_GL(Type type, const char *source);
-    virtual ~Shader_GL();
-
-    GLenum GLStage() const;
-    bool Compile(const char *source);
-
-    GLuint shaderId;
-};
-
-class ShaderSet_GL : public ShaderSet
-{
-public:
-    struct Uniform
-    {
-        std::string name;
-        GLint location;
-        uint32_t numFloats;
-    };
-
-    ShaderSet_GL();
-    virtual ~ShaderSet_GL();
-
-    virtual void SetShader(std::shared_ptr<Shader> s);
-    virtual void UnsetShader(Shader::Type stage);
-    virtual bool SetUniformfv(const char *name, uint32_t numFloats, const float *v);
-
-    bool Link();
-
-    GLuint progId;
-    std::shared_ptr<Shader> shaders[Shader::Count];
-    std::list<Uniform> uniformInfo;
-    GLint textureLocation[MAX_TEXTURES];
-};
-
 class RenderDevice_GL : public RenderDevice
 {
 public:
     RenderDevice_GL();
     virtual ~RenderDevice_GL();
 
-    virtual std::shared_ptr<Shader> LoadBuiltinShader(Shader::Type stage, BuiltinShaders shader);
-
     virtual std::shared_ptr<Buffer>    CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize);
-    virtual std::shared_ptr<ShaderSet> CreateShaderSet(std::initializer_list<std::shared_ptr<Shader>> shaderList = {});
 
     virtual void Clear(int32_t flags, uint32_t color);
-
-    void UpdateRasterState(uint32_t state);
-    void SetupVertexLayout(const VertexInputLayout *layout, bool enable);
-    virtual void Render(const Surface *surf, const glm::mat4 &transform);
+    virtual void Render(const Surface *surf, const glm::mat4 &transform, PipelineState &pstate);
 
 private:
     GLuint vaoId;
     GLint maxAnisotropy;
-    uint32_t currentRasterState;
 };
 
 } // renderer

@@ -2,7 +2,7 @@
 
 #include "renderer/RenderDevice.h"
 
-namespace engine
+namespace renderer
 {
 
 class Model
@@ -21,9 +21,9 @@ public:
     size_t NumSurfaces() const { return surfaces.size(); }
     const SurfaceList &GetSurfaces() const { return surfaces; }
 
-    static std::shared_ptr<Model> LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, std::shared_ptr<renderer::ShaderSet> shader, const std::string &filename);
+    static std::shared_ptr<Model> LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, const std::string &filename);
 
-    void Render(std::shared_ptr<renderer::RenderDevice> device, const glm::mat4 &transform);
+    void Render(std::shared_ptr<renderer::RenderDevice> device, const glm::mat4 &transform, renderer::PipelineState &pstate);
 
 private:
     std::string name;

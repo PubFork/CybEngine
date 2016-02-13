@@ -1,9 +1,6 @@
 #pragma once
 
-namespace core
-{
-
-class Timer
+class HiPerformanceTimer
 {
 public:
     enum 
@@ -17,4 +14,4 @@ public:
     static uint64_t GetTicksNanos();
 };
 
-} // core
+std::string TimeStringNano(uint64_t nanos);

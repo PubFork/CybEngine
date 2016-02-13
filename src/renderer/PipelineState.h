@@ -27,7 +27,7 @@ enum RasterizerStateFlags
 // Vertex Input Layout
 //==============================
 
-enum VertexFormat2
+enum VertexFormat
 {
     VertexFormat_Float2,
     VertexFormat_Float3,
@@ -39,7 +39,7 @@ struct VertexInputElement
 {
     const char *attribName;
     int16_t location;
-    VertexFormat2 format;
+    VertexFormat format;
     int16_t alignedOffset;  // 0 = auto-calculate (TODO: implement manual control)
 };
 
@@ -61,6 +61,7 @@ class ShaderProgram
 {
 public:
     enum { InvalidUniform = -1 };
+
     enum ShaderStage
     {
         Stage_Vertex,
@@ -118,6 +119,8 @@ struct CreatePipelineStateInfo
 class PipelineState
 {
 public:
+    PipelineState();
+
     void Create(const CreatePipelineStateInfo &info);
     void Destroy();
 
@@ -126,11 +129,11 @@ public:
     void SetParamMat4(uint32_t param, const float *value);
     void SetParamVec3(uint32_t param, const float *value);
     const VertexInputLayout &GetVertexLayout() const { return inputLayout; }
-    const uint32_t GetGLPrimType() const;   // For the renderer, use something better (more generic)?
+    const uint32_t GetGLPrimType() const;   // for the renderer, use something better (more generic)?
 
 private:
     int32_t ValidatedParamLocation(uint32_t param);
-    void SetupRasterer();
+    void SubmitRasterizerFlags();
 
     uint32_t rasterizerFlags;
     VertexInputLayout inputLayout;

@@ -59,6 +59,9 @@
     <ClCompile Include="src\stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Base\Profiler.cpp">
+      <Filter>Source Files\Base</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Base\Container\TempArray.h">
@@ -108,6 +111,9 @@
     </ClInclude>
     <ClInclude Include="src\Renderer\PipelineState.h">
       <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Base\Profiler.h">
+      <Filter>Source Files\Base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

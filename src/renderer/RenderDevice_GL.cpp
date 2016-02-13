@@ -4,6 +4,7 @@
 #include "RenderDevice_GL.h"
 
 #include "Base/Debug.h"
+#include "Base/Profiler.h"
 
 namespace renderer
 {
@@ -38,7 +39,7 @@ void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenu
         { GL_DEBUG_SEVERITY_NOTIFICATION,           "Notification"          }
     };
 
-    DEBUG_LOG_TEXT("[glDebug] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
+    DEBUG_LOG_TEXT("[driver] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
 }
 
 Buffer_GL::Buffer_GL() :
@@ -127,6 +128,8 @@ void RenderDevice_GL::Clear(int32_t flags, uint32_t color)
 void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform, PipelineState &pstate)
 {
     assert(surf);
+
+    SCOOPED_PROFILER("Render_Surface");
 
     glBindVertexArray(vaoId);
 

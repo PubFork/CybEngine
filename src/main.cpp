@@ -4,6 +4,7 @@
 
 #include "Base/Debug.h"
 #include "Base/Timer.h"
+#include "Base/Profiler.h"
 #include "Renderer/RenderDevice.h"
 #include "Renderer/Model.h"
 
@@ -46,7 +47,7 @@ int main()
         auto window = OpenWindow(1024, 760, "Cyb engine test");
         auto device = renderer::CreateRenderDeviceGL();
 
-        auto model = renderer::Model::LoadOBJ(device, "assets/capsule.obj");
+        auto model = renderer::Model::LoadOBJ(device, "assets/Street environment_V01.obj");
 
         device->SetProjection(glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f));
         glm::mat4 view = glm::lookAt(
@@ -55,7 +56,7 @@ int main()
             glm::vec3(0, 1, 0));    // up
 
         char titleBuffer[64];
-        double startTime = core::Timer::GetSeconds();
+        double startTime = HiPerformanceTimer::GetSeconds();
         double previousFrametime = startTime;  
 
         renderer::PipelineState pipelineState = {};
@@ -82,11 +83,13 @@ int main()
 
         while (!glfwWindowShouldClose(window))
         {
-            double currentTime = core::Timer::GetSeconds() - startTime;
+            SCOOPED_PROFILER("FrameTotal");
+
+            double currentTime = HiPerformanceTimer::GetSeconds() - startTime;
             double frameTime = currentTime - previousFrametime;
             previousFrametime = currentTime;
 
-            _snprintf_s(titleBuffer, sizeof(titleBuffer), "FrameTime: %.0fms", frameTime * core::Timer::MsPerSecond);
+            _snprintf_s(titleBuffer, sizeof(titleBuffer), "FrameTime: %.0fms", frameTime * HiPerformanceTimer::MsPerSecond);
             glfwSetWindowTitle(window, titleBuffer);
 
             device->Clear(renderer::Clear_All, 0x203040ff);
@@ -94,7 +97,11 @@ int main()
             glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), (float)(currentTime*0.4), glm::vec3(0.0f, 1.0f, 0.0f));
             model->Render(device, view * rotate, pipelineState);
 
-            glfwSwapBuffers(window);
+            {
+                SCOOPED_PROFILER("SwapBuffers");
+                glfwSwapBuffers(window);
+            }
+            
             glfwPollEvents();
         }
     } catch (const std::exception &e)
@@ -105,6 +112,7 @@ int main()
     }
 
     glfwTerminate();
+    globalProfiler->PrintToDebug();
     SaveDebugLogToFile("debuglog.txt");
     return returnValue;;
 }

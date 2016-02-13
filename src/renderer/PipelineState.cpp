@@ -203,6 +203,12 @@ static const char *paramNames[] =
     nullptr
 };
 
+PipelineState::PipelineState()
+{
+    FOR_EACH(paramLocations, [](int32_t &loc) { loc = ShaderProgram::InvalidUniform; });
+    rasterizerFlags = Raster_DefaultState;
+}
+
 void PipelineState::Create(const CreatePipelineStateInfo &info)
 {
     rasterizerFlags = info.rasterFlags;
@@ -228,7 +234,7 @@ void PipelineState::Destroy()
 
 void PipelineState::Bind()
 {
-    SetupRasterer();
+    SubmitRasterizerFlags();
     program.Bind();
 }
 
@@ -239,7 +245,7 @@ int32_t PipelineState::ValidatedParamLocation(uint32_t param)
     return paramLocations[param];
 }
 
-void PipelineState::SetupRasterer()
+void PipelineState::SubmitRasterizerFlags()
 {
     switch (rasterizerFlags & Raster_CullMask)
     {

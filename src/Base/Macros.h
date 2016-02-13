@@ -9,3 +9,6 @@
 
 // get the size of the content of a std::vector in bytes
 #define VECTOR_BYTESIZE(v)  (sizeof(v[0]) * v.size())
+
+// small swapper for std::for_each without having to specify begin- and end iterator
+#define FOR_EACH(element, function) std::for_each(std::begin(element), std::end(element), function);

@@ -108,37 +108,44 @@ std::shared_ptr<Buffer> RenderDevice_GL::CreateBuffer(Buffer::Type usage, const 
     return buffer;
 }
 
-void RenderDevice_GL::Clear(int32_t flags, uint32_t color)
+void RenderDevice_GL::Clear(uint32_t targets, const glm::vec4 color, float depth)
 {
-    float r, g, b, a;
-    UnpackRGBA(color, r, g, b, a);
-    glClearColor(r, g, b, a);
-
     GLbitfield mask = 0;
-    if (flags & Clear_Color)
+
+    if (targets & Clear_Color)
+    {
+        glClearColor(color.r, color.g, color.b, color.a );
         mask |= GL_COLOR_BUFFER_BIT;
-    if (flags & Clear_Depth)
+    }
+
+    if (targets & Clear_Depth)
+    {
+        glClearDepth(depth);
         mask |= GL_DEPTH_BUFFER_BIT;
-    if (flags & Clear_Stencil)
+    }
+
+    if (targets & Clear_Stencil)
+    {
         mask |= GL_STENCIL_BUFFER_BIT;
+    }
 
     glClear(mask);
 }
 
-void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform, PipelineState &pstate)
+void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
 {
     assert(surf);
 
-    SCOOPED_PROFILER("Render_Surface");
+    SCOOPED_PROFILE_EVENT("Render_Surface");
 
     glBindVertexArray(vaoId);
 
-    // setup material
+    // setup material & pipeline state
     const SurfaceMaterial *material = &surf->material;
-
-    pstate.Bind();
-    pstate.SetParamMat4(renderer::Param_Proj, glm::value_ptr(projection));
-    pstate.SetParamMat4(renderer::Param_ModelView, glm::value_ptr(transform));
+    PipelineState *pipelineState = surf->pipelineState;
+    pipelineState->Bind();
+    pipelineState->SetParamMat4(renderer::Param_Proj, glm::value_ptr(projection));
+    pipelineState->SetParamMat4(renderer::Param_ModelView, glm::value_ptr(transform));
 
     if (material->texture[0])
         material->texture[0]->Bind(0);
@@ -152,9 +159,9 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform, Pi
     glBindBuffer(GL_ARRAY_BUFFER, vbo->bufferId);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo->bufferId);
 
-    BindVertexLayout(pstate.GetVertexLayout());
-    glDrawElements(pstate.GetGLPrimType(), geo->indexCount, GL_UNSIGNED_SHORT, NULL);
-    UnBindVertexLayout(pstate.GetVertexLayout());
+    BindVertexLayout(pipelineState->GetVertexLayout());
+    glDrawElements(pipelineState->GetGLPrimType(), geo->indexCount, GL_UNSIGNED_SHORT, NULL);
+    UnBindVertexLayout(pipelineState->GetVertexLayout());
 }
 
 std::shared_ptr<RenderDevice> CreateRenderDeviceGL()

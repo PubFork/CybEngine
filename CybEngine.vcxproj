@@ -23,6 +23,7 @@
     <ClCompile Include="src\Base\FileUtils.cpp" />
     <ClCompile Include="src\Base\Profiler.cpp" />
     <ClCompile Include="src\Base\Timer.cpp" />
+    <ClCompile Include="src\Game\GameApp.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\renderer\Image.cpp" />
     <ClCompile Include="src\Renderer\Model.cpp" />

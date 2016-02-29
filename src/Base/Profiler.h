@@ -1,6 +1,6 @@
 #pragma once
 
-#define SCOOPED_PROFILER(name) ScoopedProfileEntry ___scoopedProfiler(name, globalProfiler)
+#define SCOOPED_PROFILE_EVENT(name) ScoopedProfileEntry ___scoopedProfiler(name, globalProfiler)
 
 struct ProfileEntry
 {

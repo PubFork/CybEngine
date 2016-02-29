@@ -25,8 +25,8 @@ public:
 
     virtual std::shared_ptr<Buffer>    CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize);
 
-    virtual void Clear(int32_t flags, uint32_t color);
-    virtual void Render(const Surface *surf, const glm::mat4 &transform, PipelineState &pstate);
+    virtual void Clear(uint32_t targets, const glm::vec4 color, float depth = 1.0f);
+    virtual void Render(const Surface *surf, const glm::mat4 &transform);
 
 private:
     GLuint vaoId;

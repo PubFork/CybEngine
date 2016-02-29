@@ -21,24 +21,24 @@ public:
 
     enum
     {
-        Sample_Nearest      = 0x00000000,
-        Sample_Linear       = 0x00000001,
-        Sample_Anisotropic  = 0x00000010,
-        Sample_FilterMask   = 0x00000011,
+        Sample_Nearest      = 0x0000,
+        Sample_Linear       = 0x0001,
+        Sample_Anisotropic  = 0x0002,
+        Sample_FilterMask   = 0x000f,
 
-        Sample_Repeat       = 0x00000000,
-        Sample_Clamp        = 0x00000100,
-        Sample_ClampBorder  = 0x00001000,
-        Sample_AddressMask  = 0x00001100
+        Sample_Repeat       = 0x0000,
+        Sample_Clamp        = 0x0010,
+        Sample_ClampBorder  = 0x0020,
+        Sample_AddressMask  = 0x00f0
     };
 
     enum
     {
-        Format_None         = 0x00010000,
-        Format_RGBA8        = 0x00010001,       // 32 bpp
-        Format_Alpha        = 0x00010002,       // 8 bpp single channel (unimplemented)
-        Format_DXT1         = 0x00010003,       // 4 bpp                (unimplemented)
-        Format_DXT5         = 0x00010004        // 8 bpp                (unimplemented)
+        Format_None         = 0x1001,
+        Format_RGBA8        = 0x1001,       // 32 bpp
+        Format_Alpha        = 0x1002,       // 8 bpp single channel (unimplemented)
+        Format_DXT1         = 0x1003,       // 4 bpp                (unimplemented)
+        Format_DXT5         = 0x1004        // 8 bpp                (unimplemented)
     };
 
     Image(const char *imageName);
@@ -66,20 +66,20 @@ private:
     uint32_t glType;
 };
 
-class ImageManager
+class ImageCache
 {
 public:
-
     // if the image allready exist is the cache, sampleFlags is ignored
     std::shared_ptr<Image> ImageFromFile(const char *filename, uint32_t sampleFlags);
+    std::shared_ptr<Image> ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, uint32_t sampleFlags);
 
-    std::shared_ptr<Image> AllocImage(const char *name);
-    std::shared_ptr<Image> Find(const char *name);
+    // search the cache for a named image, returns nullptr if not found
+    std::shared_ptr<Image> FindImage(const char *name);
 
 private:
-    std::unordered_map<uint32_t/*hash*/, std::shared_ptr<Image>> images;
-};
+    std::shared_ptr<Image> ImageFromMemoryInternal(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, uint32_t sampleFlags);
 
-extern ImageManager *globalImages;
+    std::unordered_map<uint32_t, std::shared_ptr<Image>> imageCacheMap;
+};
 
 } // renderer

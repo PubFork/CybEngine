@@ -11,20 +11,20 @@
 namespace renderer
 {
 
-enum ClearFlags
-{
-    Clear_None                  = 0x00000000,
-    Clear_Color                 = 0x00000001,
-    Clear_Depth                 = 0x00000002,
-    Clear_Stencil               = 0x00000004,
-    Clear_All                   = Clear_Color | Clear_Depth | Clear_Stencil
-};
-
 struct VertexStandard
 {
     float x, y, z;
     float nx, ny, nz;
     float u0, v0;
+};
+
+enum ClearFlags
+{
+    Clear_None = 0x00,
+    Clear_Color = 0x01,
+    Clear_Depth = 0x02,
+    Clear_Stencil = 0x04,
+    Clear_All = Clear_Color | Clear_Depth | Clear_Stencil
 };
 
 class Buffer
@@ -44,50 +44,55 @@ public:
 
 struct SurfaceGeometry
 {
-    SurfaceGeometry();
-
+    SurfaceGeometry() : indexCount(0) {}
     uint32_t indexCount;
     std::shared_ptr<Buffer> vertexBuffer;
     std::shared_ptr<Buffer> indexBuffer;
 };
 
-uint32_t PackRGBA(float r, float g, float b, float a);
-void UnpackRGBA(uint32_t color, float &r, float &g, float &b, float &a);
-
 struct SurfaceMaterial
 {
     enum { MaxNumTextures = 4 };
-    //std::shared_ptr<ShaderSet> shader;
     std::shared_ptr<Image> texture[MaxNumTextures];
 };
 
 struct Surface
 {
-    Surface()
-    {
-        name = "<unknown>";
-    }
-
+    Surface() : name("<unknown>") {}
     std::string name;
     SurfaceGeometry geometry;
     SurfaceMaterial material;
+    PipelineState *pipelineState;
 };
 
-class RenderDevice
+enum BuiltinPipelineStateEnum
+{
+    BuiltintPipelineState_Default,
+    BuiltintPipelineState_Particle,      // UNIMPLEMENTED
+    BuiltintPipelineState_Skybox,        // UNIMPLEMENTED
+    BuiltintPipelineState_Count
+};
+
+class RenderDevice : public ImageCache
 {
 public:
     RenderDevice() = default;
     virtual ~RenderDevice() = default;
 
+    void Init();
+
     void SetProjection(const glm::mat4 &proj);
 
-    virtual std::shared_ptr<Buffer>    CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize) = 0;
+    PipelineState *BuiltintPipelineState(uint32_t pipelineStateEnum);
+
+    virtual std::shared_ptr<Buffer> CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize) = 0;
     
-    virtual void Clear(int32_t flags, uint32_t color) = 0;
-    virtual void Render(const Surface *surf, const glm::mat4 &transform, PipelineState &pstate) = 0;
+    virtual void Clear(uint32_t targets, const glm::vec4 color, float depth = 1.0f) = 0;
+    virtual void Render(const Surface *surf, const glm::mat4 &transform) = 0;
 
 protected:
     glm::mat4 projection;
+    PipelineState builtintPipelineStates[BuiltintPipelineState_Count];
 };
 
 std::shared_ptr<RenderDevice> CreateRenderDeviceGL();

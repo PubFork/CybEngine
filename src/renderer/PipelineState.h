@@ -72,6 +72,9 @@ public:
     ShaderProgram();
     ~ShaderProgram();
 
+    void Create();
+    void Destroy();
+
     void AttachShaderFromString(ShaderStage stage, const char *source);
     void AttachShaderFromFile(ShaderStage stage, const char *filename);
     bool Link();

@@ -74,11 +74,19 @@ void UnBindVertexLayout(const VertexInputLayout &layout)
 ShaderProgram::ShaderProgram()
 {
     memset(shaderStages, 0, sizeof(shaderStages));
+    shaderProgram = 0;
+}
+
+void ShaderProgram::Create()
+{
+    // remove any previous data from the program
+    Destroy();
+
     shaderProgram = glCreateProgram();
     THROW_FATAL_COND(shaderProgram == 0, "Failed to allocate shader program.");
 }
 
-ShaderProgram::~ShaderProgram()
+void ShaderProgram::Destroy()
 {
     for (auto shader : shaderStages)
     {
@@ -90,10 +98,17 @@ ShaderProgram::~ShaderProgram()
     }
 
     glDeleteProgram(shaderProgram);
+    shaderProgram = 0;
+}
+
+ShaderProgram::~ShaderProgram()
+{
+    Destroy();
 }
 
 void ShaderProgram::AttachShaderFromString(ShaderStage stage, const char *source)
 {
+    assert(shaderProgram);
     assert(stage < Stage_Count);
     assert(source);
 
@@ -138,6 +153,7 @@ void ShaderProgram::AttachShaderFromFile(ShaderStage stage, const char *filename
 
 bool ShaderProgram::Link()
 {
+    assert(shaderProgram);
     glLinkProgram(shaderProgram);
     GLint linked = 0;
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linked);
@@ -217,6 +233,7 @@ void PipelineState::Create(const CreatePipelineStateInfo &info)
     SetupVertexLayout(&inputLayout, info.inputLayout);
 
     // setup shader program
+    program.Create();
     program.AttachShaderFromFile(ShaderProgram::Stage_Vertex, info.vertShaderFilename);
     program.AttachShaderFromFile(ShaderProgram::Stage_Fragment, info.fragShaderFilename);
     for (uint32_t i = 0; i < Param_Count; i++)
@@ -260,7 +277,7 @@ void PipelineState::SubmitRasterizerFlags()
     case Raster_CullNone:
         glDisable(GL_CULL_FACE);
         break;
-    default: assert(0);
+    default: assert(!"Invalid enum");
     }
 
     switch (rasterizerFlags & Raster_FrontMask)
@@ -271,7 +288,7 @@ void PipelineState::SubmitRasterizerFlags()
     case Raster_FrontCW:
         glFrontFace(GL_CW);
         break;
-    default: assert(0);
+    default: assert(!"Invalid enum");
     }
 }
 
@@ -295,9 +312,10 @@ const uint32_t PipelineState::GetGLPrimType() const
     case Raster_PrimLine:           return GL_LINES;
     case Raster_PrimTriangle:       return GL_TRIANGLES;
     case Raster_PrimTriangleStrip:  return GL_TRIANGLE_STRIP;
-    default: assert(0);
+    default: break;
     }
 
+    assert(!"Invalid enum");
     return 0;
 }
 

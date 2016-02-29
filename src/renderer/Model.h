@@ -23,7 +23,7 @@ public:
 
     static std::shared_ptr<Model> LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, const std::string &filename);
 
-    void Render(std::shared_ptr<renderer::RenderDevice> device, const glm::mat4 &transform, renderer::PipelineState &pstate);
+    void Render(std::shared_ptr<renderer::RenderDevice> device, const glm::mat4 &transform);
 
 private:
     std::string name;

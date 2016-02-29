@@ -11,9 +11,6 @@
 namespace renderer
 {
 
-static ImageManager staticGlobalImages;
-ImageManager *globalImages = &staticGlobalImages;
-
 void FilterRgba2x2(const uint8_t *src, int w, int h, uint8_t *dest)
 {
     for (int j = 0; j < (h & ~1); j += 2)
@@ -207,10 +204,10 @@ void Image::UpdateTextureParams() const
     }
 }
 
-std::shared_ptr<Image> ImageManager::ImageFromFile(const char *filename, uint32_t sampleFlags)
+std::shared_ptr<Image> ImageCache::ImageFromFile(const char *filename, uint32_t sampleFlags)
 {
     // first check if image allready exists in cache
-    auto image = Find(filename);
+    auto image = FindImage(filename);
     if (image)
         return image;
 
@@ -227,28 +224,34 @@ std::shared_ptr<Image> ImageManager::ImageFromFile(const char *filename, uint32_
         throw FatalException(std::string("Failed to load texture ") + filename);
     }
 
-    image = AllocImage(filename);
-    image->Create(data, width, height, Image::Format_RGBA8, sampleFlags);
+    image = ImageFromMemoryInternal(filename, data, width, height, Image::Format_RGBA8, sampleFlags);
     stbi_image_free(data);
 
     return image;
 }
 
-std::shared_ptr<Image> ImageManager::AllocImage(const char *name)
+std::shared_ptr<Image> ImageCache::ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, uint32_t sampleFlags)
 {
-    uint32_t hash = CalculateMurmurHash(name, strlen(name));
+    auto image = FindImage(name);
+    return image ? image : ImageFromMemoryInternal(name, data, width, height, format, sampleFlags);
+}
 
+std::shared_ptr<Image> ImageCache::ImageFromMemoryInternal(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, uint32_t sampleFlags)
+{
     auto image = std::make_shared<Image>(name);
-    images[hash] = image;
+    image->Create(data, width, height, format, sampleFlags);
+
+    uint32_t hash = CalculateMurmurHash(name, strlen(name));
+    imageCacheMap[hash] = image;
 
     return image;
 }
 
-std::shared_ptr<Image> ImageManager::Find(const char *name)
+std::shared_ptr<Image> ImageCache::FindImage(const char *name)
 {
     uint32_t hash = CalculateMurmurHash(name, strlen(name));
-    auto searchResult = images.find(hash);
-    return searchResult != images.end() ? searchResult->second : nullptr;
+    auto searchResult = imageCacheMap.find(hash);
+    return searchResult != imageCacheMap.end() ? searchResult->second : nullptr;
 }
 
 } // renderer

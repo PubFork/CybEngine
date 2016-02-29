@@ -7,33 +7,59 @@
 namespace renderer
 {
 
-SurfaceGeometry::SurfaceGeometry()
+static VertexInputElement standardVertexLayout[] =
 {
-    indexCount = 0;
-    vertexBuffer = nullptr;
-    indexBuffer = nullptr;
-}
+    { "position",  1, VertexFormat_Float3, 0 },
+    { "normal",    2, VertexFormat_Float3, 0 },
+    { "texCoord0", 3, VertexFormat_Float2, 0 },
+};
 
-uint32_t PackRGBA(float r, float g, float b, float a)
+static const CreatePipelineStateInfo builtintPipelineStatesCreateInfo[BuiltintPipelineState_Count] = 
 {
-    uint32_t color = ((uint32_t)(r * 255) << 24) |
-                     ((uint32_t)(g * 255) << 16) |
-                     ((uint32_t)(b * 255) << 8) |
-                      (uint32_t)(a * 255);
-    return color;
-}
+    {
+        "assets/shaders/standard.vert",
+        "assets/shaders/standard.frag",
+        { standardVertexLayout , _countof(standardVertexLayout) },
+        renderer::Raster_DefaultState
+    },
+    {
+        "assets/shaders/standard.vert",
+        "assets/shaders/standard.frag",
+        { standardVertexLayout , _countof(standardVertexLayout) },
+        renderer::Raster_DefaultState
+    },
+    {
+        "assets/shaders/standard.vert",
+        "assets/shaders/standard.frag",
+        { standardVertexLayout , _countof(standardVertexLayout) },
+        renderer::Raster_DefaultState
+    }
+};
 
-void UnpackRGBA(uint32_t color, float &r, float &g, float &b, float &a)
+//==============================
+// Render Device
+//==============================
+
+void RenderDevice::Init()
 {
-    r = ((color >> 24) & 255) * (1.f / 255.f);
-    g = ((color >> 16) & 255) * (1.f / 255.f);
-    b = ((color >> 8) & 255) * (1.f / 255.f);
-    a = (color & 255) * (1.f / 255.f);
+    // Initialize builtin pipeline states
+    for (uint32_t i = 0; i < BuiltintPipelineState_Count; i++)
+    {
+        PipelineState *pipelineState = &builtintPipelineStates[i];
+        const CreatePipelineStateInfo &createInfo = builtintPipelineStatesCreateInfo[i];
+        pipelineState->Create(createInfo);
+    }
 }
 
 void RenderDevice::SetProjection(const glm::mat4 &proj)
 {
     projection = proj;
+}
+
+PipelineState *RenderDevice::BuiltintPipelineState(uint32_t pipelineStateEnum)
+{
+    assert(pipelineStateEnum < BuiltintPipelineState_Count);
+    return &builtintPipelineStates[pipelineStateEnum];
 }
 
 } // renderer

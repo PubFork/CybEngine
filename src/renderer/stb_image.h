@@ -1,5 +1,7 @@
 #define STBI_NO_HDR
 #define STBI_NO_STDIO
+#define STBI__X86_TARGET
+#define STBI_SSE2
 
 /* stb_image - v2.08 - public domain image loader - http://nothings.org/stb_image.h
                                      no warranty implied; use at your own risk

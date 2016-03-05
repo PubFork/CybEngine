@@ -3,6 +3,7 @@
 #include "Timer.h"
 #include "Debug.h"
 #include "Macros.h"
+#include <iomanip>
 
 static ProfilerDataCollector staticProfiler;
 ProfilerDataCollector *globalProfiler = &staticProfiler;
@@ -71,12 +72,12 @@ void PrintProfileEntry(const ProfileEntry &entry, std::ostream &os, int indentLe
     os << indentSpaces << entry.name << ": ";
     os << "TotalRuntime " << TimeStringNano(entry.totalTime);
     os << ", AverageRuntime " << TimeStringNano(entry.totalTime / entry.numCalls);
-    os << ", CallCount " << entry.numCalls;
+    os << ", Count " << entry.numCalls;
 
     if (entry.parent)
     {
         double percentOfParentTime = (double)entry.totalTime / (double)entry.parent->totalTime * 100.0;
-        os << ", " << percentOfParentTime << "% of parent runtime";
+        os << ", " << std::setprecision(2) << std::fixed << percentOfParentTime << "% of parent runtime";
     } 
     os << "\n";
 

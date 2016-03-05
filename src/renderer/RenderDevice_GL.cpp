@@ -4,7 +4,6 @@
 #include "RenderDevice_GL.h"
 
 #include "Base/Debug.h"
-#include "Base/Profiler.h"
 
 namespace renderer
 {
@@ -135,8 +134,6 @@ void RenderDevice_GL::Clear(uint32_t targets, const glm::vec4 color, float depth
 void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
 {
     assert(surf);
-
-    SCOOPED_PROFILE_EVENT("Render_Surface");
 
     glBindVertexArray(vaoId);
 

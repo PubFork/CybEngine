@@ -24,6 +24,7 @@
 
 #include <string>
 #include <algorithm>
+#include <functional>
 #include <vector>
 #include <list>
 #include <map>

@@ -1,94 +1,107 @@
 #include "stdafx.h"
 #include "Base/Timer.h"
 #include "Base/Profiler.h"
+#include "Base/Debug.h"
 #include "Renderer/Model.h"
 #include "Game/GameApp.h"
 #include <GLFW/glfw3.h>
 
-class CameraBase
+class BaseCamera
 {
 public:
-    CameraBase() :
-        fov(45.0f),
-        aspect(16.0f / 9.0f),
-        zNear(0.1f), 
-        zFar(1000.0f)
-    { 
-        UpdateProjectionMatrix(fov, aspect, zNear, zFar);
-        UpdateViewMatrix(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    }
-
-    void UpdateProjectionMatrix(float Hfov, float aspectRatio, float near, float far)
+    void SetViewMatrix(const glm::vec3 &pos, const glm::vec3 &target, const glm::vec3 &up)
     {
-        fov = Hfov;
-        aspect = aspectRatio;
-        zNear = near;
-        zFar = far;
-        projectionMatrix = glm::perspective(fov, aspect, zNear, zFar);
+        viewMatrix = glm::lookAt(pos, target, up);
     }
 
-    void UpdateViewMatrix(const glm::vec3 &position, const glm::vec3 &target, const glm::vec3 &up)
+    void SetPerspectiveMatrix(float fov, float aspect, float zNear, float zFar)
     {
-        viewMatrix = glm::lookAt(position, target, up);
+        verticalFOV = fov;
+        aspectRatio = aspect;
+        nearZClip = zNear;
+        farZClip = zFar;
+        UpdateProjectionMatrix();
     }
 
-    const glm::mat4 &GetProjectionMatrix() const { return projectionMatrix; }
     const glm::mat4 &GetViewMatrix() const { return viewMatrix; }
+    const glm::mat4 &GetProjMatrix() const { return projMatrix; }
 
 private:
-    float fov;
-    float aspect;
-    float zNear;
-    float zFar;
-    glm::mat4 projectionMatrix;
+    void UpdateProjectionMatrix()
+    {
+        projMatrix = glm::tweakedInfinitePerspective(verticalFOV, aspectRatio, nearZClip);
+    }
+
+private:
+    float verticalFOV;
+    float aspectRatio;
+    float nearZClip;
+    float farZClip;
+
     glm::mat4 viewMatrix;
+    glm::mat4 projMatrix;
 };
 
-class PlayerBase
+class CameraController
 {
 public:
-    PlayerBase()
+    CameraController()
     {
-        position = glm::vec3(0.0f, 2.0f, 0.0f);
-        target = glm::vec3(0.0f, 2.0f, 1.0f);
-        moveSpeed = 5.8;
+        walkSpeed = 8.2f;
+        mouseSensitivity = 0.134f;
+        position = glm::vec3(0.0f, 0.0f, 0.0f);
+        yaw = 0.0f;
+        pitch = 0.0f;
+        UpdateDirectionVector();
     }
 
-    void MoveForward(double dt)
+    void MoveForward(float dt)
     {
-        double moveUnits = moveSpeed * dt;
-        glm::dvec3 dir = glm::normalize(target - position);
+        float moveUnits = walkSpeed * dt;
+        position += direction * moveUnits;
+    }
+
+    void MoveRight(float dt)
+    {
+        double moveUnits = walkSpeed * dt;
+        glm::dvec3 dir = glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f));
         position += dir * moveUnits;
-        target += dir * moveUnits;
     }
 
-    void MoveRight(double dt) 
+    void MoveUp(float dt)
     {
-        double moveUnits = moveSpeed * dt;
-        glm::dvec3 dir = glm::cross(glm::normalize(target - position), glm::vec3(0.0f, 1.0f, 0.0f));
-        position += dir * moveUnits;
-        target += dir * moveUnits;
+        float moveUnits = walkSpeed * dt;
+        position.y += (float)moveUnits;
     }
 
-    void MoveUp(double dt)
+    void RotateDirection(const glm::vec2 mouseOffset)
     {
-        double moveUnits = moveSpeed * dt;
-        position.y += moveUnits;
-        target.y += moveUnits;
+        yaw += mouseOffset.x * mouseSensitivity;
+        pitch = Clamp(pitch - mouseOffset.y * mouseSensitivity, -89.0f, 89.0f);
+        UpdateDirectionVector();
     }
 
-    void UpdateCamera()
+    void UpdateCamera(BaseCamera *camera)
     {
-        camera.UpdateViewMatrix(position, target, glm::vec3(0.0f, 1.0f, 0.0f));
+        camera->SetViewMatrix(position, position + direction, glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
-    const CameraBase *GetCamera() const { return &camera; }
-    
 private:
-    double moveSpeed;
+    void UpdateDirectionVector()
+    {
+        direction.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
+        direction.y = sin(glm::radians(pitch));
+        direction.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+        direction = glm::normalize(glm::vec3(direction));
+    }
+
+    float walkSpeed;
+    float mouseSensitivity;
+    
     glm::vec3 position;
-    glm::vec3 target;
-    CameraBase camera;
+    glm::vec3 direction;
+    float yaw;
+    float pitch;
 };
 
 class GameApp : public GameAppBase
@@ -101,28 +114,27 @@ public:
     virtual void Render();
 
 private:
-    PlayerBase player;
-    //glm::mat4 modelMatrix;
+    BaseCamera camera;
+    CameraController cameraControl;
+
     std::shared_ptr<renderer::Model> model;
 };
 
 bool GameApp::Init()
 {
-    renderDevice->SetProjection(player.GetCamera()->GetProjectionMatrix());
-    /*
-    viewMatrix = glm::lookAt(
-        glm::vec3(0, 0, -3),   // position
-        glm::vec3(0, 0, 1),    // target
-        glm::vec3(0, 1, 0));   // up
-    */
+    camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
+    cameraControl.UpdateCamera(&camera);                    // update camera view matrix
+    renderDevice->SetProjection(camera.GetProjMatrix());
+
     model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
 
-    BindKey(GLFW_KEY_W,     [=](void) { player.MoveForward(frameTimer); });
-    BindKey(GLFW_KEY_S,     [=](void) { player.MoveForward(-frameTimer); });
-    BindKey(GLFW_KEY_A,     [=](void) { player.MoveRight(-frameTimer); });
-    BindKey(GLFW_KEY_D,     [=](void) { player.MoveRight(frameTimer); });
-    BindKey(GLFW_KEY_SPACE, [=](void) { player.MoveUp(frameTimer); });
-    BindKey(GLFW_KEY_C,     [=](void) { player.MoveUp(-frameTimer); });
+    BindKey(GLFW_KEY_W,     [=](void) { cameraControl.MoveForward((float)frameTimer); });
+    BindKey(GLFW_KEY_S,     [=](void) { cameraControl.MoveForward((float)-frameTimer); });
+    BindKey(GLFW_KEY_A,     [=](void) { cameraControl.MoveRight((float)-frameTimer); });
+    BindKey(GLFW_KEY_D,     [=](void) { cameraControl.MoveRight((float)frameTimer); });
+    BindKey(GLFW_KEY_SPACE, [=](void) { cameraControl.MoveUp((float)frameTimer); });
+    BindKey(GLFW_KEY_C,     [=](void) { cameraControl.MoveUp((float)-frameTimer); });
+    BindMouseMove([=](const MouseStateInfo &mouseState) { if (mouseState.isGrabbed) { cameraControl.RotateDirection(mouseState.offset); } });
 
     return true;
 }
@@ -134,10 +146,7 @@ void GameApp::Render()
         static char titleBuffer[64] = {};
         _snprintf_s(titleBuffer, sizeof(titleBuffer), "CybEngine | FrameTime: %.0fms", frameTimer * HiPerformanceTimer::MsPerSecond);
         UpdateWindowTitle(titleBuffer);
-
-        //player.MoveForward(frameTimer);
-        player.UpdateCamera();
-        //modelMatrix = glm::rotate(glm::mat4(1.0f), (float)(timer*0.4), glm::vec3(0.0f, 1.0f, 0.0f));
+        cameraControl.UpdateCamera(&camera);
     }
 
     {
@@ -147,7 +156,7 @@ void GameApp::Render()
 
     {
         SCOOPED_PROFILE_EVENT("Draw_Surfaces");
-        model->Render(renderDevice, player.GetCamera()->GetViewMatrix());
+        model->Render(renderDevice, camera.GetViewMatrix());
     }
 }
 

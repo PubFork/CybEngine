@@ -26,19 +26,30 @@ static void KeyCallback(GLFWwindow *window, int key, int /*scancode*/, int actio
 static void CursorPosCallback(GLFWwindow *window, double xpos, double ypos)
 {
     GLFWCallbackPointerData *data = (GLFWCallbackPointerData*)glfwGetWindowUserPointer(window);
-    data->mouseCursorPosition = glm::ivec2(xpos, ypos);
+    MouseStateInfo &state = data->mouseState;
+    
+    glm::vec2 mousePos(xpos, ypos);
+    state.offset = mousePos - state.position;
+    state.position = mousePos;
+
+    if (data->mouseMoveCallback)
+    {
+        data->mouseMoveCallback(state);
+    }
 }
 
 static void CursorEnterCallback(GLFWwindow *window, int entered)
 {
     GLFWCallbackPointerData *data = (GLFWCallbackPointerData*)glfwGetWindowUserPointer(window);
-    data->inClientArea = entered > 0 ? true : false;
+    MouseStateInfo &state = data->mouseState;
+    state.inClientArea = entered > 0 ? true : false;
 }
 
 static void MouseButtonCallback(GLFWwindow *window, int button, int action, int)
 {
     GLFWCallbackPointerData *data = (GLFWCallbackPointerData*)glfwGetWindowUserPointer(window);
-    data->button[button] = action > 0 ? true : false;
+    MouseStateInfo &state = data->mouseState;
+    state.button[button] = action > 0 ? true : false;
 
     // grab/release mouse with right-button
     if (button == GLFW_MOUSE_BUTTON_RIGHT)
@@ -46,11 +57,11 @@ static void MouseButtonCallback(GLFWwindow *window, int button, int action, int)
         if (action > 0)
         {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            data->mouseIsGrabbed = true;
+            state.isGrabbed = true;
         } else
         {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            data->mouseIsGrabbed = false;
+            state.isGrabbed = false;
         }
     }
 }
@@ -79,9 +90,8 @@ void GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title
     glfwSwapInterval(1);
     
     // setup glfw input callbacks
-    callbackData.inClientArea = true;
-    callbackData.mouseIsGrabbed = false;
-    memset(callbackData.button, 0, sizeof(callbackData.button));
+    memset(&callbackData.mouseState, 0, sizeof(callbackData.mouseState));
+    memset(&callbackData.keyState, 0, sizeof(callbackData.keyState));
 
     glfwSetWindowUserPointer(window, &callbackData);
     glfwSetKeyCallback(window, KeyCallback);
@@ -163,6 +173,11 @@ void GameAppBase::MainLoop()
 void GameAppBase::BindKey(int key, std::function<void(void)> fun)
 {
     callbackData.keyBinds[key] = fun;
+}
+
+void GameAppBase::BindMouseMove(std::function<void(const MouseStateInfo &)> callback)
+{
+    callbackData.mouseMoveCallback = callback;
 }
 
 int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width, uint32_t height, const char *title)

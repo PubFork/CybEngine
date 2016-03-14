@@ -12,3 +12,20 @@
 
 // small swapper for std::for_each without having to specify begin- and end iterator
 #define FOR_EACH(element, function) std::for_each(std::begin(element), std::end(element), function);
+
+// get value clamped to min and max
+template <class T>
+T Clamp(const T value, const T minValue, const T maxValue)
+{
+    if (value < minValue)
+    {
+        return minValue;
+    }
+
+    if (value > maxValue)
+    {
+        return maxValue;
+    }
+
+    return value;
+}

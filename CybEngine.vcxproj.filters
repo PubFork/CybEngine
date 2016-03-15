@@ -62,6 +62,9 @@
     <ClCompile Include="src\Game\GameApp.cpp">
       <Filter>Source Files\Game</Filter>
     </ClCompile>
+    <ClCompile Include="src\Base\SysInfo.cpp">
+      <Filter>Source Files\Base</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Base\Container\TempArray.h">
@@ -113,6 +116,9 @@
       <Filter>Source Files\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Base\Profiler.h">
+      <Filter>Source Files\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Base\SysInfo.h">
       <Filter>Source Files\Base</Filter>
     </ClInclude>
   </ItemGroup>

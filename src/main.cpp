@@ -81,7 +81,7 @@ public:
         UpdateDirectionVector();
     }
 
-    void UpdateCamera(BaseCamera *camera)
+    void UpdateCameraView(BaseCamera *camera)
     {
         camera->SetViewMatrix(position, position + direction, glm::vec3(0.0f, 1.0f, 0.0f));
     }
@@ -123,7 +123,6 @@ private:
 bool GameApp::Init()
 {
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
-    cameraControl.UpdateCamera(&camera);                    // update camera view matrix
     renderDevice->SetProjection(camera.GetProjMatrix());
 
     model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
@@ -146,7 +145,7 @@ void GameApp::Render()
         static char titleBuffer[64] = {};
         _snprintf_s(titleBuffer, sizeof(titleBuffer), "CybEngine | FrameTime: %.0fms", frameTimer * HiPerformanceTimer::MsPerSecond);
         UpdateWindowTitle(titleBuffer);
-        cameraControl.UpdateCamera(&camera);
+        cameraControl.UpdateCameraView(&camera);
     }
 
     {

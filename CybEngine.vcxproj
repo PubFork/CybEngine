@@ -22,6 +22,7 @@
     <ClCompile Include="src\Base\Debug.cpp" />
     <ClCompile Include="src\Base\FileUtils.cpp" />
     <ClCompile Include="src\Base\Profiler.cpp" />
+    <ClCompile Include="src\Base\SysInfo.cpp" />
     <ClCompile Include="src\Base\Timer.cpp" />
     <ClCompile Include="src\Game\GameApp.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -40,6 +41,7 @@
     <ClInclude Include="src\Base\Macros.h" />
     <ClInclude Include="src\Base\MurmurHash.h" />
     <ClInclude Include="src\Base\Profiler.h" />
+    <ClInclude Include="src\Base\SysInfo.h" />
     <ClInclude Include="src\Base\Timer.h" />
     <ClInclude Include="src\Game\GameApp.h" />
     <ClInclude Include="src\renderer\Image.h" />

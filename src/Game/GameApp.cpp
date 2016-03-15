@@ -4,6 +4,7 @@
 #include "Base/Timer.h"
 #include "Base/FileUtils.h"
 #include "Base/Profiler.h"
+#include "Base/SysInfo.h"
 #include "Renderer/stb_image.h"
 #include <Windows.h>
 #include <GLFW/glfw3.h>
@@ -183,6 +184,15 @@ void GameAppBase::BindMouseMove(std::function<void(const MouseStateInfo &)> call
 int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width, uint32_t height, const char *title)
 {
     int returnValue = 0;
+
+    DEBUG_LOG_TEXT("CPU: %s", GetProcessorInfo().c_str());
+    std::vector<std::string> gpuList = GetGraphicCardList();
+    uint16_t gpuNum = 0;
+    for (const auto &gpu : gpuList)
+    {
+        DEBUG_LOG_TEXT("GPU(%d): %s", gpuNum, gpu.c_str());
+        gpuNum++;
+    }
 
     try
     {

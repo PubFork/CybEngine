@@ -35,9 +35,6 @@
     <ClCompile Include="src\renderer\RenderDevice_GL.cpp">
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\renderer\Image.cpp">
-      <Filter>Source Files\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="src\Base\FileUtils.cpp">
       <Filter>Source Files\Base</Filter>
     </ClCompile>
@@ -91,9 +88,6 @@
     <ClInclude Include="src\Base\Timer.h">
       <Filter>Source Files\Base</Filter>
     </ClInclude>
-    <ClInclude Include="src\renderer\Image.h">
-      <Filter>Source Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="src\renderer\RenderDevice.h">
       <Filter>Source Files\Renderer</Filter>
     </ClInclude>
@@ -126,6 +120,9 @@
     </ClInclude>
     <ClInclude Include="src\Game\Camera.h">
       <Filter>Source Files\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\stb_image_resize.h">
+      <Filter>Source Files\Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

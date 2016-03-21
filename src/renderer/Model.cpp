@@ -51,8 +51,8 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> de
         renderer::SurfaceGeometry *convertedGeometry = &convertedSurface.geometry;
 
         // copy geometry
-        convertedGeometry->vertexBuffer = device->CreateBuffer(renderer::Buffer::Vertex, &objSurf.vertices[0], VECTOR_BYTESIZE(objSurf.vertices));
-        convertedGeometry->indexBuffer = device->CreateBuffer(renderer::Buffer::Index, &objSurf.indices[0], VECTOR_BYTESIZE(objSurf.indices));
+        convertedGeometry->VBO = device->CreateBuffer(renderer::Buffer_Vertex, &objSurf.vertices[0], VECTOR_BYTESIZE(objSurf.vertices));
+        convertedGeometry->IBO = device->CreateBuffer(renderer::Buffer_Index, &objSurf.indices[0], VECTOR_BYTESIZE(objSurf.indices));
         convertedGeometry->indexCount = (uint32_t)objSurf.indices.size();
         
         // load materials
@@ -60,7 +60,7 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> de
         if (!objSurf.material->diffuseTexture.empty())
         {
             std::string path = GetBasePath(filename.c_str()) + objSurf.material->diffuseTexture;
-            mat->texture[0] = device->ImageFromFile(path.c_str(), renderer::Image::Sample_Anisotropic);
+            mat->texture[0] = device->ImageFromFile(path.c_str(), renderer::ImageFilter_Anisotropic);
         }
 
         // finish up and add to model

@@ -19,7 +19,6 @@ public:
 private:
     BaseCamera camera;
     CameraController cameraControl;
-
     std::shared_ptr<renderer::Model> model;
 };
 

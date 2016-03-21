@@ -41,36 +41,6 @@ void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenu
     DEBUG_LOG_TEXT("[driver] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
 }
 
-Buffer_GL::Buffer_GL() :
-    bufferId(0),
-    target(GL_INVALID_ENUM),
-    size(0)
-{
-}
-
-Buffer_GL::~Buffer_GL()
-{
-    if (bufferId)
-        glDeleteBuffers(1, &bufferId);
-}
-
-bool Buffer_GL::SetData(Type usage, const void *buffer, size_t bufSize)
-{
-    switch (usage)
-    {
-    case Index: target = GL_ELEMENT_ARRAY_BUFFER; break;
-    default:    target = GL_ARRAY_BUFFER; break;
-    }
-
-    if (!bufferId)
-        glCreateBuffers(1, &bufferId);
-    size = bufSize;
-
-    glBindBuffer(target, bufferId);
-    glBufferData(target, size, buffer, GL_STATIC_DRAW);
-    return true;
-}
-
 RenderDevice_GL::RenderDevice_GL()
 {
     glewExperimental = true;
@@ -100,34 +70,14 @@ RenderDevice_GL::~RenderDevice_GL()
     glDeleteVertexArrays(1, &vaoId);
 }
 
-std::shared_ptr<Buffer> RenderDevice_GL::CreateBuffer(Buffer::Type usage, const void *buf, size_t bufSize)
-{
-    auto buffer = std::make_shared<Buffer_GL>();
-    buffer->SetData(usage, buf, bufSize);
-    return buffer;
-}
-
 void RenderDevice_GL::Clear(uint32_t targets, const glm::vec4 color, float depth)
 {
-    GLbitfield mask = 0;
+    GLbitfield mask = (targets & Clear_Color   ? GL_COLOR_BUFFER_BIT   : 0) |
+                      (targets & Clear_Depth   ? GL_DEPTH_BUFFER_BIT   : 0) |
+                      (targets & Clear_Stencil ? GL_STENCIL_BUFFER_BIT : 0);
 
-    if (targets & Clear_Color)
-    {
-        glClearColor(color.r, color.g, color.b, color.a );
-        mask |= GL_COLOR_BUFFER_BIT;
-    }
-
-    if (targets & Clear_Depth)
-    {
-        glClearDepth(depth);
-        mask |= GL_DEPTH_BUFFER_BIT;
-    }
-
-    if (targets & Clear_Stencil)
-    {
-        mask |= GL_STENCIL_BUFFER_BIT;
-    }
-
+    glClearColor(color.r, color.g, color.b, color.a );
+    glClearDepth(depth);
     glClear(mask);
 }
 
@@ -149,13 +99,10 @@ void RenderDevice_GL::Render(const Surface *surf, const glm::mat4 &transform)
 
     // setup geometry
     const SurfaceGeometry *geo = &surf->geometry;
-    
-    // draw
-    std::shared_ptr<Buffer_GL> vbo = std::dynamic_pointer_cast<Buffer_GL>(geo->vertexBuffer);
-    std::shared_ptr<Buffer_GL> ibo = std::dynamic_pointer_cast<Buffer_GL>(geo->indexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo->bufferId);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo->bufferId);
+    geo->VBO->Bind();
+    geo->IBO->Bind();
 
+    // draw
     BindVertexLayout(pipelineState->GetVertexLayout());
     glDrawElements(pipelineState->GetGLPrimType(), geo->indexCount, GL_UNSIGNED_SHORT, NULL);
     UnBindVertexLayout(pipelineState->GetVertexLayout());

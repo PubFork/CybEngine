@@ -27,7 +27,6 @@
     <ClCompile Include="src\Game\Camera.cpp" />
     <ClCompile Include="src\Game\GameApp.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\renderer\Image.cpp" />
     <ClCompile Include="src\Renderer\Model.cpp" />
     <ClCompile Include="src\Renderer\Model_obj.cpp" />
     <ClCompile Include="src\Renderer\PipelineState.cpp" />
@@ -46,13 +45,13 @@
     <ClInclude Include="src\Base\Timer.h" />
     <ClInclude Include="src\Game\Camera.h" />
     <ClInclude Include="src\Game\GameApp.h" />
-    <ClInclude Include="src\renderer\Image.h" />
     <ClInclude Include="src\Renderer\Model.h" />
     <ClInclude Include="src\Renderer\Model_obj.h" />
     <ClInclude Include="src\Renderer\PipelineState.h" />
     <ClInclude Include="src\renderer\RenderDevice_GL.h" />
     <ClInclude Include="src\renderer\RenderDevice.h" />
     <ClInclude Include="src\renderer\stb_image.h" />
+    <ClInclude Include="src\Renderer\stb_image_resize.h" />
     <ClInclude Include="src\stdafx.h" />
   </ItemGroup>
   <ItemGroup>

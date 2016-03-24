@@ -2,8 +2,6 @@
 #include "RenderDevice.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "stb_image_resize.h"
 #include "Base/Debug.h"
 #include "Base/MurmurHash.h"
 #include "Base/FileUtils.h"
@@ -118,6 +116,19 @@ private:
     uint32_t glType;
 };
 
+int NumMipLevels(uint32_t width, uint32_t height)
+{
+    int n = 1;
+    while (width > 1 || height > 1)
+    {
+        width >>= 1;
+        height >>= 1;
+        n++;
+    }
+
+    return n;
+}
+
 Image::Image(IRenderDevice *rd) :
     device(rd),
     width(0),
@@ -147,44 +158,6 @@ Image::~Image()
     }
 }
 
-///////////////////////////////////////////////////////////////////////////
-int NumMipLevels(uint32_t width, uint32_t height)
-{
-    int n = 1;
-    while (width > 1 || height > 1)
-    {
-        width >>= 1;
-        height >>= 1;
-        n++;
-    }
-
-    return n;
-}
-///////////////////////////////////////////////////////////////////////////
-
-// Generate image mipmap using stbi_image_resize with default hi-quality 
-// STBIR_FILTER_CATMULLROM / STBIR_FILTER_MITCHELL filtering.
-void GenerateMipmaps(uint32_t width, uint32_t height, int level, const void *pixels)
-{
-    uint32_t srcw = width;
-    uint32_t srch = height;
-    uint8_t *mipmaps = new uint8_t[(width >> 1) * (height >> 1)* 4];
-
-    do
-    {
-        level++;
-        int mipw = srcw >> 1; if (mipw < 1) mipw = 1;
-        int miph = srch >> 1; if (miph < 1) miph = 1;
-
-        stbir_resize_uint8(level == 1 ? (const uint8_t*)pixels : mipmaps, srcw, srch, 0, mipmaps, mipw, miph, 0, 4);
-        glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, mipw, miph, 0, GL_RGBA, GL_UNSIGNED_BYTE, mipmaps);
-        srcw = mipw;
-        srch = miph;
-    } while (srcw > 1 || srch > 1);
-    
-    delete[] mipmaps;
-}
-
 void Image::Create(const ImageCreateParams *params)
 {
     assert(params != nullptr);
@@ -211,8 +184,7 @@ void Image::Create(const ImageCreateParams *params)
     glCreateTextures(GL_TEXTURE_2D, 1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
     glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, glType, params->pixels);
-    GenerateMipmaps(width, height, 0, params->pixels);
-    //glGenerateMipmap(GL_TEXTURE_2D);
+    glGenerateMipmap(GL_TEXTURE_2D);
 
     // set texture params
     static const GLint wrapModeToGL[] = {
@@ -224,7 +196,7 @@ void Image::Create(const ImageCreateParams *params)
     glTextureParameteri(textureId, GL_TEXTURE_MAX_LEVEL, numLevels);
     glTextureParameteri(textureId, GL_TEXTURE_WRAP_S, wrapModeToGL[wrapMode]);
     glTextureParameteri(textureId, GL_TEXTURE_WRAP_T, wrapModeToGL[wrapMode]);
-    UpdateFilterMode(params->filterMode);
+    UpdateFilterMode(params->filtering);
 }
 
 void Image::Bind(uint8_t slot)
@@ -244,11 +216,7 @@ void Image::UpdateFilterMode(ImageFilterMode filterMode)
     filtering = filterMode;
     glTextureParameteri(textureId, GL_TEXTURE_MIN_FILTER, filterToGL[filterMode].first);
     glTextureParameteri(textureId, GL_TEXTURE_MAG_FILTER, filterToGL[filterMode].second);
-
-    if (filtering == ImageFilter_Anisotropic)
-    {
-        glTextureParameteri(textureId, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16 /*maxTextureAnisotroy*/);
-    }
+    glTextureParameteri(textureId, GL_TEXTURE_MAX_ANISOTROPY_EXT, filtering != ImageFilter_Anisotropic ? 1 : device->ImageFilterMaxAnisotropy());
 }
 
 //=========================================================================================//
@@ -293,8 +261,93 @@ static const CreatePipelineStateInfo builtintPipelineStatesCreateInfo[BuiltintPi
 // Render Device
 //==============================
 
+class RenderDevice : public IRenderDevice
+{
+public:
+    RenderDevice() : isInititialized(false) {}
+    virtual ~RenderDevice() { Shutdown(); }
+
+    virtual void Init();
+    virtual void Shutdown();
+    virtual bool IsInitialized() const { return isInititialized; }
+
+    virtual void SetProjection(const glm::mat4 &proj);
+
+    virtual PipelineState *BuiltintPipelineState(uint32_t pipelineStateEnum);
+
+    virtual std::shared_ptr<IBuffer> CreateBuffer(BufferType usage, const void *dataBuffer, size_t dataBufferSize);
+    virtual std::shared_ptr<IImage> ImageFromFile(const char *filename, ImageWrapMode wrapMode);
+    virtual std::shared_ptr<IImage> ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, ImageWrapMode wrapMode);
+    std::shared_ptr<IImage> ImageFromMemoryInternal(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, ImageWrapMode wrapMode);
+    std::shared_ptr<IImage> FindImage(const char *name);
+    virtual void SetImageFilterMode(ImageFilterMode mode, bool applyToCachedImages);
+    virtual uint32_t ImageFilterMaxAnisotropy() const { return imageFilterMaxAnisotropy; }
+
+    virtual void Clear(uint32_t targets, const glm::vec4 color, float depth = 1.0f);
+    virtual void Render(const Surface *surf, const glm::mat4 &transform);
+
+protected:
+    GLuint vaoId;
+    glm::mat4 projection;
+    PipelineState builtintPipelineStates[BuiltintPipelineState_Count];
+    std::unordered_map<uint32_t, std::shared_ptr<IImage>> imageCache;
+    ImageFilterMode imageFilterMode;
+    uint32_t imageFilterMaxAnisotropy;
+    bool isInititialized;
+};
+
+void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar *message, const void * /*userParam*/)
+{
+    static std::unordered_map<GLenum, const char *> toString = {
+        { GL_DEBUG_SOURCE_API_ARB,                  "OpenGL"                },
+        { GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB,        "Windows"               },
+        { GL_DEBUG_SOURCE_SHADER_COMPILER_ARB,      "Shader compiler"       },
+        { GL_DEBUG_SOURCE_THIRD_PARTY_ARB,          "Third party"           },
+        { GL_DEBUG_SOURCE_APPLICATION_ARB,          "Application"           },
+        { GL_DEBUG_SOURCE_OTHER_ARB,                "Other"                 },
+        { GL_DEBUG_TYPE_ERROR_ARB,                  "Error"                 },
+        { GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB,    "Deprecated behaviour"  },
+        { GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB,     "Undefined behaviour"   },
+        { GL_DEBUG_TYPE_PORTABILITY_ARB,            "Portability"           },
+        { GL_DEBUG_TYPE_PERFORMANCE_ARB,            "Performence"           },
+        { GL_DEBUG_TYPE_MARKER,                     "Marker"                },
+        { GL_DEBUG_TYPE_PUSH_GROUP,                 "Push group"            },
+        { GL_DEBUG_TYPE_POP_GROUP,                  "Pop group"             },
+        { GL_DEBUG_TYPE_OTHER_ARB,                  "Other"                 },
+        { GL_DEBUG_SEVERITY_HIGH_ARB,               "High"                  },
+        { GL_DEBUG_SEVERITY_MEDIUM_ARB,             "Medium"                },
+        { GL_DEBUG_SEVERITY_LOW_ARB,                "Low"                   },
+        { GL_DEBUG_SEVERITY_NOTIFICATION,           "Notification"          }
+    };
+
+    DEBUG_LOG_TEXT("[driver] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
+}
+
 void RenderDevice::Init()
 {
+    glewExperimental = true;
+    GLenum err = glewInit();
+    THROW_FATAL_COND(err != GLEW_OK, std::string("glew init: ") + (char *)glewGetErrorString(err));
+    DEBUG_LOG_TEXT("Using OpenGL version %s", glGetString(GL_VERSION));
+    DEBUG_LOG_TEXT("Shader language %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    DEBUG_LOG_TEXT("GLEW %s", glewGetString(GLEW_VERSION));
+   
+    glDebugMessageCallback(DebugOutputCallback, NULL);
+    glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_OTHER, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
+    glGenVertexArrays(1, &vaoId);
+
+    // setup default states
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+   // glEnable(GL_MULTISAMPLE);
+
+    // set default filter mode to anisotropic with max anisotropy
+    glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, (GLint *)&imageFilterMaxAnisotropy);
+    DEBUG_LOG_TEXT("Max texture anisotropy: %d", imageFilterMaxAnisotropy);
+    SetImageFilterMode(ImageFilter_Anisotropic, true);
+
     // Initialize builtin pipeline states
     for (uint32_t i = 0; i < BuiltintPipelineState_Count; i++)
     {
@@ -304,6 +357,15 @@ void RenderDevice::Init()
     }
 
     isInititialized = true;
+}
+
+void RenderDevice::Shutdown()
+{
+    if (isInititialized)
+    {
+        glDeleteVertexArrays(1, &vaoId);
+        isInititialized = false;
+    }
 }
 
 void RenderDevice::SetProjection(const glm::mat4 &proj)
@@ -327,7 +389,7 @@ std::shared_ptr<IBuffer> RenderDevice::CreateBuffer(BufferType usage, const void
     return std::make_shared<Buffer>(this, &params);
 }
 
-std::shared_ptr<IImage> RenderDevice::ImageFromFile(const char *filename, uint32_t sampleFlags)
+std::shared_ptr<IImage> RenderDevice::ImageFromFile(const char *filename, ImageWrapMode wrapMode)
 {
     auto image = FindImage(filename);
     if (image)
@@ -347,27 +409,27 @@ std::shared_ptr<IImage> RenderDevice::ImageFromFile(const char *filename, uint32
         throw FatalException(std::string("Failed to load texture ") + filename);
     }
 
-    image = ImageFromMemoryInternal(filename, data, width, height, ImageFormat_RGBA8, sampleFlags);
+    image = ImageFromMemoryInternal(filename, data, width, height, ImageFormat_RGBA8, wrapMode);
     stbi_image_free(data);
 
     return image;
 }
 
-std::shared_ptr<IImage> RenderDevice::ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, uint32_t sampleFlags)
+std::shared_ptr<IImage> RenderDevice::ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, ImageWrapMode wrapMode)
 {
     auto image = FindImage(name);
-    return image ? image : ImageFromMemoryInternal(name, data, width, height, format, sampleFlags);
+    return image ? image : ImageFromMemoryInternal(name, data, width, height, format, wrapMode);
 }
 
-std::shared_ptr<IImage> RenderDevice::ImageFromMemoryInternal(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, uint32_t sampleFlags)
+std::shared_ptr<IImage> RenderDevice::ImageFromMemoryInternal(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, ImageWrapMode wrapMode)
 {
     ImageCreateParams params = {};
     params.width = width;
     params.height = height;
     params.format = (ImageFormat)format;
     params.pixels = data;
-    params.filterMode = ImageFilter_Anisotropic;
-    params.wrapMode = ImageWrap_Repeat;
+    params.filtering = imageFilterMode;
+    params.wrapMode = wrapMode;
     auto image = std::make_shared<Image>(this, &params);
 
     uint32_t hash = CalculateMurmurHash(name, strlen(name));
@@ -381,6 +443,62 @@ std::shared_ptr<IImage> RenderDevice::FindImage(const char *name)
     uint32_t hash = CalculateMurmurHash(name, strlen(name));
     auto searchResult = imageCache.find(hash);
     return searchResult != imageCache.end() ? searchResult->second : nullptr;
+}
+
+void RenderDevice::SetImageFilterMode(ImageFilterMode mode, bool applyToCachedImages)
+{
+    imageFilterMode = mode;
+
+    if (applyToCachedImages)
+    {
+        for (auto &image : imageCache)
+        {
+            image.second->UpdateFilterMode(imageFilterMode);
+        }
+    }
+}
+
+void RenderDevice::Clear(uint32_t targets, const glm::vec4 color, float depth)
+{
+    GLbitfield mask = (targets & Clear_Color ? GL_COLOR_BUFFER_BIT : 0) |
+        (targets & Clear_Depth ? GL_DEPTH_BUFFER_BIT : 0) |
+        (targets & Clear_Stencil ? GL_STENCIL_BUFFER_BIT : 0);
+
+    glClearColor(color.r, color.g, color.b, color.a);
+    glClearDepth(depth);
+    glClear(mask);
+}
+
+void RenderDevice::Render(const Surface *surf, const glm::mat4 &transform)
+{
+    assert(surf);
+
+    glBindVertexArray(vaoId);
+
+    // setup material & pipeline state
+    const SurfaceMaterial *material = &surf->material;
+    PipelineState *pipelineState = surf->pipelineState;
+    pipelineState->Bind();
+    pipelineState->SetParamMat4(renderer::Param_Proj, glm::value_ptr(projection));
+    pipelineState->SetParamMat4(renderer::Param_ModelView, glm::value_ptr(transform));
+
+    if (material->texture[0])
+        material->texture[0]->Bind(0);
+
+    // setup geometry
+    const SurfaceGeometry *geo = &surf->geometry;
+    geo->VBO->Bind();
+    geo->IBO->Bind();
+
+    // draw
+    BindVertexLayout(pipelineState->GetVertexLayout());
+    glDrawElements(pipelineState->GetGLPrimType(), geo->indexCount, GL_UNSIGNED_SHORT, NULL);
+    UnBindVertexLayout(pipelineState->GetVertexLayout());
+}
+
+std::shared_ptr<IRenderDevice> CreateRenderDevice()
+{
+    return std::make_shared<RenderDevice>();
 }
 
 } // renderer

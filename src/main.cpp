@@ -26,9 +26,9 @@ bool GameApp::Init()
 {
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
     renderDevice->SetProjection(camera.GetProjMatrix());
-
     model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
 
+    // move controls
     BindKey(GLFW_KEY_W,     [=](void) { cameraControl.MoveForward((float)frameTimer); });
     BindKey(GLFW_KEY_S,     [=](void) { cameraControl.MoveForward((float)-frameTimer); });
     BindKey(GLFW_KEY_A,     [=](void) { cameraControl.MoveRight((float)-frameTimer); });
@@ -36,6 +36,11 @@ bool GameApp::Init()
     BindKey(GLFW_KEY_SPACE, [=](void) { cameraControl.MoveUp((float)frameTimer); });
     BindKey(GLFW_KEY_C,     [=](void) { cameraControl.MoveUp((float)-frameTimer); });
     BindMouseMove([=](const MouseStateInfo &mouseState) { if (mouseState.isGrabbed) { cameraControl.RotateLookAtDirection(mouseState.offset); } });
+
+    // image filter control
+    BindKey(GLFW_KEY_1,     [=](void) { renderDevice->SetImageFilterMode(renderer::ImageFilter_Nearest); });
+    BindKey(GLFW_KEY_2,     [=](void) { renderDevice->SetImageFilterMode(renderer::ImageFilter_Linear); });
+    BindKey(GLFW_KEY_3,     [=](void) { renderDevice->SetImageFilterMode(renderer::ImageFilter_Anisotropic); });
 
     return true;
 }

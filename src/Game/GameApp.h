@@ -39,7 +39,7 @@ public:
     virtual void Render() = 0;
 
 protected:
-    std::shared_ptr<renderer::RenderDevice> renderDevice;
+    std::shared_ptr<renderer::IRenderDevice> renderDevice;
     double timer;
     double frameTimer;
 

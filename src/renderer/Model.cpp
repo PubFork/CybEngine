@@ -33,39 +33,41 @@ void Model::AddSurface(renderer::Surface surf)
     surfaces.push_back(surf);
 }
 
-void Model::Render(std::shared_ptr<renderer::RenderDevice> device, const glm::mat4 &transform)
+void Model::Render(std::shared_ptr<renderer::IRenderDevice> device, const glm::mat4 &transform)
 {
     for (const auto &surf : surfaces) {
         device->Render(&surf, transform);
     }
 }
 
-std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::RenderDevice> device, const std::string &filename)
+std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> device, const std::string &filename)
 {
     priv::ObjModel *objModel = priv::OBJ_Load(filename.c_str());
     THROW_FATAL_COND(!objModel, std::string("Failed to read model " + filename));
     auto model = std::make_shared<Model>(objModel->name.empty() ? "<unknown>" : objModel->name);
 
-    for (auto &objSurf : objModel->surfaces) {
+    for (auto &objSurface : objModel->surfaces) {
         renderer::Surface convertedSurface;
         renderer::SurfaceGeometry *convertedGeometry = &convertedSurface.geometry;
 
         // copy geometry
-        convertedGeometry->VBO = device->CreateBuffer(renderer::Buffer_Vertex, &objSurf.vertices[0], VECTOR_BYTESIZE(objSurf.vertices));
-        convertedGeometry->IBO = device->CreateBuffer(renderer::Buffer_Index, &objSurf.indices[0], VECTOR_BYTESIZE(objSurf.indices));
-        convertedGeometry->indexCount = (uint32_t)objSurf.indices.size();
+        convertedGeometry->VBO = device->CreateBuffer(renderer::Buffer_Vertex, &objSurface.vertices[0], VECTOR_BYTESIZE(objSurface.vertices));
+        convertedGeometry->IBO = device->CreateBuffer(renderer::Buffer_Index, &objSurface.indices[0], VECTOR_BYTESIZE(objSurface.indices));
+        convertedGeometry->indexCount = (uint32_t)objSurface.indices.size();
+
+        //device->CreateSurface(&vertices, &indices, &material);
         
         // load materials
         renderer::SurfaceMaterial *mat = &convertedSurface.material;
-        if (!objSurf.material->diffuseTexture.empty())
+        if (!objSurface.material->diffuseTexture.empty())
         {
-            std::string path = GetBasePath(filename.c_str()) + objSurf.material->diffuseTexture;
-            mat->texture[0] = device->ImageFromFile(path.c_str(), renderer::ImageFilter_Anisotropic);
+            std::string path = GetBasePath(filename.c_str()) + objSurface.material->diffuseTexture;
+            mat->texture[0] = device->ImageFromFile(path.c_str(), renderer::ImageWrap_Repeat);
         }
 
         // finish up and add to model
         convertedSurface.pipelineState = device->BuiltintPipelineState(renderer::BuiltintPipelineState_Default);
-        convertedSurface.name = objSurf.name;
+        convertedSurface.name = objSurface.name;
         model->AddSurface(convertedSurface);
     }
 

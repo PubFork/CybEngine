@@ -73,7 +73,7 @@ struct ImageCreateParams
     uint32_t height;
     ImageFormat format;
     const void *pixels;
-    ImageFilterMode filterMode;
+    ImageFilterMode filtering;
     ImageWrapMode wrapMode;
 };
 
@@ -206,39 +206,25 @@ class IRenderDevice
 {
 public:
     virtual ~IRenderDevice() {}
+
+    virtual void Init() = 0;
+    virtual void Shutdown() = 0;
     virtual bool IsInitialized() const = 0;
-};
 
-class RenderDevice : public IRenderDevice
-{
-public:
-    RenderDevice() : isInititialized(false) {}
-    virtual ~RenderDevice() = default;
+    virtual void SetProjection(const glm::mat4 &proj) = 0;
 
-    void Init();
-    virtual bool IsInitialized() const { return isInititialized; }
+    virtual PipelineState *BuiltintPipelineState(uint32_t pipelineStateEnum) = 0;
 
-    void SetProjection(const glm::mat4 &proj);
+    virtual std::shared_ptr<IBuffer> CreateBuffer(BufferType usage, const void *dataBuffer, size_t dataBufferSize) = 0;
+    virtual std::shared_ptr<IImage> ImageFromFile(const char *filename, ImageWrapMode wrapMode) = 0;
+    virtual std::shared_ptr<IImage> ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, ImageWrapMode wrapMode) = 0;
+    virtual void SetImageFilterMode(ImageFilterMode mode, bool applyToCachedImages = true) = 0;
+    virtual uint32_t ImageFilterMaxAnisotropy() const = 0;
 
-    PipelineState *BuiltintPipelineState(uint32_t pipelineStateEnum);
-
-    std::shared_ptr<IBuffer> CreateBuffer(BufferType usage, const void *dataBuffer, size_t dataBufferSize);
-    std::shared_ptr<IImage> ImageFromFile(const char *filename, uint32_t sampleFlags);
-    std::shared_ptr<IImage> ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, uint32_t sampleFlags);
-    std::shared_ptr<IImage> FindImage(const char *name);
-    
     virtual void Clear(uint32_t targets, const glm::vec4 color, float depth = 1.0f) = 0;
     virtual void Render(const Surface *surf, const glm::mat4 &transform) = 0;
-
-protected:
-    std::shared_ptr<IImage> ImageFromMemoryInternal(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, uint32_t sampleFlags);
-
-    glm::mat4 projection;
-    PipelineState builtintPipelineStates[BuiltintPipelineState_Count];
-    std::unordered_map<uint32_t, std::shared_ptr<IImage>> imageCache;
-    bool isInititialized;
 };
 
-std::shared_ptr<RenderDevice> CreateRenderDeviceGL();
+std::shared_ptr<IRenderDevice> CreateRenderDevice();
 
 } // renderer

@@ -101,7 +101,7 @@ void GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title
     glfwSetMouseButtonCallback(window, MouseButtonCallback);
 
     // initialize render device
-    renderDevice = renderer::CreateRenderDeviceGL();
+    renderDevice = renderer::CreateRenderDevice();
     renderDevice->Init();
 
     // load custom cursor (if avialable)

@@ -142,7 +142,7 @@ void GameAppBase::MainLoop()
         double timerStart = HiPerformanceTimer::GetSeconds();
         
         {
-            SCOOPED_PROFILE_EVENT("Render");
+            SCOOPED_PROFILE_EVENT("Application_Render");
             Render();
         }
         
@@ -198,8 +198,14 @@ int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width,
     {
         {
             SCOOPED_PROFILE_EVENT("Init");
-            application->SetupWindow(width, height, title);
-            THROW_FATAL_COND(!application->Init(), "Failed to initialize application...");
+            {
+                SCOOPED_PROFILE_EVENT("Engine_Init");
+                application->SetupWindow(width, height, title);
+            }
+            {
+                SCOOPED_PROFILE_EVENT("Application_Init");
+                THROW_FATAL_COND(!application->Init(), "Failed to initialize application...");
+            }
         }
         application->MainLoop();
     } catch (const std::exception &e)

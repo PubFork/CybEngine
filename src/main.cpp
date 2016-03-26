@@ -7,6 +7,9 @@
 #include "Game/Camera.h"
 #include <GLFW/glfw3.h>
 
+
+
+
 class GameApp : public GameAppBase
 {
 public:
@@ -24,6 +27,7 @@ private:
 
 bool GameApp::Init()
 {
+    DEBUG_LOG_TEXT("test=%x %x, asdasd=%x %x", COMPILE_TIME_CRC32_STR("test"), COMPILE_TIME_CRC32_STR("test"), COMPILE_TIME_CRC32_STR("asdasd"), COMPILE_TIME_CRC32_STR("asdasd"));
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
     renderDevice->SetProjection(camera.GetProjMatrix());
     model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
@@ -48,7 +52,7 @@ bool GameApp::Init()
 void GameApp::Render()
 {
     {
-        SCOOPED_PROFILE_EVENT("Update_Frame");
+        SCOOPED_PROFILE_EVENT("Update");
         static char titleBuffer[64] = {};
         _snprintf_s(titleBuffer, sizeof(titleBuffer), "CybEngine | FrameTime: %.0fms", frameTimer * HiPerformanceTimer::MsPerSecond);
         UpdateWindowTitle(titleBuffer);
@@ -56,12 +60,12 @@ void GameApp::Render()
     }
 
     {
-        SCOOPED_PROFILE_EVENT("Clear_Screen");
+        SCOOPED_PROFILE_EVENT("Clear");
         renderDevice->Clear(renderer::Clear_All, glm::vec4(0.125f, 0.188f, 0.250f, 1.0f));
     }
 
     {
-        SCOOPED_PROFILE_EVENT("Draw_Surfaces");
+        SCOOPED_PROFILE_EVENT("Draw");
         model->Render(renderDevice, camera.GetViewMatrix());
     }
 }

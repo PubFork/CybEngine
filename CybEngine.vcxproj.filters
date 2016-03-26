@@ -115,6 +115,9 @@
     <ClInclude Include="src\Game\Camera.h">
       <Filter>Source Files\Game</Filter>
     </ClInclude>
+    <ClInclude Include="src\Base\StringUtils.h">
+      <Filter>Source Files\Base</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\standard.frag">

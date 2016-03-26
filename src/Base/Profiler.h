@@ -1,10 +1,12 @@
 #pragma once
 
-#define SCOOPED_PROFILE_EVENT(name) ScoopedProfileEntry ___scoopedProfiler(name, globalProfiler)
+// use comple time generated hash values for quick map lookup
+#include "StringUtils.h"
+#define SCOOPED_PROFILE_EVENT(name) ScoopedProfileEntry ___scoopedProfiler(name, COMPILE_TIME_CRC32_STR(name), globalProfiler)
 
 struct ProfileEntry
 {
-    typedef std::map<std::string, ProfileEntry> ChildMap;
+    typedef std::map<uint32_t /*hash*/, ProfileEntry> ChildMap;
 
     ProfileEntry(const std::string entryName = "", ProfileEntry *entryParent = nullptr);
 
@@ -28,7 +30,7 @@ public:
 
     ProfilerDataCollector();
 
-    void BeginEvent(const char *name);
+    void BeginEvent(const char *name, uint32_t hash);
     void EndEvent();
 
     const ProfileEntry::ChildMap *GetEvents() const;
@@ -46,7 +48,7 @@ private:
 class ScoopedProfileEntry
 {
 public:
-    ScoopedProfileEntry(const char *name, ProfilerDataCollector *profilerDC);
+    ScoopedProfileEntry(const char *name, uint32_t hash, ProfilerDataCollector *profilerDC);
     ~ScoopedProfileEntry();
 
 private:

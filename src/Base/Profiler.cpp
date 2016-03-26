@@ -30,10 +30,10 @@ ProfilerDataCollector::ProfilerDataCollector() :
 {
 }
 
-void ProfilerDataCollector::BeginEvent(const char *name)
+void ProfilerDataCollector::BeginEvent(const char *name, uint32_t hash)
 {
     ProfileEntry::ChildMap &childMap = (!currentEvent) ? entries : currentEvent->childEntries;
-    auto it = childMap.find(name);
+    auto it = childMap.find(hash);
     if (it != childMap.end())
     {
         ProfileEntry *entry = &it->second;
@@ -42,8 +42,8 @@ void ProfilerDataCollector::BeginEvent(const char *name)
     }
     else
     {
-        childMap[name] = ProfileEntry(name, currentEvent);
-        currentEvent = &childMap[name];
+        childMap[hash] = ProfileEntry(name, currentEvent);
+        currentEvent = &childMap[hash];
     }
 
     beginEventTime[currentBlockLevel] = HiPerformanceTimer::GetTicksNanos();
@@ -104,12 +104,12 @@ void ProfilerDataCollector::PrintToDebug() const
 // Scooped Profile Entry
 //==============================
 
-ScoopedProfileEntry::ScoopedProfileEntry(const char *name, ProfilerDataCollector *profilerDC) :
+ScoopedProfileEntry::ScoopedProfileEntry(const char *name, uint32_t hash, ProfilerDataCollector *profilerDC) :
     profiler(profilerDC)
 {
     assert(name);
     assert(profiler);
-    profiler->BeginEvent(name);
+    profiler->BeginEvent(name, hash);
 }
 
 ScoopedProfileEntry::~ScoopedProfileEntry()

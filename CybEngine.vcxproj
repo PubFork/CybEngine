@@ -40,6 +40,7 @@
     <ClInclude Include="src\Base\Macros.h" />
     <ClInclude Include="src\Base\MurmurHash.h" />
     <ClInclude Include="src\Base\Profiler.h" />
+    <ClInclude Include="src\Base\StringUtils.h" />
     <ClInclude Include="src\Base\SysInfo.h" />
     <ClInclude Include="src\Base\Timer.h" />
     <ClInclude Include="src\Game\Camera.h" />

@@ -5,114 +5,89 @@
 #include "Macros.h"
 #include <iomanip>
 
-static ProfilerDataCollector staticProfiler;
-ProfilerDataCollector *globalProfiler = &staticProfiler;
+static EventProfiler staticEventProfiler;
+EventProfiler *globalEventProfiler = &staticEventProfiler;
 
 //==============================
-// Profile Entry
+// Event Profiler
 //==============================
 
-ProfileEntry::ProfileEntry(const std::string entryName, ProfileEntry *entryParent) :
-    name(entryName),
-    totalTime(0),
-    numCalls(1),
-    parent(entryParent)
+EventProfiler::EventProfiler()
 {
+    currentEvent = nullptr;
 }
 
-//==============================
-// Profile Manager
-//==============================
-
-ProfilerDataCollector::ProfilerDataCollector() :
-    currentBlockLevel(0),
-    currentEvent(nullptr)
+void EventProfiler::PushEvent(const std::string name)
 {
-}
-
-void ProfilerDataCollector::BeginEvent(const char *name, uint32_t hash)
-{
-    ProfileEntry::ChildMap &childMap = (!currentEvent) ? entries : currentEvent->childEntries;
-    auto it = childMap.find(hash);
-    if (it != childMap.end())
+    auto childMap = (currentEvent) ? &currentEvent->childMap : &rootEventNodes;
+    ProfileEventNode *node = childMap->Find(name);
+    if (!node)
     {
-        ProfileEntry *entry = &it->second;
-        entry->numCalls++;
-        currentEvent = entry;
-    }
-    else
-    {
-        childMap[hash] = ProfileEntry(name, currentEvent);
-        currentEvent = &childMap[hash];
+        node = childMap->Insert(name, ProfileEventNode());
+        node->name = name;
+        node->totalTime = 0;
+        node->numCalls = 0;
+        node->parent = currentEvent;
     }
 
-    beginEventTime[currentBlockLevel] = HiPerformanceTimer::GetTicksNanos();
-    currentBlockLevel++;
-    assert(currentBlockLevel < MaxBlockLevel);
+    node->numCalls++;
+    node->startTime = HiPerformanceTimer::GetTicksNanos();
+    currentEvent = node;
 }
 
-void ProfilerDataCollector::EndEvent()
+void EventProfiler::PopEvent()
 {
-    assert(currentBlockLevel > 0);
+    assert(currentEvent);
 
-    currentBlockLevel--;
-    currentEvent->totalTime += HiPerformanceTimer::GetTicksNanos() - beginEventTime[currentBlockLevel];
-    currentEvent = currentEvent->parent;
+    ProfileEventNode *node = currentEvent;
+    node->totalTime += HiPerformanceTimer::GetTicksNanos() - node->startTime;
+    node->startTime = 0;
+    currentEvent = node->parent;
 }
 
-const ProfileEntry::ChildMap *ProfilerDataCollector::GetEvents() const
-{
-    return &entries;
-}
-
-void PrintProfileEntry(const ProfileEntry &entry, std::ostream &os, int indentLevel)
-{
-    std::string indentSpaces(indentLevel * ProfilerDataCollector::NumIndentationSpaces, ' ');
-
-    os << indentSpaces << entry.name << ": ";
-    os << "TotalRuntime " << TimeStringNano(entry.totalTime);
-    os << ", AverageRuntime " << TimeStringNano(entry.totalTime / entry.numCalls);
-    os << ", Count " << entry.numCalls;
-
-    if (entry.parent)
-    {
-        double percentOfParentTime = (double)entry.totalTime / (double)entry.parent->totalTime * 100.0;
-        os << ", " << std::setprecision(2) << std::fixed << percentOfParentTime << "% of parent runtime";
-    } 
-    os << "\n";
-
-    // recursively print all the child events
-    FOR_EACH(entry.childEntries, [&](const auto &it) { PrintProfileEntry(it.second, os, indentLevel + 1); });
-}
-
-std::string ProfilerDataCollector::InfoString() const
+std::string EventProfiler::CreateInfoMessage() const
 {
     std::ostrstream infoString;
 
-    FOR_EACH(entries, [&](const auto &it) { PrintProfileEntry(it.second, infoString, 0); });
+    std::function<void(const ProfileEventNode *, int)> printProfileEvent = [&](const ProfileEventNode *node, int indentLevel)
+    {
+        std::string indentSpaces(indentLevel * NumIndentationSpaces, ' ');
+        infoString << indentSpaces << node->name << ": ";
+        infoString << "TotalRuntime " << TimeStringNano(node->totalTime);
+        infoString << ", AverageRuntime " << TimeStringNano(node->totalTime / node->numCalls);
+        infoString << ", Count " << node->numCalls;
+
+        if (node->parent)
+        {
+            double percentOfParentTime = (double)node->totalTime / (double)node->parent->totalTime * 100.0;
+            infoString << ", " << std::setprecision(2) << std::fixed << percentOfParentTime << "% of parent runtime";
+        }
+        infoString << "\n";
+
+        FOR_EACH(node->childMap, [&](const auto &it) { printProfileEvent(it, indentLevel + 1); });
+    };
+
+    infoString << "-----------------------------------------------------------------------------\n";
+    FOR_EACH(rootEventNodes, [&](const auto &it) { printProfileEvent(it, 0); });
+    infoString << "-----------------------------------------------------------------------------";
+
     infoString << '\0';     // HACK: Not sure why, but without this, junk is added at the end of the infoString
     return infoString.str();
 }
 
-void ProfilerDataCollector::PrintToDebug() const
-{
-    DEBUG_LOG_TEXT("-----------------------------------------------------------------------------");
-    DEBUG_LOG_TEXT("%s-----------------------------------------------------------------------------", InfoString().c_str());
-}
-
 //==============================
-// Scooped Profile Entry
+// Scooped Profile Event
 //==============================
 
-ScoopedProfileEntry::ScoopedProfileEntry(const char *name, uint32_t hash, ProfilerDataCollector *profilerDC) :
-    profiler(profilerDC)
+ScoopedProfileEvent::ScoopedProfileEvent(const char *name, EventProfiler *dataCollector) :
+    profiler(dataCollector)
 {
     assert(name);
     assert(profiler);
-    profiler->BeginEvent(name, hash);
+    profiler->PushEvent(name);
 }
 
-ScoopedProfileEntry::~ScoopedProfileEntry()
+ScoopedProfileEvent::~ScoopedProfileEvent()
 {
-    profiler->EndEvent();
+    profiler->PopEvent();
 }

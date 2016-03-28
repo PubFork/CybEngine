@@ -138,7 +138,6 @@ void GameAppBase::MainLoop()
 
     while (!glfwWindowShouldClose(window))
     {
-        SCOOPED_PROFILE_EVENT("MainLoop");
         double timerStart = HiPerformanceTimer::GetSeconds();
         
         {
@@ -207,7 +206,10 @@ int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width,
                 THROW_FATAL_COND(!application->Init(), "Failed to initialize application...");
             }
         }
-        application->MainLoop();
+        {
+            SCOOPED_PROFILE_EVENT("MainLoop");
+            application->MainLoop();
+        }
     } catch (const std::exception &e)
     {
         DEBUG_LOG_TEXT("*** Error: %s", e.what());
@@ -217,7 +219,7 @@ int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width,
 
     application->Shutdown();
     glfwTerminate();
-    globalProfiler->PrintToDebug();
+    DEBUG_LOG_TEXT("%s", globalEventProfiler->CreateInfoMessage().c_str());
     SaveDebugLogToFile("debuglog.txt");
     return returnValue;
 }

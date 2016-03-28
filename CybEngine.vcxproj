@@ -33,6 +33,7 @@
     <ClCompile Include="src\renderer\RenderDevice.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Base\Container\InsertionOrderedMap.h" />
     <ClInclude Include="src\Base\Container\LinkedList.h" />
     <ClInclude Include="src\Base\Container\TempArray.h" />
     <ClInclude Include="src\Base\Debug.h" />

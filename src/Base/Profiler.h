@@ -1,58 +1,52 @@
 #pragma once
+#include "Base/Container/InsertionOrderedMap.h"
 
-// use comple time generated hash values for quick map lookup
-#include "StringUtils.h"
-#define SCOOPED_PROFILE_EVENT(name) ScoopedProfileEntry ___scoopedProfiler(name, COMPILE_TIME_CRC32_STR(name), globalProfiler)
+// a scooped profile event
+#define SCOOPED_PROFILE_EVENT(name) ScoopedProfileEvent ___scoopedProfileEvent(name, globalEventProfiler)
 
-struct ProfileEntry
-{
-    typedef std::map<uint32_t /*hash*/, ProfileEntry> ChildMap;
+//==============================
+// Event Profiler
+//==============================
 
-    ProfileEntry(const std::string entryName = "", ProfileEntry *entryParent = nullptr);
-
-    std::string name;
-    uint64_t totalTime;
-    uint64_t numCalls;
-
-    ProfileEntry *parent;
-    ChildMap childEntries;
-};
-
-// TODO: refactor out info/print output functions
-class ProfilerDataCollector
+class EventProfiler
 {
 public:
-    enum 
+    enum { NumIndentationSpaces = 4 };
+
+    EventProfiler();
+    void PushEvent(const std::string name);
+    void PopEvent();
+
+    std::string CreateInfoMessage() const;
+
+private:
+    struct ProfileEventNode
     {
-        NumIndentationSpaces = 4,
-        MaxBlockLevel = 8 
+        std::string name;
+        uint64_t startTime;
+        uint64_t totalTime;
+        uint64_t numCalls;
+
+        ProfileEventNode *parent;
+        InsertionOrderedMap<std::string, ProfileEventNode> childMap;
     };
 
-    ProfilerDataCollector();
-
-    void BeginEvent(const char *name, uint32_t hash);
-    void EndEvent();
-
-    const ProfileEntry::ChildMap *GetEvents() const;
-
-    std::string InfoString() const;
-    void PrintToDebug() const;
-
-private:
-    uint64_t beginEventTime[MaxBlockLevel];
-    uint32_t currentBlockLevel;
-    ProfileEntry::ChildMap entries;
-    ProfileEntry *currentEvent;
+    ProfileEventNode *currentEvent;
+    InsertionOrderedMap<std::string, ProfileEventNode> rootEventNodes;
 };
 
-class ScoopedProfileEntry
+//==============================
+// Scooped Profile Event
+//==============================
+
+class ScoopedProfileEvent
 {
 public:
-    ScoopedProfileEntry(const char *name, uint32_t hash, ProfilerDataCollector *profilerDC);
-    ~ScoopedProfileEntry();
+    ScoopedProfileEvent(const char *name, EventProfiler *dataCollector);
+    ~ScoopedProfileEvent();
 
 private:
-    ProfilerDataCollector *profiler;
+    EventProfiler *profiler;
 };
 
-extern ProfilerDataCollector *globalProfiler;
+extern EventProfiler *globalEventProfiler;

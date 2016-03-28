@@ -7,9 +7,6 @@
 #include "Game/Camera.h"
 #include <GLFW/glfw3.h>
 
-
-
-
 class GameApp : public GameAppBase
 {
 public:
@@ -27,10 +24,10 @@ private:
 
 bool GameApp::Init()
 {
-    DEBUG_LOG_TEXT("test=%x %x, asdasd=%x %x", COMPILE_TIME_CRC32_STR("test"), COMPILE_TIME_CRC32_STR("test"), COMPILE_TIME_CRC32_STR("asdasd"), COMPILE_TIME_CRC32_STR("asdasd"));
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
-    renderDevice->SetProjection(camera.GetProjMatrix());
+    renderDevice->SetProjection(camera.GetProjMatrix()); 
     model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
+    //model = renderer::Model::LoadOBJ(renderDevice, "assets/capsule.obj");
 
     // move controls
     BindKey(GLFW_KEY_W,     [=](void) { cameraControl.MoveForward((float)frameTimer); });
@@ -58,6 +55,7 @@ void GameApp::Render()
         UpdateWindowTitle(titleBuffer);
         cameraControl.UpdateCameraView(&camera);
     }
+    
 
     {
         SCOOPED_PROFILE_EVENT("Clear");

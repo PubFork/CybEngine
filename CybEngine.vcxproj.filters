@@ -118,6 +118,9 @@
     <ClInclude Include="src\Base\StringUtils.h">
       <Filter>Source Files\Base</Filter>
     </ClInclude>
+    <ClInclude Include="src\Base\Container\InsertionOrderedMap.h">
+      <Filter>Source Files\Base\Container</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\standard.frag">

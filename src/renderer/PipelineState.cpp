@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "Precompiled.h"
 
 #include <GL/glew.h>
 #include <Windows.h>

@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "Precompiled.h"
 #include "Camera.h"
 #include "Base/Macros.h"
 

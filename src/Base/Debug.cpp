@@ -1,6 +1,5 @@
-#include "stdafx.h"
+#include "Precompiled.h"
 #include "Debug.h"
-
 #include "Macros.h"
 #include "FileUtils.h"
 #include <windows.h>

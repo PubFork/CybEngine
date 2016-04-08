@@ -12,149 +12,129 @@ namespace renderer
 
 class IRenderDevice;
 
+class IGPUResouce
+{
+public:
+    virtual ~IGPUResouce() {}
+};
+
 //==============================
 // Buffer interface
 //==============================
 
-enum BufferType
+class IVertexBuffer : public IGPUResouce {};
+class IIndexBuffer : public IGPUResouce {};
+
+//==============================
+// Sampler interface
+//==============================
+
+enum ESamplerFilter
 {
-    Buffer_Invalid,
-    Buffer_Vertex,
-    Buffer_Index,
-    //Buffer_Uniform,
+    SamplerFilter_Point,
+    SamplerFilter_Bilinear,
+    SamplerFilter_Trilinear,
+    SamplerFilter_Anisotropic
 };
 
-struct BufferCreateParams
+enum ESamplerWrapMode
 {
-    BufferType usage;
-    const void *data;
-    size_t dataLength;
+    SamplerWrap_Repeat,
+    SamplerWrap_RepeatMirror,
+    SamplerWrap_Clamp
 };
 
-class IBuffer
+struct SamplerStateInitializer
+{
+    SamplerStateInitializer() {}
+    SamplerStateInitializer(ESamplerFilter inFilter,
+                            ESamplerWrapMode inWrapU = SamplerWrap_Repeat,
+                            ESamplerWrapMode inWrapV = SamplerWrap_Repeat,
+                            uint32_t inMaxAnisotropy = 0,
+                            int32_t inMipBias = 0,
+                            uint32_t inMinMipLevel = 0,
+                            uint32_t inMaxMipLevel = UINT32_MAX) :
+        filter(inFilter),
+        wrapU(inWrapU),
+        wrapV(inWrapV),
+        mipBias(inMipBias),
+        minMipLevel(inMinMipLevel),
+        maxMipLevel(inMaxMipLevel),
+        maxAnisotropy(inMaxAnisotropy)
+    {
+    }
+
+    bool operator==(const SamplerStateInitializer &initializer) const
+    {
+        return memcmp(this, &initializer, sizeof(initializer)) == 0;
+    }
+
+    ESamplerFilter filter;
+    ESamplerWrapMode wrapU;
+    ESamplerWrapMode wrapV;
+    int32_t mipBias;
+    uint32_t minMipLevel;
+    uint32_t maxMipLevel;
+    uint32_t maxAnisotropy;
+};
+
+class ISamplerState : public IGPUResouce {};
+
+//==============================
+// Texture interface
+//==============================
+
+enum EPixelFormat
+{
+    PixelFormat_Unknown,
+    PixelFormat_R8G8B8A8,
+    PixelFormat_R8,
+    PixelFormat_R32G32B32A32F,
+    PixelFormat_Depth24,
+    PixelFormat_Count
+};
+
+class ITexture : public IGPUResouce
 {
 public:
-    virtual ~IBuffer() {}
+    ITexture(uint32_t inNumMipMaps, EPixelFormat inFormat) :
+        numMipMaps(inNumMipMaps),
+        format(inFormat)
+    {
+    }
 
-    virtual void Create(const BufferCreateParams *params) = 0;
-    virtual void Bind() const = 0;
+    virtual ~ITexture() {}
+
+    uint32_t GetNumMipMaps() const { return numMipMaps; }
+    EPixelFormat GetFormat() const { return format; }
+
+private:
+    uint32_t numMipMaps;
+    EPixelFormat format;
 };
 
-//==============================
-// Image interface
-//==============================
-
-enum ImageFilterMode
+class ITexture2D : public ITexture
 {
-    ImageFilter_Nearest,
-    ImageFilter_Linear,
-    ImageFilter_Anisotropic
-};
+public:
+    ITexture2D(uint32_t inWidth, uint32_t inHeight, uint32_t inNumMipMaps, EPixelFormat inFormat) :
+        ITexture(inNumMipMaps, inFormat),
+        width(inWidth),
+        height(inHeight)
+    {
+    }
 
-enum ImageWrapMode
-{
-    ImageWrap_Repeat,
-    ImageWrap_Clamp,
-    ImageWrap_ClampBorder,
-};
+    uint32_t GetWidth()  const { return width; }
+    uint32_t GetHeight() const { return height; }
 
-enum ImageFormat
-{
-    ImageFormat_None,
-    ImageFormat_RGBA8,                   // 4 channel, 32 bpp (R8:G8:B8:A8)
-    ImageFormat_Alpha,                   // 1 channel,  8 bpp (R8)              (NOTE: Unimplemented)
-    ImageFormat_DXT5,                    // 4 channel, 24 bpp (R5:G6:B5:A8)     (NOTE: Unimplemented)
-};
-
-struct ImageCreateParams
-{
-    std::string name;
+private:
     uint32_t width;
     uint32_t height;
-    ImageFormat format;
-    const void *pixels;
-    ImageFilterMode filtering;
-    ImageWrapMode wrapMode;
-};
-
-class IImage
-{
-public:
-    virtual ~IImage() {}
-
-    virtual void Create(const ImageCreateParams *params) = 0;
-    virtual void Bind(uint8_t slot) = 0;
-    virtual void UpdateFilterMode(ImageFilterMode filterMode) = 0;
 };
 
 //==============================
 // Pipeline state interface
 //==============================
 
-class IVertexLayout
-{
-public:
-    virtual void Create(const VertexInputElement *elements, uint8_t numElements) = 0;
-    virtual void Bind() const = 0;
-    virtual void UnBind() const = 0;
-    virtual uint32_t Hash() const = 0;
-};
-
-enum PipelineRasterFlags
-{
-    Raster2_PrimPoint = 0x0000,
-    Raster2_PrimLine = 0x0001,
-    Raster2_PrimTriangle = 0x0002,
-    Raster2_PrimTriangleStrip = 0x0003,
-    Raster2_PrimMask = 0x000f,
-
-    Raster2_CullBack = 0x0010,       // cull back facing faces
-    Raster2_CullFront = 0x0020,       // cull front facing faces
-    Raster2_CullNone = 0x0030,       // dont't cull and faces at rasterer level
-    Raster2_CullMask = 0x00f0,
-
-    Raster2_FrontCCW = 0x0100,       // counter-clockwise ordered face indices
-    Raster2_FrontCW = 0x0200,       // clockwise ordered face indices
-    Raster2_FrontMask = 0x0f00,
-
-    Raster2_DefaultState = Raster2_PrimTriangle | Raster2_CullBack | Raster2_FrontCCW
-};
-
-enum PipelineParams
-{
-    Param2_Mat4Begin,
-    Param2_Proj,
-    Param2_ModelView,
-    Param2_Mat4End,
-
-    Param2_Vec3Begin,
-    Param2_Vec3Param1,       // dummy
-    Param2_Vec3Param2,       // dummy
-    Param2_Vec3End,
-
-    Param2_Count
-};
-
-struct PipelineStateCreateParams
-{
-    const char *VS;
-    const char *FS;
-    IVertexLayout *vertexLayout;
-    uint32_t rasterFlags;
-};
-
-class IPipelineState
-{
-public:
-    virtual void Create(const PipelineStateCreateParams *param) = 0;
-    virtual void Bind() const = 0;
-
-    virtual void SetParamMat4(PipelineParams param, const float *value) = 0;
-    virtual void SetParamVec3(PipelineParams param, const float *value) = 0;
-    virtual const IVertexLayout *VertexLayout() const = 0;
-};
-
-////////////////////////
 struct VertexStandard
 {
     float x, y, z;
@@ -175,14 +155,14 @@ struct SurfaceGeometry
 {
     SurfaceGeometry() : indexCount(0) {}
     uint32_t indexCount;
-    std::shared_ptr<IBuffer> VBO;
-    std::shared_ptr<IBuffer> IBO;
+    std::shared_ptr<IVertexBuffer> VBO;
+    std::shared_ptr<IIndexBuffer> IBO;
 };
 
 struct SurfaceMaterial
 {
     enum { MaxNumTextures = 4 };
-    std::shared_ptr<IImage> texture[MaxNumTextures];
+    std::shared_ptr<ITexture2D> texture[MaxNumTextures];
 };
 
 struct Surface
@@ -202,6 +182,18 @@ enum BuiltinPipelineStateEnum
     BuiltintPipelineState_Count
 };
 
+#define MAX_TEXTURE_UNITS 8
+struct DrawCallBase
+{
+    uint32_t primitiveType;
+    uint32_t numPrimitives;
+    std::shared_ptr<IVertexBuffer> VBO;
+    uint32_t numVertices;
+
+    std::array<std::shared_ptr<ITexture2D>, MAX_TEXTURE_UNITS> textures;
+    uint32_t numTextures;
+};
+
 class IRenderDevice
 {
 public:
@@ -215,11 +207,17 @@ public:
 
     virtual PipelineState *BuiltintPipelineState(uint32_t pipelineStateEnum) = 0;
 
-    virtual std::shared_ptr<IBuffer> CreateBuffer(BufferType usage, const void *dataBuffer, size_t dataBufferSize) = 0;
-    virtual std::shared_ptr<IImage> ImageFromFile(const char *filename, ImageWrapMode wrapMode) = 0;
-    virtual std::shared_ptr<IImage> ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, uint32_t format, ImageWrapMode wrapMode) = 0;
-    virtual void SetImageFilterMode(ImageFilterMode mode, bool applyToCachedImages = true) = 0;
-    virtual uint32_t ImageFilterMaxAnisotropy() const = 0;
+    virtual std::shared_ptr<ITexture2D> ImageFromFile(const char *filename) = 0;
+    virtual std::shared_ptr<ITexture2D> ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, EPixelFormat format) = 0;
+
+    virtual std::shared_ptr<IVertexBuffer> CreateVertexBuffer(const void *data, size_t size) = 0;
+    virtual std::shared_ptr<IIndexBuffer> CreateIndexBuffer(const void *data, size_t size) = 0;
+
+    virtual std::shared_ptr<ITexture2D> CreateTexture2D(int32_t width, int32_t height, EPixelFormat format, int32_t numMipMaps, const void *data) = 0;
+    virtual void SetTexture(uint32_t textureIndex, const std::shared_ptr<ITexture> texture) = 0;
+
+    virtual std::shared_ptr<ISamplerState> CreateSamplerState(const SamplerStateInitializer &initializer) = 0;
+    virtual void SetSamplerState(uint32_t textureIndex, const std::shared_ptr<ISamplerState> state) = 0;
 
     virtual void Clear(uint32_t targets, const glm::vec4 color, float depth = 1.0f) = 0;
     virtual void Render(const Surface *surf, const glm::mat4 &transform) = 0;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer/RenderDevice.h"
+#include "RenderDevice.h"
 
 namespace renderer
 {

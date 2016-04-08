@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "Precompiled.h"
 #include "Model.h"
 
 #include "Base/Debug.h"
@@ -11,7 +11,7 @@ namespace renderer
 Model::Model()
 {
     InitEmpty("<unknown>");
-}
+} 
 
 Model::Model(const std::string &modelName)
 {
@@ -51,8 +51,8 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
         renderer::SurfaceGeometry *convertedGeometry = &convertedSurface.geometry;
 
         // copy geometry
-        convertedGeometry->VBO = device->CreateBuffer(renderer::Buffer_Vertex, &objSurface.vertices[0], VECTOR_BYTESIZE(objSurface.vertices));
-        convertedGeometry->IBO = device->CreateBuffer(renderer::Buffer_Index, &objSurface.indices[0], VECTOR_BYTESIZE(objSurface.indices));
+        convertedGeometry->VBO = device->CreateVertexBuffer(&objSurface.vertices[0], VECTOR_BYTESIZE(objSurface.vertices));
+        convertedGeometry->IBO = device->CreateIndexBuffer(&objSurface.indices[0], VECTOR_BYTESIZE(objSurface.indices));
         convertedGeometry->indexCount = (uint32_t)objSurface.indices.size();
 
         //device->CreateSurface(&vertices, &indices, &material);
@@ -62,7 +62,7 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
         if (!objSurface.material->diffuseTexture.empty())
         {
             std::string path = GetBasePath(filename.c_str()) + objSurface.material->diffuseTexture;
-            mat->texture[0] = device->ImageFromFile(path.c_str(), renderer::ImageWrap_Repeat);
+            mat->texture[0] = device->ImageFromFile(path.c_str());
         }
 
         // finish up and add to model

@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "Precompiled.h"
 #include "Model_obj.h"
 
 #include "Base/Debug.h"
@@ -29,28 +29,28 @@ bool operator<(const ObjIndex &a, const ObjIndex &b)
 float ReadFloat(const char *&buffer)
 {
     buffer += strspn(buffer, " \t");
-    float value = (float)atof(buffer);
+    const float value = (float)atof(buffer);
     buffer += strcspn(buffer, " \t\r\n");
     return value;
 }
 
 glm::vec2 ReadVec2(const char *&buffer)
 {
-    float x = ReadFloat(buffer);
-    float y = ReadFloat(buffer);
+    const float x = ReadFloat(buffer);
+    const float y = ReadFloat(buffer);
     return glm::vec2(x, y);
 }
 
 glm::vec3 ReadVec3(const char *&buffer)
 {
-    glm::vec2 xy(ReadVec2(buffer));
-    float z = ReadFloat(buffer);
+    const glm::vec2 xy(ReadVec2(buffer));
+    const float z = ReadFloat(buffer);
     return glm::vec3(xy, z);
 }
 
 bool ReadToken(const char *&buffer, const char *token)
 {
-    size_t tokenLength = strlen(token);
+    const size_t tokenLength = strlen(token);
     if (!strncmp(buffer, token, tokenLength))
     {
         buffer += tokenLength;
@@ -64,7 +64,7 @@ bool ReadToken(const char *&buffer, const char *token)
 // read a string from token, using newline as string terminator
 std::string ReadString(const char *&buffer)
 {
-    size_t end = strcspn(buffer, "\r\n");
+    const size_t end = strcspn(buffer, "\r\n");
     std::string str(buffer, &buffer[end]);
     buffer += end;
     return str;
@@ -115,8 +115,7 @@ ObjFace ReadFace(const char *&buffer)
     while (buffer[0] != '\r' && buffer[0] != '\n' && buffer[0] != '\0')
     {
         face.emplace_back(ReadFaceIndex(buffer));
-        size_t n = strspn(buffer, " \t");
-        buffer += n;
+        buffer += strspn(buffer, " \t");
     }
 
     return face;
@@ -152,7 +151,7 @@ uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &sur
         vertex.v0 = texCoords[index.vt].y;
     }
 
-    uint16_t idx = static_cast<uint16_t>(surface.vertices.size() - 1);
+    const uint16_t idx = static_cast<uint16_t>(surface.vertices.size() - 1);
     vertexCache[index] = idx;
 
     return idx;
@@ -174,7 +173,7 @@ bool ExportFaceGroupToSurface(ObjSurface &surface, ObjMaterial *material, const 
         ObjIndex i1 = {};
         ObjIndex i2 = face[1];
 
-        size_t npolys = face.size();
+        const size_t npolys = face.size();
 
         // Polygon -> triangle fan conversion
         for (size_t k = 2; k < npolys; k++)
@@ -308,8 +307,8 @@ ObjModel *OBJ_Load(const char *filename)
             facegroupName = ReadString(linebuf);
         } else if (ReadToken(linebuf, "mtllib "))
         {
-            std::string materialFilename = GetBasePath(filename) + ReadString(linebuf);
-            bool result = MTL_Load(materialFilename.c_str(), model->materials);
+            const std::string materialFilename = GetBasePath(filename) + ReadString(linebuf);
+            const bool result = MTL_Load(materialFilename.c_str(), model->materials);
             
             if (!result || model->materials.empty())
             {
@@ -320,7 +319,7 @@ ObjModel *OBJ_Load(const char *filename)
             material = &model->materials.begin()->second;
         } else if (ReadToken(linebuf, "usemtl "))
         {
-            std::string matString = ReadString(linebuf);
+            const std::string matString = ReadString(linebuf);
             auto searchResult = model->materials.find(matString);
             if (searchResult != model->materials.end())
             {

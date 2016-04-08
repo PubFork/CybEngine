@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "Precompiled.h"
 #include "GameApp.h"
 #include "Base/Debug.h"
 #include "Base/Timer.h"
@@ -80,8 +80,8 @@ void GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title
     glfwSetErrorCallback([](int, const char *msg) { throw FatalException(msg); });
     THROW_FATAL_COND(glfwInit() != GL_TRUE, "glfwInit() failed");
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     glfwWindowHint(GLFW_SAMPLES, 64);
     
@@ -138,7 +138,7 @@ void GameAppBase::MainLoop()
 
     while (!glfwWindowShouldClose(window))
     {
-        double timerStart = HiPerformanceTimer::GetSeconds();
+        const double timerStart = HiPerformanceTimer::GetSeconds();
         
         {
             SCOOPED_PROFILE_EVENT("Application_Render");
@@ -164,7 +164,7 @@ void GameAppBase::MainLoop()
             }
         }
 
-        double timerEnd = HiPerformanceTimer::GetSeconds();
+        const double timerEnd = HiPerformanceTimer::GetSeconds();
         frameTimer = timerEnd - timerStart;
         timer += frameTimer;
     }
@@ -185,7 +185,7 @@ int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width,
     int returnValue = 0;
 
     DEBUG_LOG_TEXT("CPU: %s", GetProcessorInfo().c_str());
-    std::vector<std::string> gpuList = GetGraphicCardList();
+    const std::vector<std::string> gpuList = GetGraphicCardList();
     uint16_t gpuNum = 0;
     for (const auto &gpu : gpuList)
     {

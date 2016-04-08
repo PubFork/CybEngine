@@ -29,15 +29,15 @@ public:
     T *Insert(const TKey key, const T &value)
     {
         T *entry = Find(key);
-        if (entry != nullptr)
+        if (!entry)
         {
-            return entry;
+            size_t index = entries.size();
+            keyToIndexMap[key] = index;
+            entries.push_back(new T(value));
+            entry = entries[index];
         }
 
-        size_t index = entries.size();
-        keyToIndexMap[key] = index;
-        entries.push_back(new T(value));
-        return entries[index];
+        return entry;
     }
 
     typename std::vector<T*>::iterator begin() { return entries.begin(); }

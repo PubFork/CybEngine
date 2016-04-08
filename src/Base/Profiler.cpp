@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "Precompiled.h"
 #include "Profiler.h"
 #include "Timer.h"
 #include "Debug.h"
@@ -20,10 +20,10 @@ EventProfiler::EventProfiler()
 void EventProfiler::PushEvent(const std::string name)
 {
     auto childMap = (currentEvent) ? &currentEvent->childMap : &rootEventNodes;
-    ProfileEventNode *node = childMap->Find(name);
+    EventDataNode *node = childMap->Find(name);
     if (!node)
     {
-        node = childMap->Insert(name, ProfileEventNode());
+        node = childMap->Insert(name, EventDataNode());
         node->name = name;
         node->totalTime = 0;
         node->numCalls = 0;
@@ -39,7 +39,7 @@ void EventProfiler::PopEvent()
 {
     assert(currentEvent);
 
-    ProfileEventNode *node = currentEvent;
+    EventDataNode *node = currentEvent;
     node->totalTime += HiPerformanceTimer::GetTicksNanos() - node->startTime;
     node->startTime = 0;
     currentEvent = node->parent;
@@ -49,7 +49,7 @@ std::string EventProfiler::CreateInfoMessage() const
 {
     std::ostrstream infoString;
 
-    std::function<void(const ProfileEventNode *, int)> printProfileEvent = [&](const ProfileEventNode *node, int indentLevel)
+    const std::function<void(const EventDataNode *, int)> printProfileEvent = [&](const EventDataNode *node, int indentLevel)
     {
         std::string indentSpaces(indentLevel * NumIndentationSpaces, ' ');
         infoString << indentSpaces << node->name << ": ";
@@ -67,12 +67,13 @@ std::string EventProfiler::CreateInfoMessage() const
         FOR_EACH(node->childMap, [&](const auto &it) { printProfileEvent(it, indentLevel + 1); });
     };
 
-    infoString << "-----------------------------------------------------------------------------\n";
+    infoString << "----------------------------------------------------------------------------------\n";
     FOR_EACH(rootEventNodes, [&](const auto &it) { printProfileEvent(it, 0); });
-    infoString << "-----------------------------------------------------------------------------";
+    infoString << "----------------------------------------------------------------------------------" << std::ends;
 
-    infoString << '\0';     // HACK: Not sure why, but without this, junk is added at the end of the infoString
-    return infoString.str();
+    std::string str = infoString.str();
+    infoString.freeze(false);       // unfreeze the infoString buffer to avoid memory leak on its destruction
+    return str;
 }
 
 //==============================

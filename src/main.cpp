@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "Precompiled.h"
 #include "Base/Timer.h"
 #include "Base/Profiler.h"
 #include "Base/Debug.h"
@@ -17,6 +17,7 @@ public:
     virtual void Render();
 
 private:
+    std::shared_ptr<renderer::ISamplerState> samplerState;
     BaseCamera camera;
     CameraController cameraControl;
     std::shared_ptr<renderer::Model> model;
@@ -38,10 +39,12 @@ bool GameApp::Init()
     BindKey(GLFW_KEY_C,     [=](void) { cameraControl.MoveUp((float)-frameTimer); });
     BindMouseMove([=](const MouseStateInfo &mouseState) { if (mouseState.isGrabbed) { cameraControl.RotateLookAtDirection(mouseState.offset); } });
 
-    // image filter control
-    BindKey(GLFW_KEY_1,     [=](void) { renderDevice->SetImageFilterMode(renderer::ImageFilter_Nearest); });
-    BindKey(GLFW_KEY_2,     [=](void) { renderDevice->SetImageFilterMode(renderer::ImageFilter_Linear); });
-    BindKey(GLFW_KEY_3,     [=](void) { renderDevice->SetImageFilterMode(renderer::ImageFilter_Anisotropic); });
+    // sampler state control
+    BindKey(GLFW_KEY_1, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point))); });
+    BindKey(GLFW_KEY_2, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Bilinear))); });
+    BindKey(GLFW_KEY_3, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Trilinear))); });
+    BindKey(GLFW_KEY_4, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Anisotropic, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 16))); });
+    BindKey(GLFW_KEY_5, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 0, 4))); });
 
     return true;
 }
@@ -55,7 +58,6 @@ void GameApp::Render()
         UpdateWindowTitle(titleBuffer);
         cameraControl.UpdateCameraView(&camera);
     }
-    
 
     {
         SCOOPED_PROFILE_EVENT("Clear");

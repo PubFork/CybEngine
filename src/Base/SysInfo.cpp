@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "Precompiled.h"
 #include "SysInfo.h"
 #include <Windows.h>
 

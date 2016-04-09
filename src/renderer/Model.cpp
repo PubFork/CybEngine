@@ -3,6 +3,7 @@
 
 #include "Base/Debug.h"
 #include "Base/FileUtils.h"
+#include "Texture.h"
 #include "Model_obj.h"
 
 namespace renderer
@@ -62,7 +63,8 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
         if (!objSurface.material->diffuseTexture.empty())
         {
             std::string path = GetBasePath(filename.c_str()) + objSurface.material->diffuseTexture;
-            mat->texture[0] = device->ImageFromFile(path.c_str());
+            //mat->texture[0] = device->ImageFromFile(path.c_str());
+            mat->texture[0] = renderer::globalTextureCache->LoadTexture2DFromFile(path.c_str());
         }
 
         // finish up and add to model

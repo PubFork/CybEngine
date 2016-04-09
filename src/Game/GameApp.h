@@ -34,6 +34,8 @@ public:
     void BindKey(int key, std::function<void(void)> fun);
     void BindMouseMove(std::function<void(const MouseStateInfo &)> callback);
 
+    std::shared_ptr<renderer::IRenderDevice> GetRenderDevice() { return renderDevice; }
+
     virtual bool Init() = 0;
     virtual void Shutdown() = 0;
     virtual void Render() = 0;

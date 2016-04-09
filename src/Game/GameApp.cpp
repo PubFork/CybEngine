@@ -6,6 +6,7 @@
 #include "Base/Profiler.h"
 #include "Base/SysInfo.h"
 #include "Renderer/stb_image.h"
+#include "Renderer/Texture.h"
 #include <Windows.h>
 #include <GLFW/glfw3.h>
 
@@ -100,7 +101,7 @@ void GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title
     glfwSetCursorEnterCallback(window, CursorEnterCallback);
     glfwSetMouseButtonCallback(window, MouseButtonCallback);
 
-    // initialize render device
+    // initialize the renderer
     renderDevice = renderer::CreateRenderDevice();
     renderDevice->Init();
 
@@ -200,6 +201,7 @@ int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width,
             {
                 SCOOPED_PROFILE_EVENT("Engine_Init");
                 application->SetupWindow(width, height, title);
+                renderer::globalTextureCache->Initialize(application->GetRenderDevice());
             }
             {
                 SCOOPED_PROFILE_EVENT("Application_Init");
@@ -217,6 +219,7 @@ int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width,
         returnValue = 1;
     }
 
+    renderer::globalTextureCache->Destroy();
     application->Shutdown();
     glfwTerminate();
     DEBUG_LOG_TEXT("%s", globalEventProfiler->CreateInfoMessage().c_str());

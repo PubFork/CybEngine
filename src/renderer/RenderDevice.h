@@ -207,9 +207,6 @@ public:
 
     virtual PipelineState *BuiltintPipelineState(uint32_t pipelineStateEnum) = 0;
 
-    virtual std::shared_ptr<ITexture2D> ImageFromFile(const char *filename) = 0;
-    virtual std::shared_ptr<ITexture2D> ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, EPixelFormat format) = 0;
-
     virtual std::shared_ptr<IVertexBuffer> CreateVertexBuffer(const void *data, size_t size) = 0;
     virtual std::shared_ptr<IIndexBuffer> CreateIndexBuffer(const void *data, size_t size) = 0;
 

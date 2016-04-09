@@ -1,8 +1,6 @@
 #include "Precompiled.h"
 #include "RenderDevice.h"
 #include "RenderDeviceOpenGL.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 #include "Base/Debug.h"
 #include "Base/MurmurHash.h"
 #include "Base/FileUtils.h"
@@ -217,55 +215,7 @@ PipelineState *RenderDevice::BuiltintPipelineState(uint32_t pipelineStateEnum)
     return &builtintPipelineStates[pipelineStateEnum];
 }
 
-std::shared_ptr<ITexture2D> RenderDevice::ImageFromFile(const char *filename)
-{
-    auto image = FindImage(filename);
-    if (image)
-    {
-        return image;
-    }
-
-    FileReader file(filename, true);
-    DEBUG_LOG_TEXT("Loading image from file %s [hash 0x%x]...", filename, CalculateMurmurHash(filename, strlen(filename)));
-
-    int width, height, bpp;
-    stbi_set_flip_vertically_on_load(1);        // convert to opengl texture coordniate system
-    unsigned char *data = stbi_load_from_memory((const stbi_uc*)file.RawBuffer(), (int)file.Size(), &width, &height, &bpp, 4);
-    if (!data)
-    {
-        DEBUG_LOG_TEXT("Failed to load image %s: %s", filename, stbi_failure_reason());
-        throw FatalException(std::string("Failed to load texture ") + filename);
-    }
-
-    image = ImageFromMemoryInternal(filename, data, width, height, PixelFormat_R8G8B8A8);
-    stbi_image_free(data);
-
-    return image;
-}
-
-std::shared_ptr<ITexture2D> RenderDevice::ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, EPixelFormat format)
-{
-    auto image = FindImage(name);
-    return image ? image : ImageFromMemoryInternal(name, data, width, height, format);
-}
-
-std::shared_ptr<ITexture2D> RenderDevice::ImageFromMemoryInternal(const char *name, const void *data, uint32_t width, uint32_t height, EPixelFormat format)
-{
-    const uint32_t hash = CalculateMurmurHash(name, strlen(name));
-    auto image = CreateTexture2D(width, height, format, 0, data);
-    imageCache[hash] = image;
-
-    return image;
-}
-
-std::shared_ptr<ITexture2D> RenderDevice::FindImage(const char *name)
-{
-    const uint32_t hash = CalculateMurmurHash(name, strlen(name));
-    const auto searchResult = imageCache.find(hash);
-    return searchResult != imageCache.end() ? searchResult->second : nullptr;
-}
-
-GLint RenderDevice::OpenGLCreateBuffer(GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage)
+GLint RenderDevice::OpenGLCreateBufferInternal(GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage)
 {
     GLuint resource = 0;
     glCreateBuffers(1, &resource);
@@ -277,14 +227,14 @@ GLint RenderDevice::OpenGLCreateBuffer(GLenum target, GLsizeiptr size, const GLv
 std::shared_ptr<IVertexBuffer> RenderDevice::CreateVertexBuffer(const void *data, size_t size)
 {
     const GLenum usage = GL_STATIC_DRAW;       // NOTE: only support static draw usage for now....
-    const GLuint resource = OpenGLCreateBuffer(GL_ARRAY_BUFFER, size, data, usage);
+    const GLuint resource = OpenGLCreateBufferInternal(GL_ARRAY_BUFFER, size, data, usage);
     return std::make_shared<OpenGLVertexBuffer>(resource, GL_ARRAY_BUFFER, usage, size);
 }
 
 std::shared_ptr<IIndexBuffer> RenderDevice::CreateIndexBuffer(const void *data, size_t size)
 {
     const GLenum usage = GL_STATIC_DRAW;       // NOTE: only support static draw usage for now....
-    const GLuint resource = OpenGLCreateBuffer(GL_ELEMENT_ARRAY_BUFFER, size, data, usage);
+    const GLuint resource = OpenGLCreateBufferInternal(GL_ELEMENT_ARRAY_BUFFER, size, data, usage);
     return std::make_shared<OpenGLIndexBuffer>(resource, GL_ELEMENT_ARRAY_BUFFER, usage, size);
 }
 

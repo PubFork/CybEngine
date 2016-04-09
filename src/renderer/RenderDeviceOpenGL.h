@@ -127,12 +127,7 @@ public:
 
     virtual PipelineState *BuiltintPipelineState(uint32_t pipelineStateEnum);
 
-    virtual std::shared_ptr<ITexture2D> ImageFromFile(const char *filename);
-    virtual std::shared_ptr<ITexture2D> ImageFromMemory(const char *name, const void *data, uint32_t width, uint32_t height, EPixelFormat format);
-    std::shared_ptr<ITexture2D> ImageFromMemoryInternal(const char *name, const void *data, uint32_t width, uint32_t height, EPixelFormat format);
-    std::shared_ptr<ITexture2D> FindImage(const char *name);
-
-    GLint OpenGLCreateBuffer(GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage);
+    GLint OpenGLCreateBufferInternal(GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage);
     virtual std::shared_ptr<IVertexBuffer> CreateVertexBuffer(const void *data, size_t size);
     virtual std::shared_ptr<IIndexBuffer> CreateIndexBuffer(const void *data, size_t size);
 
@@ -149,10 +144,7 @@ private:
     GLuint vaoId;
     glm::mat4 projection;
     PipelineState builtintPipelineStates[BuiltintPipelineState_Count];
-    std::unordered_map<uint32_t, std::shared_ptr<ITexture2D>> imageCache;
-
     std::unordered_map<SamplerStateInitializer, std::shared_ptr<OpenGLSamplerState>, SamplerStateInitializerHasher> samplerStateCache;
-
     uint32_t imageFilterMaxAnisotropy;
     bool isInititialized;
 };

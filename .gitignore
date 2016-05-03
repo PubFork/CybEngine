@@ -213,3 +213,5 @@ ModelManifest.xml
 
 # VS FIXXES
 *.VC.opendb
+*.VC.db
+debuglog*

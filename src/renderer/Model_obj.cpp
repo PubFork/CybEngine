@@ -1,8 +1,7 @@
 #include "Precompiled.h"
 #include "Model_obj.h"
-
 #include "Base/Debug.h"
-#include "Base/FileUtils.h"
+#include "Base/File.h"
 
 /*
  * Some parts are based of syoyo's tinyobjloader:
@@ -129,31 +128,11 @@ uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &sur
         return it->second;
 
     // create vertices not found in cache and insert them
-    surface.vertices.emplace_back();
-    renderer::VertexStandard& vertex = surface.vertices.back();
-    memset(&vertex, 0, sizeof(vertex));
-    vertex.x = positions[index.v].x;
-    vertex.y = positions[index.v].y;
-    vertex.z = positions[index.v].z;
-
-//    vertex.color0 = renderer::PackRGBA(material->diffuseColor.r, material->diffuseColor.g, material->diffuseColor.b, 1.0f);
-
-    if (index.vn)
-    {
-        vertex.nx = normals[index.vn].x;
-        vertex.ny = normals[index.vn].y;
-        vertex.nz = normals[index.vn].z;
-    }
-
-    if (index.vt)
-    {
-        vertex.u0 = texCoords[index.vt].x;
-        vertex.v0 = texCoords[index.vt].y;
-    }
-
-    const uint16_t idx = static_cast<uint16_t>(surface.vertices.size() - 1);
+    const uint16_t idx = static_cast<uint16_t>(surface.vertices.size());
     vertexCache[index] = idx;
-
+    surface.vertices.emplace_back(positions[index.v],
+                                  index.vn ? normals[index.vn] : glm::vec3(),
+                                  index.vt ? texCoords[index.vt] : glm::vec2());
     return idx;
 }
 
@@ -205,18 +184,34 @@ void MakeDefaultMaterial(ObjMaterial &material)
     material.shininess       = 1.0f;
 }
 
+bool ReadLine(IFile *file, char *buffer, size_t length)
+{
+    char c = 0;
+    size_t count = 0;
+
+    char *buf = buffer;
+    do
+    {
+        count = file->Read((uint8_t *)&c, 1);
+        *buf++ = c;
+    } while (c != '\n' && c != '\0' && count == 1 && (buf - buffer) < (ptrdiff_t)length);
+
+    return count == 1;
+}
+
 bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
 {
-    FileReader file(filename);
-    if (!file.IsOpen())
+    SysFile mtlFile(filename, FileOpen_Read);
+    if (!mtlFile.IsValid())
         return false;
 
     DEBUG_LOG_TEXT("Loading %s...", filename);
     ObjMaterial material;
 
-    while (file.Peek() != -1)
+    char buffer[2000];
+    while (ReadLine(&mtlFile, buffer, 2000))
     {
-        const char *lineBuffer = file.GetLine(nullptr);
+        const char *lineBuffer = buffer;
         lineBuffer += strspn(lineBuffer, " \t");
         if (lineBuffer[0] == '#' || lineBuffer[0] == '\r'|| lineBuffer[0] == '\n' || lineBuffer[0] == '\0')
             continue;
@@ -235,11 +230,11 @@ bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
         else if (ReadToken(lineBuffer, "Ks "))
             material.specularColor = ReadVec3(lineBuffer);
         else if (ReadToken(lineBuffer, "map_Ka "))
-            material.ambientTexture = ReadString(lineBuffer);
+            material.ambientTexture = std::string(mtlFile.GetFileBaseDir()) + ReadString(lineBuffer);
         else if (ReadToken(lineBuffer, "map_Kd "))
-            material.diffuseTexture = ReadString(lineBuffer);
+            material.diffuseTexture = std::string(mtlFile.GetFileBaseDir()) + ReadString(lineBuffer);
         else if (ReadToken(lineBuffer, "map_Ks "))
-            material.diffuseTexture = ReadString(lineBuffer);
+            material.diffuseTexture = std::string(mtlFile.GetFileBaseDir()) + ReadString(lineBuffer);
         else if (ReadToken(lineBuffer, "d "))
             material.dissolve = ReadFloat(lineBuffer);
         else if (ReadToken(lineBuffer, "Tr "))
@@ -254,8 +249,8 @@ bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
 
 ObjModel *OBJ_Load(const char *filename)
 {
-    FileReader file(filename);
-    if (!file.IsOpen())
+    SysFile objFile(filename, FileOpen_Read);
+    if (!objFile.IsValid())
         return nullptr;
 
     DEBUG_LOG_TEXT("Loading %s...", filename);
@@ -271,9 +266,10 @@ ObjModel *OBJ_Load(const char *filename)
 
     MakeDefaultMaterial(defaultMaterial);
 
-    while (file.Peek() != -1)
+    char buffer[2000];
+    while (ReadLine(&objFile, buffer, 2000))
     {
-        const char *linebuf = file.GetLine(nullptr);
+        const char *linebuf = buffer;
 
         // skip comments and empty lines
         linebuf += strspn(linebuf, " \t");
@@ -307,7 +303,7 @@ ObjModel *OBJ_Load(const char *filename)
             facegroupName = ReadString(linebuf);
         } else if (ReadToken(linebuf, "mtllib "))
         {
-            const std::string materialFilename = GetBasePath(filename) + ReadString(linebuf);
+            const std::string materialFilename = std::string(objFile.GetFileBaseDir()) + ReadString(linebuf);
             const bool result = MTL_Load(materialFilename.c_str(), model->materials);
             
             if (!result || model->materials.empty())

@@ -1,8 +1,8 @@
 #include "Precompiled.h"
 #include "GameApp.h"
 #include "Base/Debug.h"
+#include "Base/File.h"
 #include "Base/Timer.h"
-#include "Base/FileUtils.h"
 #include "Base/Profiler.h"
 #include "Base/SysInfo.h"
 #include "Renderer/stb_image.h"
@@ -14,14 +14,10 @@ static void KeyCallback(GLFWwindow *window, int key, int /*scancode*/, int actio
 {
     GLFWCallbackPointerData *data = (GLFWCallbackPointerData*)glfwGetWindowUserPointer(window);
 
-    if (action == GLFW_PRESS)
+    switch (action)
     {
-        data->keyState[key] = true;
-    }
-
-    if (action == GLFW_RELEASE)
-    {
-        data->keyState[key] = false;
+    case GLFW_PRESS: data->keyState[key] = true; break;
+    case GLFW_RELEASE: data->keyState[key] = false; break;
     }
 }
 
@@ -30,7 +26,7 @@ static void CursorPosCallback(GLFWwindow *window, double xpos, double ypos)
     GLFWCallbackPointerData *data = (GLFWCallbackPointerData*)glfwGetWindowUserPointer(window);
     MouseStateInfo &state = data->mouseState;
     
-    glm::vec2 mousePos(xpos, ypos);
+    const glm::vec2 mousePos(xpos, ypos);
     state.offset = mousePos - state.position;
     state.position = mousePos;
 
@@ -81,6 +77,17 @@ void GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title
     glfwSetErrorCallback([](int, const char *msg) { throw FatalException(msg); });
     THROW_FATAL_COND(glfwInit() != GL_TRUE, "glfwInit() failed");
 
+    /*
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+    int numVideoModes = 0;
+    const GLFWvidmode *videoModes = glfwGetVideoModes(monitor, &numVideoModes);
+    for (int i = 0; i < numVideoModes; i++)
+    {
+        const GLFWvidmode *mode = &videoModes[i];
+        DEBUG_LOG_TEXT("%d: %dx%d@%dhz", i, mode->width, mode->height, mode->refreshRate);
+    }
+    */
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
@@ -117,12 +124,16 @@ void GameAppBase::UpdateWindowTitle(const char *title)
 
 bool GameAppBase::SetMouseCursor(const char *filename, int xHot, int yHot)
 {
-    FileReader file(filename);
-    if (file.IsOpen())
+    SysFile textureFile(filename, FileOpen_Read);
+    if (textureFile.IsValid())
     {
         int bpp;
         GLFWimage image;
-        image.pixels = stbi_load_from_memory((const stbi_uc*)file.RawBuffer(), (int)file.Size(), &image.width, &image.height, &bpp, 4);
+
+        const stbi_uc *rawTextureBuffer = new stbi_uc[textureFile.GetLength()];
+        textureFile.Read((uint8_t *)rawTextureBuffer, textureFile.GetLength());
+        image.pixels = stbi_load_from_memory(rawTextureBuffer, (int)textureFile.GetLength(), &image.width, &image.height, &bpp, 4);
+        delete[] rawTextureBuffer;
 
         GLFWcursor *cursor = glfwCreateCursor(&image, xHot, yHot);
         glfwSetCursor((GLFWwindow*)glfwWindow, cursor);
@@ -139,35 +150,38 @@ void GameAppBase::MainLoop()
 
     while (!glfwWindowShouldClose(window))
     {
-        const double timerStart = HiPerformanceTimer::GetSeconds();
-        
+        SCOOPED_PROFILE_EVENT("Frame");
         {
-            SCOOPED_PROFILE_EVENT("Application_Render");
-            Render();
-        }
-        
-        {
-            SCOOPED_PROFILE_EVENT("SwapBuffers");
-            glfwSwapBuffers(window);
-        }
+            const double timerStart = HiPerformanceTimer::GetSeconds();
 
-        {
-            SCOOPED_PROFILE_EVENT("PollEvents");
-            glfwPollEvents();
-
-            // process key bindings
-            for (auto keyBinding : callbackData.keyBinds)
             {
-                if (callbackData.keyState[keyBinding.first])
+                SCOOPED_PROFILE_EVENT("Application_Render");
+                Render();
+            }
+
+            {
+                SCOOPED_PROFILE_EVENT("SwapBuffers");
+                glfwSwapBuffers(window);
+            }
+
+            {
+                SCOOPED_PROFILE_EVENT("PollEvents");
+                glfwPollEvents();
+
+                // process key bindings
+                for (auto keyBinding : callbackData.keyBinds)
                 {
-                    keyBinding.second();
+                    if (callbackData.keyState[keyBinding.first])
+                    {
+                        keyBinding.second();
+                    }
                 }
             }
-        }
 
-        const double timerEnd = HiPerformanceTimer::GetSeconds();
-        frameTimer = timerEnd - timerStart;
-        timer += frameTimer;
+            const double timerEnd = HiPerformanceTimer::GetSeconds();
+            frameTimer = timerEnd - timerStart;
+            timer += frameTimer;
+        }
     }
 }
 
@@ -222,7 +236,10 @@ int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width,
     renderer::globalTextureCache->Destroy();
     application->Shutdown();
     glfwTerminate();
-    DEBUG_LOG_TEXT("%s", globalEventProfiler->CreateInfoMessage().c_str());
+    if (returnValue != 1)
+    {
+        DEBUG_LOG_TEXT("%s", globalEventProfiler->CreateInfoMessage().c_str());
+    }
     SaveDebugLogToFile("debuglog.txt");
     return returnValue;
 }

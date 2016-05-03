@@ -30,6 +30,6 @@ void main()
     light.direction = vec3(-1.0, -1.0, -1.0);
     light.ambientIntensity = 0.2;
 
-    fragColor = texture(tex0, In.texCoord0)  * CalcDirectionLight(light);
+    fragColor = texture(tex0, In.texCoord0) * CalcDirectionLight(light);
 	//fragColor = vec4(1, 1, 0, 0);
 }

@@ -20,7 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Base\Debug.cpp" />
-    <ClCompile Include="src\Base\FileUtils.cpp" />
+    <ClCompile Include="src\Base\File.cpp" />
     <ClCompile Include="src\Base\Profiler.cpp" />
     <ClCompile Include="src\Base\SysInfo.cpp" />
     <ClCompile Include="src\Base\Timer.cpp" />
@@ -34,7 +34,7 @@
     </ClCompile>
     <ClCompile Include="src\Renderer\Model.cpp" />
     <ClCompile Include="src\Renderer\Model_obj.cpp" />
-    <ClCompile Include="src\Renderer\PipelineState.cpp" />
+    <ClCompile Include="src\Renderer\RenderDevice.cpp" />
     <ClCompile Include="src\renderer\RenderDeviceOpenGL.cpp" />
     <ClCompile Include="src\Renderer\Texture.cpp" />
   </ItemGroup>
@@ -43,18 +43,16 @@
     <ClInclude Include="src\Base\Container\LinkedList.h" />
     <ClInclude Include="src\Base\Container\TempArray.h" />
     <ClInclude Include="src\Base\Debug.h" />
-    <ClInclude Include="src\Base\FileUtils.h" />
+    <ClInclude Include="src\Base\File.h" />
     <ClInclude Include="src\Base\Macros.h" />
     <ClInclude Include="src\Base\MurmurHash.h" />
     <ClInclude Include="src\Base\Profiler.h" />
-    <ClInclude Include="src\Base\StringUtils.h" />
     <ClInclude Include="src\Base\SysInfo.h" />
     <ClInclude Include="src\Base\Timer.h" />
     <ClInclude Include="src\Game\Camera.h" />
     <ClInclude Include="src\Game\GameApp.h" />
     <ClInclude Include="src\Renderer\Model.h" />
     <ClInclude Include="src\Renderer\Model_obj.h" />
-    <ClInclude Include="src\Renderer\PipelineState.h" />
     <ClInclude Include="src\renderer\RenderDevice.h" />
     <ClInclude Include="src\Renderer\RenderDeviceOpenGL.h" />
     <ClInclude Include="src\renderer\stb_image.h" />
@@ -153,7 +151,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>D:\Projects\CybEngine\src;D:\Projects\CybEngine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>GLEW_STATIC;GLM_FORCE_CXX11;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;GLEW_STATIC;GLM_FORCE_CXX11;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
@@ -179,9 +177,9 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FloatingPointModel>Fast</FloatingPointModel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
@@ -191,7 +189,7 @@
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>D:\Projects\CybEngine\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>

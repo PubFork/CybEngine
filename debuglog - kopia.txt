@@ -1,0 +1,41 @@
+CPU:       Intel(R) Core(TM) i7-3610QM CPU @ 2.30GHz
+GPU(0): NVIDIA GeForce GTX 670M
+Using OpenGL version 4.5.0 NVIDIA 359.06
+Shader language 4.50 NVIDIA
+GLEW 1.13.0
+Total / Available GPU memory: 3145728Kb / 2794016Kb
+Max texture units: 32
+Max texture anisotropy: 16
+Compiling vertex shader stage from sourcefile assets/shaders/standard.vert
+Compiling fragment shader stage from sourcefile assets/shaders/standard.frag
+Compiling vertex shader stage from sourcefile assets/shaders/standard.vert
+Compiling fragment shader stage from sourcefile assets/shaders/standard.frag
+Compiling vertex shader stage from sourcefile assets/shaders/standard.vert
+Compiling fragment shader stage from sourcefile assets/shaders/standard.frag
+Linking shaders failed: Vertex info
+-----------
+(0) : error C5145: must write to gl_Position
+
+Loading assets/Street environment_V01.obj...
+Loading assets/Street environment_V01.mtl...
+Loading image from file assets/building03_c.tga [hash 0xa4f410c3]...
+Loading image from file assets/Building_V02_C.png [hash 0xb0f3af22]...
+Loading image from file assets/building_016_c.tga [hash 0x29f3e08c]...
+Loading image from file assets/building_025_c.tga [hash 0xc03a4bf]...
+Loading image from file assets/building 01_c.tga [hash 0x160ce2fb]...
+Loading image from file assets/building 06_ c.tga [hash 0x8c65db50]...
+Loading image from file assets/building05 _c.tga [hash 0x65acef90]...
+Loading image from file assets/Building_V01_C.png [hash 0xfb714ead]...
+[driver] OpenGL Performence 0x20092 Medium: Program/shader state performance warning: Vertex shader in program 1 is being recompiled based on GL state.
+----------------------------------------------------------------------------------
+Init: TotalRuntime 10.755s, AverageRuntime 10.755s, Count 1
+    Engine_Init: TotalRuntime 0.450s, AverageRuntime 0.450s, Count 1, 4.18% of parent runtime
+    Application_Init: TotalRuntime 10.305s, AverageRuntime 10.305s, Count 1, 95.82% of parent runtime
+MainLoop: TotalRuntime 9.886s, AverageRuntime 9.886s, Count 1
+    Application_Render: TotalRuntime 0.340s, AverageRuntime 0.579ms, Count 587, 3.44% of parent runtime
+        Update: TotalRuntime 54.980ms, AverageRuntime 93.662us, Count 587, 16.18% of parent runtime
+        Clear: TotalRuntime 29.419ms, AverageRuntime 50.118us, Count 587, 8.66% of parent runtime
+        Draw: TotalRuntime 0.220s, AverageRuntime 0.375ms, Count 587, 64.69% of parent runtime
+    SwapBuffers: TotalRuntime 9.316s, AverageRuntime 15.871ms, Count 587, 94.24% of parent runtime
+    PollEvents: TotalRuntime 0.173s, AverageRuntime 0.295ms, Count 587, 1.75% of parent runtime
+----------------------------------------------------------------------------------

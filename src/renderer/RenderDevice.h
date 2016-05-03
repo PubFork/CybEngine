@@ -1,35 +1,58 @@
 #pragma once
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/mat4x4.hpp>
-#include "Base/Macros.h"
-
-#include "PipelineState.h"
-
 namespace renderer
 {
 
 class IRenderDevice;
 
-class IGPUResouce
+enum BufferUsage
 {
-public:
-    virtual ~IGPUResouce() {}
+    Buffer_Vertex,
+    Buffer_Index,
+    Buffer_TypeMask = 0xff,
+    Buffer_ReadOnly
 };
 
-//==============================
-// Buffer interface
-//==============================
+enum VertexElementUsage
+{
+    VertexElementUsage_Position,
+    VertexElementUsage_Normal,
+    VertexElementUsage_TexCoord0,
+    VertexElementUsage_TexCoord1,
+    VertexElementUsage_TexCoord2,
+    VertexElementUsage_TexCoord3,
+    VertexElementUsage_Color,
+    VertexElementUsage_Count
+};
 
-class IVertexBuffer : public IGPUResouce {};
-class IIndexBuffer : public IGPUResouce {};
+enum VertexElementFormat
+{
+    VertexElementFormat_Float1,
+    VertexElementFormat_Float2,
+    VertexElementFormat_Float3,
+    VertexElementFormat_Float4,
+    VertexElementFormat_UByte4,
+    VertexElementFormat_UByte4N,
+    VertexElementFormat_Short2,
+    VertexElementFormat_Short4,
+    VertexElementFormat_Count
+};
 
-//==============================
-// Sampler interface
-//==============================
+enum RasterizerCullMode
+{
+    CullMode_None,
+    CullMode_CCW,
+    CullMode_CW
+};
 
-enum ESamplerFilter
+enum RasterizerFillMode
+{
+    FillMode_Point,
+    FillMode_Wireframe,
+    FillMode_Solid
+};
+
+enum SamplerFilter
 {
     SamplerFilter_Point,
     SamplerFilter_Bilinear,
@@ -37,19 +60,130 @@ enum ESamplerFilter
     SamplerFilter_Anisotropic
 };
 
-enum ESamplerWrapMode
+enum SamplerWrapMode
 {
     SamplerWrap_Repeat,
     SamplerWrap_RepeatMirror,
     SamplerWrap_Clamp
 };
 
+enum PixelFormat
+{
+    PixelFormat_Unknown,
+    PixelFormat_R8G8B8A8,
+    PixelFormat_R8,
+    PixelFormat_R32G32B32A32F,
+    PixelFormat_Depth24,
+    PixelFormat_Count
+};
+
+enum ClearFlags
+{
+    Clear_None = 0x00,
+    Clear_Color = 0x01,
+    Clear_Depth = 0x02,
+    Clear_Stencil = 0x04,
+    Clear_All = Clear_Color | Clear_Depth | Clear_Stencil
+};
+
+class IGPUResource
+{
+public:
+    virtual ~IGPUResource() = default;
+};
+
+//
+//  Buffer Interface
+//
+class IBuffer : public IGPUResource
+{
+public:
+    virtual ~IBuffer() = default;
+    virtual void *Map() = 0;
+    virtual void Unmap() = 0;
+};
+
+//
+// Vertex Element
+//
+// Usage example:
+//  struct Vertex
+//  {
+//      glm::vec3 pos;
+//      glm::vec3 normal;
+//      glm::vec2 uv;
+//  };
+//
+//  VertexElementList elements = {};
+//  const size_t stride = sizeof(Vertex);
+//  elements.emplace_back(VertexElementUsage_Position,  VertexElementFormat_Float3, offsetof(Vertex, pos),    stride);
+//  elements.emplace_back(VertexElementUsage_Normal,    VertexElementFormat_Float3, offsetof(Vertex, normal), stride);
+//  elements.emplace_back(VertexElementUsage_TexCoord0, VertexElementFormat_Float2, offsetof(Vertex, uv),     stride);
+//
+struct VertexElement
+{
+    VertexElement() = default;
+    VertexElement(VertexElementUsage inUsage,
+                  VertexElementFormat inFormat,
+                  size_t inAlignedOffset,
+                  size_t inStride) :
+        usage(inUsage),
+        format(inFormat),
+        alignedOffset(inAlignedOffset),
+        stride(inStride)
+    {
+    }
+
+    bool operator==(const VertexElement &element) const;
+
+    VertexElementUsage usage;
+    VertexElementFormat format;
+    size_t alignedOffset;
+    size_t stride;
+};
+
+typedef std::vector<VertexElement> VertexElementList;
+
+class IVertexDeclaration : public IGPUResource
+{
+public:
+    virtual ~IVertexDeclaration() = default;
+};
+
+//
+// Shader stuff (WIP)
+//
+struct ShaderBytecode
+{
+    const char *source;
+    size_t length;
+};
+
+class IShaderProgram : public IGPUResource
+{
+public:
+    ~IShaderProgram() = default;
+
+    virtual int32_t GetParameterLocation(const char *name) = 0;
+    virtual void SetFloatArray(int32_t location, size_t num, const float *values) = 0;
+
+    // helper functions that uses SetFloatArray, implemented genericly
+    virtual void SetFloat(int32_t location, const float value);
+    virtual void SetVec3(int32_t location, const float *values);
+    virtual void SetMat4(int32_t location, const float *values);
+};
+
+std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *FSFilename);
+
+//
+// RenderDevice SamplerState Interface
+//
 struct SamplerStateInitializer
 {
-    SamplerStateInitializer() {}
-    SamplerStateInitializer(ESamplerFilter inFilter,
-                            ESamplerWrapMode inWrapU = SamplerWrap_Repeat,
-                            ESamplerWrapMode inWrapV = SamplerWrap_Repeat,
+    SamplerStateInitializer() = default;
+    SamplerStateInitializer(SamplerFilter inFilter,
+                            SamplerWrapMode inWrapU = SamplerWrap_Repeat,
+                            SamplerWrapMode inWrapV = SamplerWrap_Repeat,
                             uint32_t inMaxAnisotropy = 0,
                             int32_t inMipBias = 0,
                             uint32_t inMinMipLevel = 0,
@@ -64,59 +198,44 @@ struct SamplerStateInitializer
     {
     }
 
-    bool operator==(const SamplerStateInitializer &initializer) const
-    {
-        return memcmp(this, &initializer, sizeof(initializer)) == 0;
-    }
+    bool operator==(const SamplerStateInitializer &initializer) const;
 
-    ESamplerFilter filter;
-    ESamplerWrapMode wrapU;
-    ESamplerWrapMode wrapV;
+    SamplerFilter filter;
+    SamplerWrapMode wrapU;
+    SamplerWrapMode wrapV;
     int32_t mipBias;
     uint32_t minMipLevel;
     uint32_t maxMipLevel;
     uint32_t maxAnisotropy;
 };
 
-class ISamplerState : public IGPUResouce {};
+class ISamplerState : public IGPUResource {};
 
-//==============================
-// Texture interface
-//==============================
-
-enum EPixelFormat
-{
-    PixelFormat_Unknown,
-    PixelFormat_R8G8B8A8,
-    PixelFormat_R8,
-    PixelFormat_R32G32B32A32F,
-    PixelFormat_Depth24,
-    PixelFormat_Count
-};
-
-class ITexture : public IGPUResouce
+//
+// Render Device Texture Interface
+//
+class ITexture : public IGPUResource
 {
 public:
-    ITexture(uint32_t inNumMipMaps, EPixelFormat inFormat) :
+    ITexture(uint32_t inNumMipMaps, PixelFormat inFormat) :
         numMipMaps(inNumMipMaps),
         format(inFormat)
     {
     }
 
-    virtual ~ITexture() {}
-
+    virtual ~ITexture() = default;
     uint32_t GetNumMipMaps() const { return numMipMaps; }
-    EPixelFormat GetFormat() const { return format; }
+    PixelFormat GetFormat() const { return format; }
 
 private:
     uint32_t numMipMaps;
-    EPixelFormat format;
+    PixelFormat format;
 };
 
 class ITexture2D : public ITexture
 {
 public:
-    ITexture2D(uint32_t inWidth, uint32_t inHeight, uint32_t inNumMipMaps, EPixelFormat inFormat) :
+    ITexture2D(uint32_t inWidth, uint32_t inHeight, uint32_t inNumMipMaps, PixelFormat inFormat) :
         ITexture(inNumMipMaps, inFormat),
         width(inWidth),
         height(inHeight)
@@ -131,32 +250,44 @@ private:
     uint32_t height;
 };
 
-//==============================
-// Pipeline state interface
-//==============================
-
-struct VertexStandard
+struct RasterizerState
 {
-    float x, y, z;
-    float nx, ny, nz;
-    float u0, v0;
-};
+    RasterizerState() :
+        cullMode(CullMode_CW),
+        fillMode(FillMode_Solid),
+        lineWidth(1.0f),
+        pointSize(1.0f)
+    {
+    }
 
-enum ClearFlags
-{
-    Clear_None = 0x00,
-    Clear_Color = 0x01,
-    Clear_Depth = 0x02,
-    Clear_Stencil = 0x04,
-    Clear_All = Clear_Color | Clear_Depth | Clear_Stencil
+    RasterizerState(RasterizerCullMode inCullMode,
+                    RasterizerFillMode inFillMode,
+                    float inPointSize = 1.0f,
+                    float inLineWidth = 1.0f) :
+        cullMode(inCullMode),
+        fillMode(inFillMode),
+        pointSize(inPointSize),
+        lineWidth(inLineWidth)
+    {
+    }
+
+    RasterizerCullMode cullMode;
+    RasterizerFillMode fillMode;
+    float pointSize;
+    float lineWidth;
 };
 
 struct SurfaceGeometry
 {
-    SurfaceGeometry() : indexCount(0) {}
+    SurfaceGeometry() : 
+        indexCount(0) 
+    {
+    }
+
     uint32_t indexCount;
-    std::shared_ptr<IVertexBuffer> VBO;
-    std::shared_ptr<IIndexBuffer> IBO;
+    std::shared_ptr<IVertexDeclaration> vertexDeclaration;
+    std::shared_ptr<IBuffer> VBO;
+    std::shared_ptr<IBuffer> IBO;
 };
 
 struct SurfaceMaterial
@@ -167,33 +298,28 @@ struct SurfaceMaterial
 
 struct Surface
 {
-    Surface() : name("<unknown>") {}
+    Surface() : 
+        name("<unknown>") 
+    {
+    }
+
     std::string name;
     SurfaceGeometry geometry;
     SurfaceMaterial material;
-    PipelineState *pipelineState;
+    RasterizerState rasterState;
 };
 
-enum BuiltinPipelineStateEnum
+class ICamera
 {
-    BuiltintPipelineState_Default,
-    BuiltintPipelineState_Skydome,
-    BuiltintPipelineState_Particle,        // UNIMPLEMENTED
-    BuiltintPipelineState_Count
+public:
+    virtual ~ICamera() = default;
+    virtual const float *GetViewMatrix() const = 0;
+    virtual const float *GetProjMatrix() const = 0;
 };
 
-#define MAX_TEXTURE_UNITS 8
-struct DrawCallBase
-{
-    uint32_t primitiveType;
-    uint32_t numPrimitives;
-    std::shared_ptr<IVertexBuffer> VBO;
-    uint32_t numVertices;
-
-    std::array<std::shared_ptr<ITexture2D>, MAX_TEXTURE_UNITS> textures;
-    uint32_t numTextures;
-};
-
+//
+//  RenderDevice Interface
+//
 class IRenderDevice
 {
 public:
@@ -203,23 +329,34 @@ public:
     virtual void Shutdown() = 0;
     virtual bool IsInitialized() const = 0;
 
-    virtual void SetProjection(const glm::mat4 &proj) = 0;
-
-    virtual PipelineState *BuiltintPipelineState(uint32_t pipelineStateEnum) = 0;
-
-    virtual std::shared_ptr<IVertexBuffer> CreateVertexBuffer(const void *data, size_t size) = 0;
-    virtual std::shared_ptr<IIndexBuffer> CreateIndexBuffer(const void *data, size_t size) = 0;
-
-    virtual std::shared_ptr<ITexture2D> CreateTexture2D(int32_t width, int32_t height, EPixelFormat format, int32_t numMipMaps, const void *data) = 0;
+    virtual std::shared_ptr<IBuffer> CreateBuffer(const void *data, size_t size, int usageFlags) = 0;
+    virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements) = 0;
+    virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &FS) = 0;
+    virtual void SetShaderProgram(const std::shared_ptr<IShaderProgram> program) = 0;
+    virtual std::shared_ptr<ITexture2D> CreateTexture2D(int32_t width, int32_t height, PixelFormat format, int32_t numMipMaps, const void *data) = 0;
     virtual void SetTexture(uint32_t textureIndex, const std::shared_ptr<ITexture> texture) = 0;
-
     virtual std::shared_ptr<ISamplerState> CreateSamplerState(const SamplerStateInitializer &initializer) = 0;
     virtual void SetSamplerState(uint32_t textureIndex, const std::shared_ptr<ISamplerState> state) = 0;
 
     virtual void Clear(uint32_t targets, const glm::vec4 color, float depth = 1.0f) = 0;
-    virtual void Render(const Surface *surf, const glm::mat4 &transform) = 0;
+    virtual void Render(const Surface *surf, const ICamera *camera) = 0;
 };
 
 std::shared_ptr<IRenderDevice> CreateRenderDevice();
+
+// Calculate the total number of mip levels used for an 2d texture
+int CalculateNumMipLevels(uint32_t width, uint32_t height);
+
+// SamplerStateInitializer hasher for compatibility with 
+// std::unordered_map<> used by the SamplerState cache.
+struct SamplerStateInitializerHasher
+{
+    size_t operator()(const SamplerStateInitializer &state) const;
+};
+
+struct VertexElementListHasher
+{
+    size_t operator()(const VertexElementList &vertexElements) const;
+};
 
 } // renderer

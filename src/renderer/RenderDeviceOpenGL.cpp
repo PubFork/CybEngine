@@ -1,14 +1,14 @@
-#include "Precompiled.h"
+﻿#include "Precompiled.h"
 #include "RenderDevice.h"
 #include "RenderDeviceOpenGL.h"
 #include "Base/Debug.h"
-#include "Base/MurmurHash.h"
-#include "Base/FileUtils.h"
+#include "Base/Macros.h"
 
 namespace renderer
 {
 
-static const OpenGLTextureFormat pixelFormats[PixelFormat_Count] = {
+static const OpenGLTextureFormatInfo pixelFormats[PixelFormat_Count] = 
+{
 //    internalFormat        format              type                compressed
     { GL_NONE,              GL_NONE,            GL_NONE,            GL_FALSE },     // PixelFormat_Unknown
     { GL_RGBA8,             GL_RGBA,            GL_UNSIGNED_BYTE,   GL_FALSE },     // PixelFormat_R8G8B8A8
@@ -17,19 +17,138 @@ static const OpenGLTextureFormat pixelFormats[PixelFormat_Count] = {
     { GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT,           GL_FALSE },     // PixelFormat_Depth24
 };
 
-size_t SamplerStateInitializerHasher::operator()(const SamplerStateInitializer &state) const
+static const OpenGLVertexElementUsageInfo vertexElementUsageInfo[VertexElementUsage_Count] =
 {
-    return CalculateMurmurHash(&state, sizeof(state));
-}
+//    attribLocation        attribName
+    { 0,                    "Position"  },                                          // VertexElementUsage_Position
+    { 1,                    "Normal"    },                                          // VertexElementUsage_Normal
+    { 2,                    "TexCoord0" },                                          // VertexElementUsage_TexCoord0
+    { 3,                    "TexCoord1" },                                          // VertexElementUsage_TexCoord1
+    { 4,                    "TexCoord2" },                                          // VertexElementUsage_TexCoord2
+    { 5,                    "TexCoord3" },                                          // VertexElementUsage_TexCoord3
+    { 6,                    "Color"     }                                           // VertexElementUsage_Color
+};
 
-//==============================
+static const OpenGLVertexElementFormatInfo vertexElementTypeInfo[VertexElementFormat_Count] =
+{
+//    elementType           numComponents       alignedSíze         normalized
+    { GL_FLOAT,             1,                  4,                  GL_FALSE },     // VertexElementFormat_Float1
+    { GL_FLOAT,             2,                  8,                  GL_FALSE },     // VertexElementFormat_Float2
+    { GL_FLOAT,             3,                  12,                 GL_FALSE },     // VertexElementFormat_Float3
+    { GL_FLOAT,             4,                  16,                 GL_FALSE },     // VertexElementFormat_Float4
+    { GL_UNSIGNED_BYTE,     4,                  4,                  GL_FALSE },     // VertexElementFormat_UByte4
+    { GL_UNSIGNED_BYTE,     4,                  4,                  GL_TRUE  },     // VertexElementFormat_UByte4N
+    { GL_UNSIGNED_SHORT,    2,                  4,                  GL_FALSE },     // VertexElementFormat_Short2
+    { GL_UNSIGNED_SHORT,    4,                  8,                  GL_FALSE },     // VertexElementFormat_Short4
+};
+
+//
 // OpenGL Buffer
-//==============================
-
-template <class BaseType>
-OpenGLBufferBase<BaseType>::~OpenGLBufferBase()
+//
+OpenGLBuffer::~OpenGLBuffer()
 {
     glDeleteBuffers(1, &resource);
+}
+
+void *OpenGLBuffer::Map()
+{
+    assert(usage == GL_DYNAMIC_DRAW);
+    glBindBuffer(target, resource);
+    return glMapBuffer(target, GL_WRITE_ONLY);
+}
+
+void OpenGLBuffer::Unmap()
+{
+    glBindBuffer(target, resource);
+    glUnmapBuffer(target);
+}
+
+//
+// OpenGL shader compiler
+//
+OpenGLShaderCompiler::~OpenGLShaderCompiler()
+{
+    FOR_EACH(compiledShaderStages, [&](auto &shader) { glDeleteShader(shader); });
+}
+
+bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode)
+{
+    GLuint shader = glCreateShader(stage);
+    glShaderSource(shader, 1, (const GLchar **)&bytecode.source, (const GLint *)&bytecode.length);
+    glCompileShader(shader);
+
+    GLint compiled = 0;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+    if (!compiled)
+    {
+        GLchar infoLog[KILOBYTES(1)];
+        glGetShaderInfoLog(shader, sizeof(infoLog), 0, infoLog);
+        DEBUG_LOG_TEXT_COND(infoLog[0], "Compiling shader:\n\n%s\nFailed: %s", bytecode.source, infoLog);
+        return false;
+    }
+
+    compiledShaderStages.push_back(shader);
+    return true;
+}
+
+bool OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
+{
+    GLuint program = glCreateProgram();
+    FOR_EACH(compiledShaderStages, [&](const GLuint &shader) { glAttachShader(program, shader); });
+
+    for (uint32_t i = 0; i < VertexElementUsage_Count; i++)
+    {
+        const OpenGLVertexElementUsageInfo *usageInfo = &vertexElementUsageInfo[i];
+        glBindAttribLocation(program, usageInfo->attribLocation, usageInfo->attribName);
+    }
+
+    glLinkProgram(program);
+    FOR_EACH(compiledShaderStages, [&](const GLuint &shader) { glDetachShader(program, shader); glDeleteShader(shader); });
+    compiledShaderStages.clear();
+
+    GLint linked = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
+    if (!linked)
+    {
+        GLchar infoLog[KILOBYTES(1)];
+        glGetProgramInfoLog(program, sizeof(infoLog), 0, infoLog);
+        DEBUG_LOG_TEXT_COND(infoLog[0], "Linking shaders failed: %s", infoLog);
+        return false;
+    }
+
+    outProgram = program;
+    return true;
+}
+
+//
+// OpenGL Shader Program
+//
+OpenGLShaderProgram::~OpenGLShaderProgram()
+{
+    glDeleteProgram(resource);
+}
+
+int32_t OpenGLShaderProgram::GetParameterLocation(const char *name)
+{
+    return glGetUniformLocation(resource, name);
+}
+
+void OpenGLShaderProgram::SetFloatArray(int32_t location, size_t num, const float *values)
+{
+    glProgramUniform1fv(resource, location, (GLsizei)num, values);
+}
+
+void OpenGLShaderProgram::SetMat4(int32_t location, const float *values)
+{
+    glProgramUniformMatrix4fv(resource, location, 1, GL_FALSE, values);
+}
+
+//
+// OpenGL Sampler State
+//
+OpenGLSamplerState::~OpenGLSamplerState()
+{
+    glDeleteSamplers(1, &resource);
 }
 
 //==============================
@@ -42,62 +161,34 @@ OpenGLTextureBase<BaseType>::~OpenGLTextureBase()
     glDeleteTextures(1, &resource);
 }
 
-int CalculateNumMipLevels(uint32_t width, uint32_t height)
-{
-    int n = 1;
-    while (width > 1 || height > 1)
-    {
-        width >>= 1;
-        height >>= 1;
-        n++;
-    }
-
-    return n;
-}
-
-//=========================================================================================//
-
-static VertexInputElement standardVertexLayout[] =
-{
-    { "position",  1, VertexFormat_Float3, 0 },
-    { "normal",    2, VertexFormat_Float3, 0 },
-    { "texCoord0", 3, VertexFormat_Float2, 0 },
-};
-
-static VertexInputElement skydomeVertexLayout[] =
-{
-    { "position",  1, VertexFormat_Float3, 0 },
-    { "texCoord0", 2, VertexFormat_Float2, 0 },
-};
-
-static const CreatePipelineStateInfo builtintPipelineStatesCreateInfo[BuiltintPipelineState_Count] = 
-{
-    {
-        // Standard
-        "assets/shaders/standard.vert",
-        "assets/shaders/standard.frag",
-        { standardVertexLayout , _countof(standardVertexLayout) },
-        renderer::Raster_DefaultState
-    },
-    {   // Skydome
-        "assets/shaders/standard.vert",
-        "assets/shaders/standard.frag",
-        { skydomeVertexLayout , _countof(skydomeVertexLayout) },
-        renderer::Raster_PrimTriangleStrip | renderer::Raster_CullFront | renderer::Raster_FrontCCW
-    },
-    {
-        "assets/shaders/standard.vert",
-        "assets/shaders/standard.frag",
-        { standardVertexLayout , _countof(standardVertexLayout) },
-        renderer::Raster_DefaultState
-    }
-};
-
 //==============================
 // Render Device
 //==============================
 
-GLint TranslateWrapMode(ESamplerWrapMode mode)
+GLenum TranslateCullMode(RasterizerCullMode mode)
+{
+    switch (mode)
+    {
+    case CullMode_CW: return GL_FRONT;
+    case CullMode_CCW: return GL_BACK;
+    }
+
+    return GL_NONE;
+}
+
+GLenum TranslateFillMode(RasterizerFillMode mode)
+{
+    switch (mode)
+    {
+    case FillMode_Point: return GL_POINT;
+    case FillMode_Wireframe: return GL_LINE;
+    case FillMode_Solid: return GL_FILL;
+    }
+
+    return GL_LINE;
+}
+
+GLint TranslateWrapMode(SamplerWrapMode mode)
 {
     switch (mode)
     {
@@ -136,7 +227,7 @@ void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenu
     DEBUG_LOG_TEXT("[driver] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
 }
 
-void RenderDevice::Init()
+void OpenGLRenderDevice::Init()
 {
     glewExperimental = true;
     const GLenum err = glewInit();
@@ -172,6 +263,8 @@ void RenderDevice::Init()
     // setup default states
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glFrontFace(GL_CCW);
+
    // glEnable(GL_MULTISAMPLE);
 
     // set default filter mode to anisotropic with max anisotropy
@@ -184,18 +277,10 @@ void RenderDevice::Init()
     SetSamplerState(2, samplerState);
     SetSamplerState(3, samplerState);
 
-    // Initialize builtin pipeline states
-    for (uint32_t i = 0; i < BuiltintPipelineState_Count; i++)
-    {
-        PipelineState *pipelineState = &builtintPipelineStates[i];
-        const CreatePipelineStateInfo &createInfo = builtintPipelineStatesCreateInfo[i];
-        pipelineState->Create(createInfo);
-    }
-
     isInititialized = true;
 }
 
-void RenderDevice::Shutdown()
+void OpenGLRenderDevice::Shutdown()
 {
     if (isInititialized)
     {
@@ -204,46 +289,76 @@ void RenderDevice::Shutdown()
     }
 }
 
-void RenderDevice::SetProjection(const glm::mat4 &proj)
+std::shared_ptr<IBuffer> OpenGLRenderDevice::CreateBuffer(const void *data, size_t size, int usageFlags)
 {
-    projection = proj;
-}
+    GLenum target = GL_INVALID_ENUM;
+    switch (usageFlags & Buffer_TypeMask)
+    {
+    case Buffer_Vertex: target = GL_ARRAY_BUFFER; break;
+    case Buffer_Index:  target = GL_ELEMENT_ARRAY_BUFFER; break;
+    }
 
-PipelineState *RenderDevice::BuiltintPipelineState(uint32_t pipelineStateEnum)
-{
-    assert(pipelineStateEnum < BuiltintPipelineState_Count);
-    return &builtintPipelineStates[pipelineStateEnum];
-}
-
-GLint RenderDevice::OpenGLCreateBufferInternal(GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage)
-{
+    const GLenum usage = (usageFlags & Buffer_ReadOnly) ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
+    
     GLuint resource = 0;
     glCreateBuffers(1, &resource);
     glBindBuffer(target, resource);
     glBufferData(target, size, data, usage);
-    return resource;
+
+    return std::make_shared<OpenGLBuffer>(resource, target, usage, size);
 }
 
-std::shared_ptr<IVertexBuffer> RenderDevice::CreateVertexBuffer(const void *data, size_t size)
+std::shared_ptr<IVertexDeclaration> OpenGLRenderDevice::CreateVertexDelclaration(const VertexElementList &vertexElements)
 {
-    const GLenum usage = GL_STATIC_DRAW;       // NOTE: only support static draw usage for now....
-    const GLuint resource = OpenGLCreateBufferInternal(GL_ARRAY_BUFFER, size, data, usage);
-    return std::make_shared<OpenGLVertexBuffer>(resource, GL_ARRAY_BUFFER, usage, size);
+    const auto searchResult = vertexDeclarationCache.find(vertexElements);
+    if (searchResult != vertexDeclarationCache.end())
+    {
+        return searchResult->second;
+    }
+
+    OpenGLVertexElementList openGLVertexElements;
+    for (const auto &element : vertexElements)
+    {
+        const OpenGLVertexElementUsageInfo *useInfo = &vertexElementUsageInfo[element.usage];
+        const OpenGLVertexElementFormatInfo *typeInfo = &vertexElementTypeInfo[element.format];
+        openGLVertexElements.emplace_back(
+            useInfo->attribLocation,
+            typeInfo->numComponents,
+            typeInfo->elementType,
+            typeInfo->normalized ? GL_TRUE : GL_FALSE,
+            static_cast<GLsizei>(element.stride),
+            static_cast<GLuint>(element.alignedOffset));
+    }
+
+    auto vertexDeclaration =  std::make_shared<OpenGLVertexDeclaration>(openGLVertexElements);
+    vertexDeclarationCache[vertexElements] = vertexDeclaration;
+    return vertexDeclaration;
 }
 
-std::shared_ptr<IIndexBuffer> RenderDevice::CreateIndexBuffer(const void *data, size_t size)
+std::shared_ptr<IShaderProgram> OpenGLRenderDevice::CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &FS)
 {
-    const GLenum usage = GL_STATIC_DRAW;       // NOTE: only support static draw usage for now....
-    const GLuint resource = OpenGLCreateBufferInternal(GL_ELEMENT_ARRAY_BUFFER, size, data, usage);
-    return std::make_shared<OpenGLIndexBuffer>(resource, GL_ELEMENT_ARRAY_BUFFER, usage, size);
+    OpenGLShaderCompiler compiler;
+    compiler.CompileShaderStage(GL_VERTEX_SHADER, VS);
+    compiler.CompileShaderStage(GL_FRAGMENT_SHADER, FS);
+
+    GLuint programId = 0;
+    compiler.LinkAndClearShaderStages(programId);
+
+    return std::make_shared<OpenGLShaderProgram>(programId);
 }
 
-std::shared_ptr<ITexture2D> RenderDevice::CreateTexture2D(int32_t width, int32_t height, EPixelFormat format, int32_t numMipMaps, const void *data)
+void OpenGLRenderDevice::SetShaderProgram(const std::shared_ptr<IShaderProgram> program)
 {
-    const OpenGLTextureFormat *GLFormat = &pixelFormats[format];
+    currentShaderProgram = std::static_pointer_cast<OpenGLShaderProgram>(program);
+    glUseProgram(currentShaderProgram->resource);
+}
 
-    GLuint textureId = 0;
+std::shared_ptr<ITexture2D> OpenGLRenderDevice::CreateTexture2D(int32_t width, int32_t height, PixelFormat format, int32_t numMipMaps, const void *data)
+{
+    const OpenGLTextureFormatInfo *formatInfo = &pixelFormats[format];
     const GLenum target = GL_TEXTURE_2D;
+    GLuint textureId = 0;
+    
     glCreateTextures(target, 1, &textureId);
     glBindTexture(target, textureId);
 
@@ -252,7 +367,7 @@ std::shared_ptr<ITexture2D> RenderDevice::CreateTexture2D(int32_t width, int32_t
     glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(target, GL_TEXTURE_MIN_FILTER, numMipMaps > 1 ? GL_NEAREST_MIPMAP_NEAREST : GL_NEAREST);
 
-    glTexImage2D(target, 0, GLFormat->internalFormat, width, height, 0, GLFormat->format, GLFormat->type, data);
+    glTexImage2D(target, 0, formatInfo->internalFormat, width, height, 0, formatInfo->format, formatInfo->type, data);
     glGenerateMipmap(target);
 
     auto texture = std::make_shared<OpenGLTexture2D>(
@@ -265,7 +380,7 @@ std::shared_ptr<ITexture2D> RenderDevice::CreateTexture2D(int32_t width, int32_t
     return texture;
 }
 
-void RenderDevice::SetTexture(uint32_t textureIndex, const std::shared_ptr<ITexture> texture)
+void OpenGLRenderDevice::SetTexture(uint32_t textureIndex, const std::shared_ptr<ITexture> texture)
 {
     glActiveTexture(GL_TEXTURE0 + textureIndex);
     if (texture != nullptr)
@@ -281,9 +396,9 @@ void RenderDevice::SetTexture(uint32_t textureIndex, const std::shared_ptr<IText
     }
 }
 
-std::shared_ptr<ISamplerState> RenderDevice::CreateSamplerState(const SamplerStateInitializer &initializer)
+std::shared_ptr<ISamplerState> OpenGLRenderDevice::CreateSamplerState(const SamplerStateInitializer &initializer)
 {
-    auto searchResult = samplerStateCache.find(initializer);
+    const auto searchResult = samplerStateCache.find(initializer);
     if (searchResult != samplerStateCache.end())
     {
         return searchResult->second;
@@ -291,43 +406,44 @@ std::shared_ptr<ISamplerState> RenderDevice::CreateSamplerState(const SamplerSta
 
     auto samplerState = std::make_shared<OpenGLSamplerState>();
 
-    samplerState->data.wrapS = TranslateWrapMode(initializer.wrapU);
-    samplerState->data.wrapT = TranslateWrapMode(initializer.wrapV);
-    samplerState->data.LODBias = initializer.mipBias;
+    samplerState->wrapS = TranslateWrapMode(initializer.wrapU);
+    samplerState->wrapT = TranslateWrapMode(initializer.wrapV);
+    samplerState->LODBias = initializer.mipBias;
 
     switch (initializer.filter)
     {
     case SamplerFilter_Anisotropic:
-        samplerState->data.magFilter = GL_LINEAR;
-        samplerState->data.minFilter = GL_LINEAR_MIPMAP_LINEAR;
-        samplerState->data.maxAnisotropy = Clamp(initializer.maxAnisotropy, 1U, imageFilterMaxAnisotropy);
+        samplerState->magFilter = GL_LINEAR;
+        samplerState->minFilter = GL_LINEAR_MIPMAP_LINEAR;
+        samplerState->maxAnisotropy = Clamp(initializer.maxAnisotropy, 1U, imageFilterMaxAnisotropy);
         break;
     case SamplerFilter_Trilinear:
-        samplerState->data.magFilter = GL_LINEAR;
-        samplerState->data.minFilter = GL_LINEAR_MIPMAP_LINEAR;
+        samplerState->magFilter = GL_LINEAR;
+        samplerState->minFilter = GL_LINEAR_MIPMAP_LINEAR;
         break;
     case SamplerFilter_Bilinear:
-        samplerState->data.magFilter = GL_LINEAR;
-        samplerState->data.minFilter = GL_LINEAR_MIPMAP_NEAREST;
+        samplerState->magFilter = GL_LINEAR;
+        samplerState->minFilter = GL_LINEAR_MIPMAP_NEAREST;
         break;
     case SamplerFilter_Point:
-        samplerState->data.magFilter = GL_NEAREST;
-        samplerState->data.minFilter = GL_NEAREST_MIPMAP_NEAREST;
+        samplerState->magFilter = GL_NEAREST;
+        samplerState->minFilter = GL_NEAREST_MIPMAP_NEAREST;
+        break;
     }
 
     glGenSamplers(1, &samplerState->resource);
-    glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_S, samplerState->data.wrapS);
-    glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_T, samplerState->data.wrapT);
-    glSamplerParameteri(samplerState->resource, GL_TEXTURE_LOD_BIAS, samplerState->data.LODBias);
-    glSamplerParameteri(samplerState->resource, GL_TEXTURE_MAG_FILTER, samplerState->data.magFilter);
-    glSamplerParameteri(samplerState->resource, GL_TEXTURE_MIN_FILTER, samplerState->data.minFilter);
-    glSamplerParameteri(samplerState->resource, GL_TEXTURE_MAX_ANISOTROPY_EXT, samplerState->data.maxAnisotropy);
+    glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_S, samplerState->wrapS);
+    glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_T, samplerState->wrapT);
+    glSamplerParameteri(samplerState->resource, GL_TEXTURE_LOD_BIAS, samplerState->LODBias);
+    glSamplerParameteri(samplerState->resource, GL_TEXTURE_MAG_FILTER, samplerState->magFilter);
+    glSamplerParameteri(samplerState->resource, GL_TEXTURE_MIN_FILTER, samplerState->minFilter);
+    glSamplerParameteri(samplerState->resource, GL_TEXTURE_MAX_ANISOTROPY_EXT, samplerState->maxAnisotropy);
 
     samplerStateCache[initializer] = samplerState;
     return samplerState;
 }
 
-void RenderDevice::SetSamplerState(uint32_t textureIndex, const std::shared_ptr<ISamplerState> state)
+void OpenGLRenderDevice::SetSamplerState(uint32_t textureIndex, const std::shared_ptr<ISamplerState> state)
 {
     assert(state);
     const std::shared_ptr<OpenGLSamplerState> samplerState = std::static_pointer_cast<OpenGLSamplerState>(state);
@@ -335,7 +451,7 @@ void RenderDevice::SetSamplerState(uint32_t textureIndex, const std::shared_ptr<
     glBindSampler(textureIndex, samplerState->resource);
 }
 
-void RenderDevice::Clear(uint32_t targets, const glm::vec4 color, float depth)
+void OpenGLRenderDevice::Clear(uint32_t targets, const glm::vec4 color, float depth)
 {
     const GLbitfield mask = (targets & Clear_Color ? GL_COLOR_BUFFER_BIT : 0) |
         (targets & Clear_Depth ? GL_DEPTH_BUFFER_BIT : 0) |
@@ -346,38 +462,74 @@ void RenderDevice::Clear(uint32_t targets, const glm::vec4 color, float depth)
     glClear(mask);
 }
 
-void RenderDevice::Render(const Surface *surf, const glm::mat4 &transform)
+static void SetRasterizerState(const RasterizerState &state)
+{
+    const RasterizerCullMode cullMode = state.cullMode;
+    if (cullMode == CullMode_None)
+    {
+        glDisable(GL_CULL_FACE);
+    }
+    else
+    {
+        glEnable(GL_CULL_FACE);
+        switch (cullMode)
+        {
+        case CullMode_CCW: glCullFace(GL_FRONT); break;
+        case CullMode_CW: glCullFace(GL_BACK); break;
+        }
+    }
+
+    switch (state.fillMode)
+    {
+    case FillMode_Point: glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); glPointSize(state.pointSize); break;
+    case FillMode_Wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glLineWidth(state.lineWidth); break;
+    case FillMode_Solid: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
+    }
+}
+
+void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
 {
     assert(surf);
+    assert(camera);
 
     glBindVertexArray(vaoId);
 
-    // setup material & pipeline state
-    const SurfaceMaterial *material = &surf->material;
-    PipelineState *pipelineState = surf->pipelineState;
-    pipelineState->Bind();
-    pipelineState->SetParamMat4(renderer::Param_Proj, glm::value_ptr(projection));
-    pipelineState->SetParamMat4(renderer::Param_ModelView, glm::value_ptr(transform));
+    // setup matrices
+    // TODO: add support for model matrices (this is kinda hacked together atm)
+    int32_t projMatrixLoc = currentShaderProgram->GetParameterLocation("ProjMatrix");
+    int32_t viewMatrixLoc = currentShaderProgram->GetParameterLocation("ModelViewMatrix");
+    currentShaderProgram->SetMat4(projMatrixLoc, camera->GetProjMatrix());
+    currentShaderProgram->SetMat4(viewMatrixLoc, camera->GetViewMatrix());
 
+    SetRasterizerState(surf->rasterState);
+
+    const SurfaceMaterial *material = &surf->material;
     if (material->texture[0])
         SetTexture(0, material->texture[0]);    // TODO: Texture state should be manually set by the user!
 
     // setup geometry
     const SurfaceGeometry *geo = &surf->geometry;
-    const std::shared_ptr<OpenGLVertexBuffer> VBO = std::static_pointer_cast<OpenGLVertexBuffer>(geo->VBO);
-    const std::shared_ptr<OpenGLIndexBuffer> IBO = std::static_pointer_cast<OpenGLIndexBuffer>(geo->IBO);
+    const std::shared_ptr<OpenGLVertexDeclaration> vertexDeclaration = std::static_pointer_cast<OpenGLVertexDeclaration>(geo->vertexDeclaration);
+    const std::shared_ptr<OpenGLBuffer> VBO = std::static_pointer_cast<OpenGLBuffer>(geo->VBO);
+    const std::shared_ptr<OpenGLBuffer> IBO = std::static_pointer_cast<OpenGLBuffer>(geo->IBO);
     glBindBuffer(VBO->target, VBO->resource);
     glBindBuffer(IBO->target, IBO->resource);
 
+    for (const auto &element : vertexDeclaration->vertexElements)
+    {
+        glEnableVertexAttribArray(element.attributeLocation);
+        glVertexAttribPointer(element.attributeLocation, element.numComponents, element.type, element.normalized, element.stride, (const GLvoid *)element.offset);
+    }
+
     // draw
-    BindVertexLayout(pipelineState->GetVertexLayout());
-    glDrawElements(pipelineState->GetGLPrimType(), geo->indexCount, GL_UNSIGNED_SHORT, NULL);
-    UnBindVertexLayout(pipelineState->GetVertexLayout());
+    //BindVertexLayout(pipelineState->GetVertexLayout());
+    glDrawElements(GL_TRIANGLES, geo->indexCount, GL_UNSIGNED_SHORT, NULL);
+    //UnBindVertexLayout(pipelineState->GetVertexLayout());
 }
 
 std::shared_ptr<IRenderDevice> CreateRenderDevice()
 {
-    return std::make_shared<RenderDevice>();
+    return std::make_shared<OpenGLRenderDevice>();
 }
 
 } // renderer

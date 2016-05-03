@@ -1,7 +1,6 @@
 // Precompiled.h : include file for standard system include files,
 // or project specific include files that are used frequently, but
 // are changed infrequently
-//
 
 #pragma once
 
@@ -18,6 +17,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <cstddef>
 #include <cstdarg>
 #include <cstdint>
 #include <cinttypes>        // PRIu64 etc...
@@ -32,5 +32,6 @@
 #include <unordered_map>
 #include <chrono>
 #include <memory>
+#include <atomic>
 #include <fstream>
 #include <strstream>

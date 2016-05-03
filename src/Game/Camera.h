@@ -1,17 +1,18 @@
 #pragma once
+#include "Renderer/RenderDevice.h"
 
 //==============================
 // Base Camera
 //==============================
 
-class BaseCamera
+class BaseCamera : public renderer::ICamera
 {
 public:
     void SetViewMatrix(const glm::vec3 &pos, const glm::vec3 &target, const glm::vec3 &up);
     void SetPerspectiveMatrix(float fov, float aspect, float zNear, float zFar);
 
-    const glm::mat4 &GetViewMatrix() const;
-    const glm::mat4 &GetProjMatrix() const;
+    virtual const float *GetViewMatrix() const;
+    virtual const float *GetProjMatrix() const;
 
 private:
     void UpdateProjectionMatrix();

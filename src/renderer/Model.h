@@ -1,5 +1,4 @@
 #pragma once
-
 #include "RenderDevice.h"
 
 namespace renderer
@@ -23,7 +22,7 @@ public:
 
     static std::shared_ptr<Model> LoadOBJ(std::shared_ptr<renderer::IRenderDevice> device, const std::string &filename);
 
-    void Render(std::shared_ptr<renderer::IRenderDevice> device, const glm::mat4 &transform);
+    void Render(std::shared_ptr<renderer::IRenderDevice> device, const ICamera *camera);
 
 private:
     std::string name;

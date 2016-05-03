@@ -1,7 +1,7 @@
 #include "Precompiled.h"
 #include "Debug.h"
 #include "Macros.h"
-#include "FileUtils.h"
+#include "File.h"
 #include <windows.h>
 
 std::ostrstream logStream;
@@ -49,5 +49,6 @@ void DebugLogText(const char *fmt, ...)
 
 void SaveDebugLogToFile(const char *filename)
 {
-    WriteDataToFile(filename, logStream.str(), logStream.pcount());
+    SysFile logFile(filename, FileOpen_WriteTruncate);
+    logFile.Write((uint8_t *)logStream.str(), logStream.pcount());
 }

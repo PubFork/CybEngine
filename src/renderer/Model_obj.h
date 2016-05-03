@@ -1,11 +1,27 @@
 #pragma once
-
 #include "renderer/RenderDevice.h"
 
 namespace renderer
 {
+
 namespace priv
 {
+
+struct OBJVertex
+{
+    OBJVertex(const glm::vec3 &inPosition,
+              const glm::vec3 &inNormal,
+              const glm::vec2 &inUv) :
+        position(inPosition),
+        normal(inNormal),
+        uv(inUv)
+    {
+    }
+
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 uv;
+};
 
 struct ObjIndex
 {
@@ -35,7 +51,7 @@ typedef std::unordered_map<std::string, ObjMaterial> ObjMaterialMap;
 struct ObjSurface
 {
     std::string name;
-    std::vector<renderer::VertexStandard> vertices;
+    std::vector<OBJVertex> vertices;
     std::vector<uint16_t> indices;
     ObjMaterial *material;
 };

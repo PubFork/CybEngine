@@ -29,9 +29,6 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Base\FileUtils.cpp">
-      <Filter>Source Files\Base</Filter>
-    </ClCompile>
     <ClCompile Include="src\Base\Timer.cpp">
       <Filter>Source Files\Base</Filter>
     </ClCompile>
@@ -42,9 +39,6 @@
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Renderer\Model.cpp">
-      <Filter>Source Files\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Renderer\PipelineState.cpp">
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Base\Profiler.cpp">
@@ -68,6 +62,12 @@
     <ClCompile Include="src\Precompiled.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Base\File.cpp">
+      <Filter>Source Files\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RenderDevice.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Base\Container\TempArray.h">
@@ -77,9 +77,6 @@
       <Filter>Source Files\Base\Container</Filter>
     </ClInclude>
     <ClInclude Include="src\Base\Debug.h">
-      <Filter>Source Files\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Base\FileUtils.h">
       <Filter>Source Files\Base</Filter>
     </ClInclude>
     <ClInclude Include="src\Base\Macros.h">
@@ -106,9 +103,6 @@
     <ClInclude Include="src\Game\GameApp.h">
       <Filter>Source Files\Game</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\PipelineState.h">
-      <Filter>Source Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="src\Base\Profiler.h">
       <Filter>Source Files\Base</Filter>
     </ClInclude>
@@ -117,9 +111,6 @@
     </ClInclude>
     <ClInclude Include="src\Game\Camera.h">
       <Filter>Source Files\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Base\StringUtils.h">
-      <Filter>Source Files\Base</Filter>
     </ClInclude>
     <ClInclude Include="src\Base\Container\InsertionOrderedMap.h">
       <Filter>Source Files\Base\Container</Filter>
@@ -132,6 +123,9 @@
     </ClInclude>
     <ClInclude Include="src\Precompiled.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Base\File.h">
+      <Filter>Source Files\Base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

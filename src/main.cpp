@@ -2,6 +2,7 @@
 #include "Base/Timer.h"
 #include "Base/Profiler.h"
 #include "Base/Debug.h"
+#include "Base/File.h"
 #include "Renderer/Model.h"
 #include "Game/GameApp.h"
 #include "Game/Camera.h"
@@ -25,8 +26,10 @@ private:
 
 bool GameApp::Init()
 {
+    auto program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/standard.vert", "assets/shaders/standard.frag");
+    renderDevice->SetShaderProgram(program);
+
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
-    renderDevice->SetProjection(camera.GetProjMatrix()); 
     model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
     //model = renderer::Model::LoadOBJ(renderDevice, "assets/capsule.obj");
 
@@ -44,7 +47,7 @@ bool GameApp::Init()
     BindKey(GLFW_KEY_2, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Bilinear))); });
     BindKey(GLFW_KEY_3, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Trilinear))); });
     BindKey(GLFW_KEY_4, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Anisotropic, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 16))); });
-    BindKey(GLFW_KEY_5, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 0, 4))); });
+    BindKey(GLFW_KEY_5, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 0, 3))); });
 
     return true;
 }
@@ -61,12 +64,12 @@ void GameApp::Render()
 
     {
         SCOOPED_PROFILE_EVENT("Clear");
-        renderDevice->Clear(renderer::Clear_All, glm::vec4(0.125f, 0.188f, 0.250f, 1.0f));
+        renderDevice->Clear(renderer::Clear_Color | renderer::Clear_Depth, glm::vec4(0.125f, 0.188f, 0.250f, 1.0f));
     }
 
     {
         SCOOPED_PROFILE_EVENT("Draw");
-        model->Render(renderDevice, camera.GetViewMatrix());
+        model->Render(renderDevice, &camera);
     }
 }
 

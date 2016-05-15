@@ -2,7 +2,7 @@
 #include "RenderDevice.h"
 #include "RenderDeviceOpenGL.h"
 #include "Base/Debug.h"
-#include "Base/Macros.h"
+#include "Base/Algorithm.h"
 
 namespace renderer
 {
@@ -68,7 +68,7 @@ void OpenGLBuffer::Unmap()
 //
 OpenGLShaderCompiler::~OpenGLShaderCompiler()
 {
-    FOR_EACH(compiledShaderStages, [&](auto &shader) { glDeleteShader(shader); });
+    std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glDeleteShader(shader); });
 }
 
 bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode)
@@ -81,8 +81,8 @@ bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode
     glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
     if (!compiled)
     {
-        GLchar infoLog[KILOBYTES(1)];
-        glGetShaderInfoLog(shader, sizeof(infoLog), 0, infoLog);
+        GLchar infoLog[InfoLogSize];
+        glGetShaderInfoLog(shader, InfoLogSize, 0, infoLog);
         DEBUG_LOG_TEXT_COND(infoLog[0], "Compiling shader:\n\n%s\nFailed: %s", bytecode.source, infoLog);
         return false;
     }
@@ -94,7 +94,7 @@ bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode
 bool OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
 {
     GLuint program = glCreateProgram();
-    FOR_EACH(compiledShaderStages, [&](const GLuint &shader) { glAttachShader(program, shader); });
+    std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glAttachShader(program, shader); });
 
     for (uint32_t i = 0; i < VertexElementUsage_Count; i++)
     {
@@ -103,15 +103,15 @@ bool OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
     }
 
     glLinkProgram(program);
-    FOR_EACH(compiledShaderStages, [&](const GLuint &shader) { glDetachShader(program, shader); glDeleteShader(shader); });
+    std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glDetachShader(program, shader); glDeleteShader(shader); });
     compiledShaderStages.clear();
 
     GLint linked = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &linked);
     if (!linked)
     {
-        GLchar infoLog[KILOBYTES(1)];
-        glGetProgramInfoLog(program, sizeof(infoLog), 0, infoLog);
+        GLchar infoLog[InfoLogSize];
+        glGetProgramInfoLog(program, InfoLogSize, 0, infoLog);
         DEBUG_LOG_TEXT_COND(infoLog[0], "Linking shaders failed: %s", infoLog);
         return false;
     }
@@ -164,6 +164,20 @@ OpenGLTextureBase<BaseType>::~OpenGLTextureBase()
 //==============================
 // Render Device
 //==============================
+
+GLenum TranslatePrimitiveType(PrimitiveType prim)
+{
+    switch (prim)
+    {
+    case Primitive_TriangleList: return GL_TRIANGLES;
+    case Primitive_TriangleStrip: return GL_TRIANGLE_STRIP;
+    case Primitive_LineList: return GL_LINES;
+    case Primitive_PointList: return GL_POINTS;
+    case Primitive_QuadList: return GL_QUADS;
+    }
+
+    return GL_POINT;
+}
 
 GLenum TranslateCullMode(RasterizerCullMode mode)
 {
@@ -229,6 +243,8 @@ void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenu
 
 void OpenGLRenderDevice::Init()
 {
+    assert(isInitialized == false);
+
     glewExperimental = true;
     const GLenum err = glewInit();
     THROW_FATAL_COND(err != GLEW_OK, std::string("glew init: ") + (char *)glewGetErrorString(err));
@@ -277,15 +293,15 @@ void OpenGLRenderDevice::Init()
     SetSamplerState(2, samplerState);
     SetSamplerState(3, samplerState);
 
-    isInititialized = true;
+    isInitialized = true;
 }
 
 void OpenGLRenderDevice::Shutdown()
 {
-    if (isInititialized)
+    if (isInitialized)
     {
         glDeleteVertexArrays(1, &vaoId);
-        isInititialized = false;
+        isInitialized = false;
     }
 }
 
@@ -332,6 +348,7 @@ std::shared_ptr<IVertexDeclaration> OpenGLRenderDevice::CreateVertexDelclaration
 
     auto vertexDeclaration =  std::make_shared<OpenGLVertexDeclaration>(openGLVertexElements);
     vertexDeclarationCache[vertexElements] = vertexDeclaration;
+
     return vertexDeclaration;
 }
 
@@ -491,6 +508,7 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
 {
     assert(surf);
     assert(camera);
+    assert(currentShaderProgram);
 
     glBindVertexArray(vaoId);
 
@@ -523,7 +541,8 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
 
     // draw
     //BindVertexLayout(pipelineState->GetVertexLayout());
-    glDrawElements(GL_TRIANGLES, geo->indexCount, GL_UNSIGNED_SHORT, NULL);
+    const GLuint prim = TranslatePrimitiveType(geo->primitive);
+    glDrawElements(prim, geo->indexCount, GL_UNSIGNED_SHORT, NULL);
     //UnBindVertexLayout(pipelineState->GetVertexLayout());
 }
 

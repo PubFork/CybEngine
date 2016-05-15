@@ -82,6 +82,8 @@ public:
 class OpenGLShaderCompiler
 {
 public:
+    enum { InfoLogSize = 1024 };
+
     ~OpenGLShaderCompiler();
     bool CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode);
     bool LinkAndClearShaderStages(GLuint &outProgram);
@@ -176,12 +178,11 @@ typedef OpenGLTextureBase<OpenGLBaseTexture2D> OpenGLTexture2D;
 class OpenGLRenderDevice : public IRenderDevice
 {
 public:
-    OpenGLRenderDevice() : isInititialized(false) {}
+    OpenGLRenderDevice() : isInitialized(false) {}
     virtual ~OpenGLRenderDevice() { Shutdown(); }
 
     virtual void Init();
     virtual void Shutdown();
-    virtual bool IsInitialized() const { return isInititialized; }
 
     virtual std::shared_ptr<IBuffer> CreateBuffer(const void *data, size_t size, int usageFlags);
     virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements);
@@ -201,7 +202,7 @@ private:
     std::unordered_map<VertexElementList, std::shared_ptr<OpenGLVertexDeclaration>, VertexElementListHasher> vertexDeclarationCache;
     std::unordered_map<SamplerStateInitializer, std::shared_ptr<OpenGLSamplerState>, SamplerStateInitializerHasher> samplerStateCache;
     uint32_t imageFilterMaxAnisotropy;
-    bool isInititialized;
+    bool isInitialized;
 };
 
 } // renderer

@@ -44,7 +44,7 @@
     <ClInclude Include="src\Base\Container\TempArray.h" />
     <ClInclude Include="src\Base\Debug.h" />
     <ClInclude Include="src\Base\File.h" />
-    <ClInclude Include="src\Base\Macros.h" />
+    <ClInclude Include="src\Base\Algorithm.h" />
     <ClInclude Include="src\Base\MurmurHash.h" />
     <ClInclude Include="src\Base\Profiler.h" />
     <ClInclude Include="src\Base\SysInfo.h" />
@@ -60,8 +60,8 @@
     <ClInclude Include="src\Precompiled.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\shaders\standard.frag" />
-    <None Include="assets\shaders\standard.vert" />
+    <None Include="assets\shaders\standard_fs.glsl" />
+    <None Include="assets\shaders\standard_vs.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F7F37146-1DDE-4A6D-93F0-A1F089C157B8}</ProjectGuid>

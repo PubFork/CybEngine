@@ -26,7 +26,8 @@ private:
 
 bool GameApp::Init()
 {
-    auto program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/standard.vert", "assets/shaders/standard.frag");
+    auto program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/standard_vs.glsl", "assets/shaders/standard_fs.glsl");
+    THROW_FATAL_COND(!program, "Fatal: Failed to create shader program!");
     renderDevice->SetShaderProgram(program);
 
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);

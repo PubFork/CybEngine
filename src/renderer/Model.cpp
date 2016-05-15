@@ -1,7 +1,7 @@
 #include "Precompiled.h"
 #include "Model.h"
 #include "Base/Debug.h"
-#include "Base/Macros.h"
+#include "Base/Algorithm.h"
 #include "Texture.h"
 #include "Model_obj.h"
 
@@ -58,9 +58,10 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
         renderer::SurfaceGeometry *convertedGeometry = &convertedSurface.geometry;
 
         // copy geometry
+        convertedGeometry->primitive = Primitive_TriangleList;
         convertedGeometry->vertexDeclaration = vertexDeclaration;
-        convertedGeometry->VBO = device->CreateBuffer(&objSurface.vertices[0], CONTAINER_CONTENT_SIZE(objSurface.vertices), Buffer_Vertex | Buffer_ReadOnly);
-        convertedGeometry->IBO = device->CreateBuffer(&objSurface.indices[0], CONTAINER_CONTENT_SIZE(objSurface.indices), Buffer_Index | Buffer_ReadOnly);
+        convertedGeometry->VBO = device->CreateBuffer(&objSurface.vertices[0], sizeof(priv::OBJVertex) * objSurface.vertices.size(), Buffer_Vertex | Buffer_ReadOnly);
+        convertedGeometry->IBO = device->CreateBuffer(&objSurface.indices[0], sizeof(uint16_t) * objSurface.indices.size(), Buffer_Index | Buffer_ReadOnly);
         convertedGeometry->indexCount = (uint32_t)objSurface.indices.size();
         
         // load textures

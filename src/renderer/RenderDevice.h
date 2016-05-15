@@ -38,11 +38,20 @@ enum VertexElementFormat
     VertexElementFormat_Count
 };
 
+enum PrimitiveType
+{
+    Primitive_TriangleList,
+    Primitive_TriangleStrip,
+    Primitive_LineList,
+    Primitive_PointList,
+    Primitive_QuadList
+};
+
 enum RasterizerCullMode
 {
-    CullMode_None,
-    CullMode_CCW,
-    CullMode_CW
+    CullMode_None,                          // No rasterizer face culling
+    CullMode_CCW,                           // Cull counter-clockwise ordered faces (front facing)
+    CullMode_CW                             // Cull clockwise ordered faces (back facing)
 };
 
 enum RasterizerFillMode
@@ -285,6 +294,7 @@ struct SurfaceGeometry
     }
 
     uint32_t indexCount;
+    PrimitiveType primitive;
     std::shared_ptr<IVertexDeclaration> vertexDeclaration;
     std::shared_ptr<IBuffer> VBO;
     std::shared_ptr<IBuffer> IBO;
@@ -327,7 +337,6 @@ public:
 
     virtual void Init() = 0;
     virtual void Shutdown() = 0;
-    virtual bool IsInitialized() const = 0;
 
     virtual std::shared_ptr<IBuffer> CreateBuffer(const void *data, size_t size, int usageFlags) = 0;
     virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements) = 0;

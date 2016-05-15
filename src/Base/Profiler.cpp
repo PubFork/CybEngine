@@ -2,7 +2,7 @@
 #include "Profiler.h"
 #include "Timer.h"
 #include "Debug.h"
-#include "Macros.h"
+#include "Algorithm.h"
 #include <iomanip>
 
 static EventProfiler staticEventProfiler;
@@ -64,11 +64,11 @@ std::string EventProfiler::CreateInfoMessage() const
         }
         infoString << "\n";
 
-        FOR_EACH(node->childMap, [&](const auto &it) { printProfileEvent(it, indentLevel + 1); });
+        std::for_each(std::begin(node->childMap), std::end(node->childMap), [&](const auto &it) { printProfileEvent(it, indentLevel + 1); });
     };
 
     infoString << "----------------------------------------------------------------------------------\n";
-    FOR_EACH(rootEventNodes, [&](const auto &it) { printProfileEvent(it, 0); });
+    std::for_each(std::begin(rootEventNodes), std::end(rootEventNodes), [&](const auto &it) { printProfileEvent(it, 0); });
     infoString << "----------------------------------------------------------------------------------" << std::ends;
 
     std::string str = infoString.str();

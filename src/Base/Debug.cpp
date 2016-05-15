@@ -1,8 +1,10 @@
 #include "Precompiled.h"
 #include "Debug.h"
-#include "Macros.h"
+#include "Algorithm.h"
 #include "File.h"
 #include <windows.h>
+
+#define DEBUG_MESSAGE_BUFFER_SIZE   4096
 
 std::ostrstream logStream;
 
@@ -23,7 +25,7 @@ const char *FatalException::what() const
 void DebugLogText(const char *fmt, ...)
 {
     assert(fmt);
-    static char buffer[KILOBYTES(4)];
+    static char buffer[DEBUG_MESSAGE_BUFFER_SIZE];
     va_list args;
 
     va_start(args, fmt);

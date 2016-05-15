@@ -3,7 +3,7 @@
 #include "Base/Debug.h"
 #include "Base/File.h"
 #include "Base/MurmurHash.h"
-#include "Base/Macros.h"
+#include "Base/Algorithm.h"
 
 namespace renderer
 {
@@ -36,44 +36,45 @@ void IShaderProgram::SetMat4(int32_t location, const float *values)
     SetFloatArray(location, 16, values);
 }
 
-static bool CreateShaderBytecodeFromFile(const char *filename, ShaderBytecode &bytecode)
+struct ShaderBytecodeFromFile : public ShaderBytecode
+{
+    ShaderBytecodeFromFile(const char *filename);
+    ~ShaderBytecodeFromFile();
+    bool IsValid() const { return length > 0; }
+};
+
+ShaderBytecodeFromFile::ShaderBytecodeFromFile(const char *filename)
 {
     SysFile shaderFile(filename, FileOpen_Read);
 
-    if (!shaderFile.IsValid())
+    length = shaderFile.GetLength();
+    if (length > 0)
     {
-        return false;
+        source = new char[length];
+        shaderFile.Read((uint8_t *)source, length);
     }
-
-    bytecode.length = shaderFile.GetLength();
-    bytecode.source = new char[bytecode.length];
-    shaderFile.Read((uint8_t *)bytecode.source, bytecode.length);
-    return true;
 }
 
-static void DestroyShaderBytecodeFromFile(ShaderBytecode &bytecode)
+ShaderBytecodeFromFile::~ShaderBytecodeFromFile()
 {
-    delete[] bytecode.source;
-    bytecode.length = 0;
+    if (length > 0)
+    {
+        delete[] source;
+    }
 }
 
 std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *FSFilename)
 {
-    ShaderBytecode VS = {};
-    ShaderBytecode FS = {};
+    ShaderBytecodeFromFile VS(VSFilename);
+    ShaderBytecodeFromFile FS(FSFilename);
 
-    bool success = CreateShaderBytecodeFromFile(VSFilename, VS) &&
-                   CreateShaderBytecodeFromFile(FSFilename, FS);
-    if (!success)
+    if (!VS.IsValid() || !FS.IsValid())
     {
-        DEBUG_LOG_TEXT("Failed to create ShaderProgram.");
+        //DEBUG_LOG_TEXT("Failed to create ShaderProgram.");
         return nullptr;
     }
 
     auto program = device->CreateShaderProgram(VS, FS);
-    DestroyShaderBytecodeFromFile(VS);
-    DestroyShaderBytecodeFromFile(FS);
-
     return program;
 }
 

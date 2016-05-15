@@ -70,12 +70,10 @@ std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRe
 
     if (!VS.IsValid() || !FS.IsValid())
     {
-        //DEBUG_LOG_TEXT("Failed to create ShaderProgram.");
         return nullptr;
     }
 
-    auto program = device->CreateShaderProgram(VS, FS);
-    return program;
+    return device->CreateShaderProgram(VS, FS);
 }
 
 int CalculateNumMipLevels(uint32_t width, uint32_t height)

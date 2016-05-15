@@ -160,7 +160,7 @@ public:
 };
 
 //
-// Shader stuff (WIP)
+// Shader Program Interface
 //
 struct ShaderBytecode
 {
@@ -185,7 +185,7 @@ public:
 std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *FSFilename);
 
 //
-// RenderDevice SamplerState Interface
+// SamplerState Interface
 //
 struct SamplerStateInitializer
 {
@@ -221,7 +221,7 @@ struct SamplerStateInitializer
 class ISamplerState : public IGPUResource {};
 
 //
-// Render Device Texture Interface
+// Texture Interface
 //
 class ITexture : public IGPUResource
 {
@@ -259,6 +259,9 @@ private:
     uint32_t height;
 };
 
+//
+// Surface structures
+//
 struct RasterizerState
 {
     RasterizerState() :
@@ -319,6 +322,9 @@ struct Surface
     RasterizerState rasterState;
 };
 
+//
+// Camera Interface
+//
 class ICamera
 {
 public:

@@ -82,7 +82,7 @@ public:
 class OpenGLShaderCompiler
 {
 public:
-    enum { InfoLogSize = 1024 };
+    enum { InfoLogSize = 1024 * 4 };
 
     ~OpenGLShaderCompiler();
     bool CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode);
@@ -103,6 +103,8 @@ public:
     virtual ~OpenGLShaderProgram();
     virtual int32_t GetParameterLocation(const char *name);
     virtual void SetFloatArray(int32_t location, size_t num, const float *values);
+    virtual void SetVec3(int32_t location, const float *values);
+    virtual void SetMat3(int32_t location, const float *values);
     virtual void SetMat4(int32_t location, const float *values);
 
     GLuint resource;
@@ -187,6 +189,7 @@ public:
     virtual std::shared_ptr<IBuffer> CreateBuffer(const void *data, size_t size, int usageFlags);
     virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements);
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &FS);
+    virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &GS, const ShaderBytecode &FS);
     virtual void SetShaderProgram(const std::shared_ptr<IShaderProgram> program);
     virtual std::shared_ptr<ITexture2D> CreateTexture2D(int32_t width, int32_t height, PixelFormat format, int32_t numMipMaps, const void *data);
     virtual void SetTexture(uint32_t textureIndex, const std::shared_ptr<ITexture> texture);

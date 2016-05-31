@@ -8,6 +8,7 @@
 
 void BaseCamera::SetViewMatrix(const glm::vec3 &pos, const glm::vec3 &target, const glm::vec3 &up)
 {
+    viewPosition = pos;
     viewMatrix = glm::lookAt(pos, target, up);
 }
 
@@ -18,6 +19,11 @@ void BaseCamera::SetPerspectiveMatrix(float fov, float aspect, float zNear, floa
     nearZClip = zNear;
     farZClip = zFar;
     UpdateProjectionMatrix();
+}
+
+const float *BaseCamera::GetViewPositionVector() const
+{
+    return glm::value_ptr(viewPosition);
 }
 
 const float *BaseCamera::GetViewMatrix() const
@@ -33,7 +39,7 @@ const float *BaseCamera::GetProjMatrix() const
 // private:
 void BaseCamera::UpdateProjectionMatrix()
 {
-    projMatrix = glm::tweakedInfinitePerspective(verticalFOV, aspectRatio, nearZClip);
+    projMatrix = glm::perspective(verticalFOV, aspectRatio, nearZClip, farZClip);
 }
 
 //==============================

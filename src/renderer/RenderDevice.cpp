@@ -63,6 +63,7 @@ ShaderBytecodeFromFile::~ShaderBytecodeFromFile()
     }
 }
 
+// TODO: Add error messages
 std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *FSFilename)
 {
     ShaderBytecodeFromFile VS(VSFilename);
@@ -74,6 +75,21 @@ std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRe
     }
 
     return device->CreateShaderProgram(VS, FS);
+}
+
+// TODO: Add error messages
+std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *GSFilename, const char *FSFilename)
+{
+    ShaderBytecodeFromFile VS(VSFilename);
+    ShaderBytecodeFromFile GS(GSFilename);
+    ShaderBytecodeFromFile FS(FSFilename);
+
+    if (!VS.IsValid() || !GS.IsValid() || !FS.IsValid())
+    {
+        return nullptr;
+    }
+
+    return device->CreateShaderProgram(VS, GS, FS);
 }
 
 int CalculateNumMipLevels(uint32_t width, uint32_t height)

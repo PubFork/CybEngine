@@ -22,12 +22,20 @@ private:
     BaseCamera camera;
     CameraController cameraControl;
     std::shared_ptr<renderer::Model> model;
+
+    std::shared_ptr<renderer::IShaderProgram> program;
+    std::shared_ptr<renderer::IShaderProgram> debugNormalProgram;
 };
 
 bool GameApp::Init()
 {
-    auto program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/standard_vs.glsl", "assets/shaders/standard_fs.glsl");
+    program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/blinn-phong.vert", "assets/shaders/blinn-phong.frag");
     THROW_FATAL_COND(!program, "Fatal: Failed to create shader program!");
+    debugNormalProgram = renderer::CreateShaderProgramFromFiles(renderDevice,
+                                                                "assets/shaders/debug-normals_vs.glsl",
+                                                                "assets/shaders/debug-normals_gs.glsl",
+                                                                "assets/shaders/debug-normals_fs.glsl");
+    THROW_FATAL_COND(!debugNormalProgram, "Fatal: Failed to create shader program!");
     renderDevice->SetShaderProgram(program);
 
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
@@ -70,7 +78,12 @@ void GameApp::Render()
 
     {
         SCOOPED_PROFILE_EVENT("Draw");
+        renderDevice->SetShaderProgram(program);
         model->Render(renderDevice, &camera);
+
+        // DEBUG DRAW NORMALS
+        //renderDevice->SetShaderProgram(debugNormalProgram);
+        //model->Render(renderDevice, &camera);
     }
 }
 

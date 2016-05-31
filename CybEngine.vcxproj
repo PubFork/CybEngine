@@ -60,8 +60,12 @@
     <ClInclude Include="src\Precompiled.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\shaders\standard_fs.glsl" />
-    <None Include="assets\shaders\standard_vs.glsl" />
+    <None Include="assets\shaders\blinn-phong.frag" />
+    <None Include="assets\shaders\blinn-phong.vert" />
+    <None Include="assets\shaders\cook-torrance.frag" />
+    <None Include="assets\shaders\debug-normals_fs.glsl" />
+    <None Include="assets\shaders\debug-normals_gs.glsl" />
+    <None Include="assets\shaders\debug-normals_vs.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F7F37146-1DDE-4A6D-93F0-A1F089C157B8}</ProjectGuid>

@@ -91,9 +91,6 @@
     <ClInclude Include="src\renderer\stb_image.h">
       <Filter>Source Files\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\Model_obj.h">
-      <Filter>Source Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="src\Renderer\Model.h">
       <Filter>Source Files\Renderer</Filter>
     </ClInclude>
@@ -127,12 +124,27 @@
     <ClInclude Include="src\Base\Algorithm.h">
       <Filter>Source Files\Base</Filter>
     </ClInclude>
+    <ClInclude Include="src\Renderer\Model_obj.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\shaders\standard_fs.glsl">
+    <None Include="assets\shaders\debug-normals_gs.glsl">
       <Filter>Resource Files\shaders</Filter>
     </None>
-    <None Include="assets\shaders\standard_vs.glsl">
+    <None Include="assets\shaders\debug-normals_vs.glsl">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\debug-normals_fs.glsl">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\cook-torrance.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\blinn-phong.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\blinn-phong.vert">
       <Filter>Resource Files\shaders</Filter>
     </None>
   </ItemGroup>

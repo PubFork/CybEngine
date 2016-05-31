@@ -91,6 +91,7 @@ void GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+    glfwWindowHint(GLFW_DEPTH_BITS, 24);
     glfwWindowHint(GLFW_SAMPLES, 64);
     
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);

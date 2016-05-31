@@ -35,7 +35,8 @@ void Model::AddSurface(renderer::Surface surf)
 
 void Model::Render(std::shared_ptr<renderer::IRenderDevice> device, const ICamera *camera)
 {
-    for (const auto &surf : surfaces) {
+    for (const auto &surf : surfaces) 
+    {
         device->Render(&surf, camera);
     }
 }
@@ -49,35 +50,40 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
     };
     auto vertexDeclaration = device->CreateVertexDelclaration(vertexElements);
 
-    priv::ObjModel *objModel = priv::OBJ_Load(filename.c_str());
-    THROW_FATAL_COND(!objModel, std::string("Failed to read model " + filename));
+    auto objModel = priv::OBJ_CompileRawModel(priv::OBJ_Load(filename.c_str()));
+    //THROW_FATAL_COND(!objModel, std::string("Failed to read model " + filename));
     auto model = std::make_shared<Model>(objModel->name.empty() ? "<unknown>" : objModel->name);
 
-    for (auto &objSurface : objModel->surfaces) {
-        renderer::Surface convertedSurface;
-        renderer::SurfaceGeometry *convertedGeometry = &convertedSurface.geometry;
+    for (auto &surface : objModel->surfaces)
+    {
+        renderer::Surface drawSurface;
 
         // copy geometry
-        convertedGeometry->primitive = Primitive_TriangleList;
-        convertedGeometry->vertexDeclaration = vertexDeclaration;
-        convertedGeometry->VBO = device->CreateBuffer(&objSurface.vertices[0], sizeof(priv::OBJVertex) * objSurface.vertices.size(), Buffer_Vertex | Buffer_ReadOnly);
-        convertedGeometry->IBO = device->CreateBuffer(&objSurface.indices[0], sizeof(uint16_t) * objSurface.indices.size(), Buffer_Index | Buffer_ReadOnly);
-        convertedGeometry->indexCount = (uint32_t)objSurface.indices.size();
-        
-        // load textures
-        renderer::SurfaceMaterial *mat = &convertedSurface.material;
-        if (!objSurface.material->diffuseTexture.empty())
+        renderer::SurfaceGeometry *geo = &drawSurface.geometry;
+        geo->primitive = Primitive_TriangleList;
+        geo->vertexDeclaration = vertexDeclaration;
+        geo->VBO = device->CreateBuffer(&surface.vertices[0], sizeof(priv::dev::OBJ_Vertex) * surface.vertices.size(), Buffer_Vertex | Buffer_ReadOnly);
+        geo->IBO = device->CreateBuffer(&surface.indices[0], sizeof(uint16_t) * surface.indices.size(), Buffer_Index | Buffer_ReadOnly);
+        geo->indexCount = (uint32_t)surface.indices.size();
+
+        // copy material
+        renderer::SurfaceMaterial *mat = &drawSurface.material;
+        if (!surface.material.diffuseTexture.empty())
         {
-            mat->texture[0] = renderer::globalTextureCache->LoadTexture2DFromFile(objSurface.material->diffuseTexture.c_str());
+            mat->texture[0] = renderer::globalTextureCache->LoadTexture2DFromFile(surface.material.diffuseTexture.c_str());
         }
 
+        mat->ambient = surface.material.ambientColor;
+        mat->diffuse = surface.material.diffuseColor;
+        mat->specular = surface.material.specularColor;
+        mat->shininess = surface.material.shininess;
+
         // finish up and add to model
-        convertedSurface.name = objSurface.name;
-        convertedSurface.rasterState = RasterizerState(renderer::CullMode_CW, renderer::FillMode_Solid);
-        model->AddSurface(convertedSurface);
+        drawSurface.name = surface.name;
+        drawSurface.rasterState = RasterizerState(renderer::CullMode_CW, renderer::FillMode_Solid);
+        model->AddSurface(drawSurface);
     }
 
-    priv::OBJ_Free(objModel);
     return model;
 }
 

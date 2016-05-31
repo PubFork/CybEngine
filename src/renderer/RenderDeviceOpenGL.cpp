@@ -20,13 +20,13 @@ static const OpenGLTextureFormatInfo pixelFormats[PixelFormat_Count] =
 static const OpenGLVertexElementUsageInfo vertexElementUsageInfo[VertexElementUsage_Count] =
 {
 //    attribLocation        attribName
-    { 0,                    "Position"  },                                          // VertexElementUsage_Position
-    { 1,                    "Normal"    },                                          // VertexElementUsage_Normal
-    { 2,                    "TexCoord0" },                                          // VertexElementUsage_TexCoord0
-    { 3,                    "TexCoord1" },                                          // VertexElementUsage_TexCoord1
-    { 4,                    "TexCoord2" },                                          // VertexElementUsage_TexCoord2
-    { 5,                    "TexCoord3" },                                          // VertexElementUsage_TexCoord3
-    { 6,                    "Color"     }                                           // VertexElementUsage_Color
+    { 0,                    "a_position"  },                                        // VertexElementUsage_Position
+    { 1,                    "a_normal"    },                                        // VertexElementUsage_Normal
+    { 2,                    "a_texCoord0" },                                        // VertexElementUsage_TexCoord0
+    { 3,                    "a_texCoord1" },                                        // VertexElementUsage_TexCoord1
+    { 4,                    "a_texCoord2" },                                        // VertexElementUsage_TexCoord2
+    { 5,                    "a_texCoord3" },                                        // VertexElementUsage_TexCoord3
+    { 6,                    "a_color"     }                                         // VertexElementUsage_Color
 };
 
 static const OpenGLVertexElementFormatInfo vertexElementTypeInfo[VertexElementFormat_Count] =
@@ -136,6 +136,16 @@ int32_t OpenGLShaderProgram::GetParameterLocation(const char *name)
 void OpenGLShaderProgram::SetFloatArray(int32_t location, size_t num, const float *values)
 {
     glProgramUniform1fv(resource, location, (GLsizei)num, values);
+}
+
+void OpenGLShaderProgram::SetVec3(int32_t location, const float *values)
+{
+    glProgramUniform3fv(resource, location, 1, values);
+}
+
+void OpenGLShaderProgram::SetMat3(int32_t location, const float *values)
+{
+    glProgramUniformMatrix3fv(resource, location, 1, GL_FALSE, values);
 }
 
 void OpenGLShaderProgram::SetMat4(int32_t location, const float *values)
@@ -359,10 +369,30 @@ std::shared_ptr<IShaderProgram> OpenGLRenderDevice::CreateShaderProgram(const Sh
     compiler.CompileShaderStage(GL_FRAGMENT_SHADER, FS);
 
     GLuint programId = 0;
-    compiler.LinkAndClearShaderStages(programId);
+    if (!compiler.LinkAndClearShaderStages(programId))
+    {
+        return nullptr;
+    }
 
     return std::make_shared<OpenGLShaderProgram>(programId);
 }
+
+std::shared_ptr<IShaderProgram> OpenGLRenderDevice::CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &GS, const ShaderBytecode &FS)
+{
+    OpenGLShaderCompiler compiler;
+    compiler.CompileShaderStage(GL_VERTEX_SHADER, VS);
+    compiler.CompileShaderStage(GL_GEOMETRY_SHADER, GS);
+    compiler.CompileShaderStage(GL_FRAGMENT_SHADER, FS);
+
+    GLuint programId = 0;
+    if (!compiler.LinkAndClearShaderStages(programId))
+    {
+        return nullptr;
+    }
+
+    return std::make_shared<OpenGLShaderProgram>(programId);
+}
+
 
 void OpenGLRenderDevice::SetShaderProgram(const std::shared_ptr<IShaderProgram> program)
 {
@@ -512,16 +542,28 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
 
     glBindVertexArray(vaoId);
 
-    // setup matrices
+    // setup transformation matrices
     // TODO: add support for model matrices (this is kinda hacked together atm)
-    int32_t projMatrixLoc = currentShaderProgram->GetParameterLocation("ProjMatrix");
-    int32_t viewMatrixLoc = currentShaderProgram->GetParameterLocation("ModelViewMatrix");
+    int32_t projMatrixLoc = currentShaderProgram->GetParameterLocation("u_projMatrix");
+    int32_t viewMatrixLoc = currentShaderProgram->GetParameterLocation("u_viewMatrix");
+    int32_t modelViewMatrixLoc = currentShaderProgram->GetParameterLocation("u_modelViewMatrix");
+
     currentShaderProgram->SetMat4(projMatrixLoc, camera->GetProjMatrix());
     currentShaderProgram->SetMat4(viewMatrixLoc, camera->GetViewMatrix());
+    currentShaderProgram->SetMat4(modelViewMatrixLoc, camera->GetViewMatrix());
 
+    int32_t viewPosLoc = currentShaderProgram->GetParameterLocation("u_viewPos");
+    currentShaderProgram->SetVec3(viewPosLoc, camera->GetViewPositionVector());
+
+    // setup material
     SetRasterizerState(surf->rasterState);
 
     const SurfaceMaterial *material = &surf->material;
+    currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Ka"), glm::value_ptr(material->ambient));
+    currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Kd"), glm::value_ptr(material->diffuse));
+    currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Ks"), glm::value_ptr(material->specular));
+    currentShaderProgram->SetFloat(currentShaderProgram->GetParameterLocation("Ns"), material->shininess);
+
     if (material->texture[0])
         SetTexture(0, material->texture[0]);    // TODO: Texture state should be manually set by the user!
 

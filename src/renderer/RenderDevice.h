@@ -179,10 +179,12 @@ public:
     // helper functions that uses SetFloatArray, implemented genericly
     virtual void SetFloat(int32_t location, const float value);
     virtual void SetVec3(int32_t location, const float *values);
+    virtual void SetMat3(int32_t location, const float *values) = 0;
     virtual void SetMat4(int32_t location, const float *values);
 };
 
 std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *FSFilename);
+std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *GSFilename, const char *FSFilename);
 
 //
 // SamplerState Interface
@@ -307,6 +309,11 @@ struct SurfaceMaterial
 {
     enum { MaxNumTextures = 4 };
     std::shared_ptr<ITexture2D> texture[MaxNumTextures];
+
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float shininess;
 };
 
 struct Surface
@@ -329,8 +336,9 @@ class ICamera
 {
 public:
     virtual ~ICamera() = default;
-    virtual const float *GetViewMatrix() const = 0;
-    virtual const float *GetProjMatrix() const = 0;
+    virtual const float *GetViewPositionVector() const = 0;       // vec3
+    virtual const float *GetViewMatrix() const = 0;     // mat4
+    virtual const float *GetProjMatrix() const = 0;     // mat4
 };
 
 //
@@ -347,6 +355,7 @@ public:
     virtual std::shared_ptr<IBuffer> CreateBuffer(const void *data, size_t size, int usageFlags) = 0;
     virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements) = 0;
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &FS) = 0;
+    virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &GS, const ShaderBytecode &FS) = 0;
     virtual void SetShaderProgram(const std::shared_ptr<IShaderProgram> program) = 0;
     virtual std::shared_ptr<ITexture2D> CreateTexture2D(int32_t width, int32_t height, PixelFormat format, int32_t numMipMaps, const void *data) = 0;
     virtual void SetTexture(uint32_t textureIndex, const std::shared_ptr<ITexture> texture) = 0;

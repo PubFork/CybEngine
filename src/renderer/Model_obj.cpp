@@ -3,6 +3,8 @@
 #include "Base/Debug.h"
 #include "Base/File.h"
 
+#define LINEBUFFER_SIZE     1024
+
 /*
  * Some parts are based of syoyo's tinyobjloader:
  * https://github.com/syoyo/tinyobjloader
@@ -69,16 +71,11 @@ std::string ReadString(const char *&buffer)
     return str;
 }
 
-uint16_t FixIndex(int idx)
-{
-    return (uint16_t)(idx > 0 ? idx - 1 : 0);
-}
-
 ObjIndex ReadFaceIndex(const char *&token)
 {
     ObjIndex vi = { 0, 0, 0 };
 
-    vi.v = FixIndex(atoi(token));
+    vi.v = atoi(token);
     token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
         return vi;
@@ -88,20 +85,20 @@ ObjIndex ReadFaceIndex(const char *&token)
     if (token[0] == '/')
     {
         token++;
-        vi.vn = FixIndex(atoi(token));
+        vi.vn = atoi(token);
         token += strcspn(token, "/ \t\r\n");
         return vi;
     }
 
     // i/j/k or i/j
-    vi.vt = FixIndex(atoi(token));
+    vi.vt = atoi(token);
     token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
         return vi;
 
     // i/j/k
     token++;
-    vi.vn = FixIndex(atoi(token));
+    vi.vn = atoi(token);
     token += strcspn(token, "/ \t\r\n");
 
     return vi;
@@ -120,58 +117,7 @@ ObjFace ReadFace(const char *&buffer)
     return face;
 }
 
-uint16_t UpdateVertex(std::map<ObjIndex, uint16_t> &vertexCache, ObjSurface &surface, ObjMaterial * /*material*/, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const ObjIndex &index)
-{
-    // check vertex cache first
-    auto it = vertexCache.find(index);
-    if (it != vertexCache.end())
-        return it->second;
-
-    // create vertices not found in cache and insert them
-    const uint16_t idx = static_cast<uint16_t>(surface.vertices.size());
-    vertexCache[index] = idx;
-    surface.vertices.emplace_back(positions[index.v],
-                                  index.vn ? normals[index.vn] : glm::vec3(),
-                                  index.vt ? texCoords[index.vt] : glm::vec2());
-    return idx;
-}
-
-bool ExportFaceGroupToSurface(ObjSurface &surface, ObjMaterial *material, const ObjFaceGroup &faceGroup, const std::vector<glm::vec3> &positions, const std::vector<glm::vec3> &normals, const std::vector<glm::vec2> &texCoords, const std::string name)
-{
-    std::map<ObjIndex, uint16_t> vertexCache;
-
-    if (faceGroup.empty())
-        return false;
-
-    // Flatten vertices and indices
-    for (size_t i = 0; i < faceGroup.size(); i++)
-    {
-        const std::vector<ObjIndex> &face = faceGroup[i];
-
-        ObjIndex i0 = face[0];
-        ObjIndex i1 = {};
-        ObjIndex i2 = face[1];
-
-        const size_t npolys = face.size();
-
-        // Polygon -> triangle fan conversion
-        for (size_t k = 2; k < npolys; k++)
-        {
-            i1 = i2;
-            i2 = face[k];
-
-            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, material, positions, normals, texCoords, i0));
-            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, material, positions, normals, texCoords, i1));
-            surface.indices.emplace_back(UpdateVertex(vertexCache, surface, material, positions, normals, texCoords, i2));
-        }
-    }
-
-    surface.material = material;
-    surface.name = name;
-    return true;
-}
-
-void MakeDefaultMaterial(ObjMaterial &material)
+void MakeDefaultMaterial(OBJ_Material &material)
 {
     material.name            = "_default";
     material.ambientColor    = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -196,7 +142,7 @@ bool ReadLine(IFile *file, char *buffer, size_t length)
         *buf++ = c;
     } while (c != '\n' && c != '\0' && count == 1 && (buf - buffer) < (ptrdiff_t)length);
 
-    return count == 1;
+    return (count == 1);
 }
 
 bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
@@ -206,10 +152,10 @@ bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
         return false;
 
     DEBUG_LOG_TEXT("Loading %s...", filename);
-    ObjMaterial material;
+    OBJ_Material material;
 
-    char buffer[2000];
-    while (ReadLine(&mtlFile, buffer, 2000))
+    char buffer[LINEBUFFER_SIZE];
+    while (ReadLine(&mtlFile, buffer, LINEBUFFER_SIZE))
     {
         const char *lineBuffer = buffer;
         lineBuffer += strspn(lineBuffer, " \t");
@@ -247,27 +193,49 @@ bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
     return true;
 }
 
-ObjModel *OBJ_Load(const char *filename)
+void CalculateNormals(const std::vector<glm::vec3> &vertexList, std::vector<dev::OBJ_FaceGroup> &faceGroupList, std::vector<glm::vec3> &normalList)
+{
+    for (auto &faceGroup : faceGroupList)
+    {
+        for (auto &face : faceGroup.faces)
+        {
+            assert(face.edges.size() >= 3);
+            const glm::vec3 &a = vertexList[face.edges[0].vertexIndex - 1];
+            const glm::vec3 &b = vertexList[face.edges[1].vertexIndex - 1];
+            const glm::vec3 &c = vertexList[face.edges[2].vertexIndex - 1];
+
+            face.normal = (glm::cross(b - a, c - a));
+
+            for (const auto &edge : face.edges)
+            {
+                normalList[edge.vertexIndex - 1] += face.normal;
+            }
+        }
+    }
+
+    for (auto &normal : normalList)
+    {
+        normal = glm::normalize(normal);
+    }
+}
+
+// TODO: Clean up material handling code
+std::shared_ptr<dev::OBJ_RawModel> OBJ_Load(const char *filename)
 {
     SysFile objFile(filename, FileOpen_Read);
     if (!objFile.IsValid())
         return nullptr;
 
     DEBUG_LOG_TEXT("Loading %s...", filename);
-    ObjModel *model = new ObjModel();
+    auto rawModel = std::make_shared<dev::OBJ_RawModel>();
+    dev::OBJ_FaceGroup *rawFaceGroup = rawModel->CreateEmptyFaceGroup("default");
 
-    std::vector<glm::vec3> v;
-    std::vector<glm::vec3> vn;
-    std::vector<glm::vec2> vt;
-    ObjFaceGroup facegroup;
-    std::string facegroupName;
-    ObjMaterial defaultMaterial;
-    ObjMaterial *material = &defaultMaterial;
-
+    OBJ_Material defaultMaterial;
     MakeDefaultMaterial(defaultMaterial);
+    OBJ_Material *material = &defaultMaterial;
 
-    char buffer[2000];
-    while (ReadLine(&objFile, buffer, 2000))
+    char buffer[LINEBUFFER_SIZE];
+    while (ReadLine(&objFile, buffer, LINEBUFFER_SIZE))
     {
         const char *linebuf = buffer;
 
@@ -278,68 +246,152 @@ ObjModel *OBJ_Load(const char *filename)
 
         // parse all tokens
         if (ReadToken(linebuf, "v "))
-            v.emplace_back(ReadVec3(linebuf));
+        {
+            glm::vec3 pos(ReadVec3(linebuf));
+            rawModel->vertices.push_back(pos);
+            rawModel->normals.push_back(glm::vec3(0.0f, 0.0f, 0.0f));   // add an zero normal for all vertices
+        } 
         else if (ReadToken(linebuf, "vn "))
-            vn.emplace_back(ReadVec3(linebuf));
+        {
+            glm::vec3 norm(ReadVec3(linebuf));
+            rawModel->normals.push_back(norm);
+        } 
         else if (ReadToken(linebuf, "vt "))
-          vt.emplace_back(ReadVec2(linebuf));
+        {
+            glm::vec2 uv(ReadVec2(linebuf));
+            rawModel->texCoords.push_back(uv);
+        }
         else if (ReadToken(linebuf, "f "))
-            facegroup.emplace_back(ReadFace(linebuf));
-        else if (ReadToken(linebuf, "o "))
-            model->name = ReadString(linebuf);
-        else if (ReadToken(linebuf, "g "))
+        {
+            // TODO: Remove deprecated ObjFace -> OBJ_Face conversion
+            ObjFace f = ReadFace(linebuf);  
+
+            dev::OBJ_Face face(f);
+            rawFaceGroup->faces.push_back(face);
+        } else if (ReadToken(linebuf, "o "))
+        {
+            std::string modelName = ReadString(linebuf);
+            rawModel->name = modelName;
+        } else if (ReadToken(linebuf, "g "))
         {
             ObjSurface surf;
             if (material->name == defaultMaterial.name)
             {
-                model->materials[defaultMaterial.name] = defaultMaterial;
-                material = &model->materials[defaultMaterial.name];
+                rawModel->materials[defaultMaterial.name] = defaultMaterial;
+                material = &rawModel->materials[defaultMaterial.name];
             }
 
-            if (ExportFaceGroupToSurface(surf, material, facegroup, v, vn, vt, facegroupName))
-                model->surfaces.emplace_back(surf);
-
-            facegroup = ObjFaceGroup();
-            facegroupName = ReadString(linebuf);
+            std::string faceGroupName(ReadString(linebuf));
+            rawFaceGroup = rawModel->CreateEmptyFaceGroup(faceGroupName);
         } else if (ReadToken(linebuf, "mtllib "))
         {
             const std::string materialFilename = std::string(objFile.GetFileBaseDir()) + ReadString(linebuf);
-            const bool result = MTL_Load(materialFilename.c_str(), model->materials);
-            
-            if (!result || model->materials.empty())
+            const bool result = MTL_Load(materialFilename.c_str(), rawModel->materials);
+            if (!result || rawModel->materials.empty())
             {
                 DEBUG_LOG_TEXT_COND(true, "Failed to read MTL file %s (Using default)", materialFilename.c_str());
-                model->materials[defaultMaterial.name] = defaultMaterial;  // fallback to default material if none is defined
+                rawModel->materials[defaultMaterial.name] = defaultMaterial;  // fallback to default material if none is defined
             }
 
-            material = &model->materials.begin()->second;
+            material = &rawModel->materials.begin()->second;
         } else if (ReadToken(linebuf, "usemtl "))
         {
             const std::string matString = ReadString(linebuf);
-            auto searchResult = model->materials.find(matString);
-            if (searchResult != model->materials.end())
+            auto searchResult = rawModel->materials.find(matString);
+            if (searchResult != rawModel->materials.end())
             {
                 material = &searchResult->second;
             } else
             {
                 // if the material isn't found, create a default one in the model
                 // and point the material pointer to it.
-                model->materials[defaultMaterial.name] = defaultMaterial;
-                material = &model->materials[defaultMaterial.name];
+                rawModel->materials[defaultMaterial.name] = defaultMaterial;
+                material = &rawModel->materials[defaultMaterial.name];
             }
+
+            rawFaceGroup->materialName = matString;
         }
     }
 
-    ObjSurface surf;
-    if (ExportFaceGroupToSurface(surf, material, facegroup, v, vn, vt, facegroupName))
-        model->surfaces.emplace_back(surf);
-
-    return model;
+    CalculateNormals(rawModel->vertices, rawModel->faceGroups, rawModel->normals);
+    return rawModel;
 }
 
-void OBJ_Free(ObjModel *model)
+namespace dev
 {
-    delete model;
+bool operator<(const OBJ_Edge &a, const OBJ_Edge &b)
+{
+    if (a.vertexIndex != b.vertexIndex)
+        return (a.vertexIndex < b.vertexIndex);
+    if (a.texCoordIndex != b.texCoordIndex)
+        return (a.texCoordIndex < b.texCoordIndex);
+
+    return false;
+}
+}
+
+std::shared_ptr<dev::OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<dev::OBJ_RawModel> rawModel)
+{
+    auto compiledModel = std::make_shared<dev::OBJ_CompiledModel>();
+
+    compiledModel->name = rawModel->name;
+
+    for (const auto &faceGroup : rawModel->faceGroups)
+    {
+        // TODO: using unordered map would probably be faster
+        std::map<dev::OBJ_Edge, dev::OBJ_Index> vertexCache;
+
+        dev::OBJ_TriSurface surface;
+        surface.name = faceGroup.name;
+       
+        auto materialSearch = rawModel->materials.find(faceGroup.materialName);
+        if (materialSearch != rawModel->materials.end())
+        {
+            surface.material = materialSearch->second;
+        }
+
+        for (const auto &face : faceGroup.faces)
+        {
+            dev::OBJ_Edge triangleEdges[3] = {
+                face.edges[0],
+                {},
+                face.edges[1]
+            };
+
+            // Polygon -> triangle fan conversion
+            const size_t numEdges = face.edges.size();
+            for (size_t k = 2; k < numEdges; k++)
+            {
+                triangleEdges[1] = triangleEdges[2];
+                triangleEdges[2] = face.edges[k];
+
+                for (const auto &edge : triangleEdges)
+                {
+                    // check vertex cache first
+                    const auto it = vertexCache.find(edge);
+                    if (it != vertexCache.end())
+                    {
+                        surface.indices.push_back(it->second);
+                    }
+                    else
+                    {
+                        // create vertices not found in cache and insert them
+                        const uint16_t idx = static_cast<uint16_t>(surface.vertices.size());
+                        vertexCache[edge] = idx;
+                        surface.vertices.emplace_back(
+                            rawModel->vertices[edge.vertexIndex - 1],
+                            rawModel->normals[edge.vertexIndex - 1],
+                            edge.texCoordIndex ? rawModel->texCoords[edge.texCoordIndex - 1] : glm::vec2());
+                        surface.indices.push_back(idx);
+                    }
+                }
+            }
+        }
+
+        compiledModel->surfaces.push_back(surface);
+    }
+
+    return compiledModel;
 }
 
 } // priv

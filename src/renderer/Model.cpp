@@ -44,13 +44,13 @@ void Model::Render(std::shared_ptr<renderer::IRenderDevice> device, const ICamer
 std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> device, const std::string &filename)
 {
     static const renderer::VertexElementList vertexElements = {
-        { VertexElement(renderer::VertexElementUsage_Position,  renderer::VertexElementFormat_Float3, offsetof(priv::OBJVertex, position), sizeof(priv::OBJVertex)) },
-        { VertexElement(renderer::VertexElementUsage_Normal,    renderer::VertexElementFormat_Float3, offsetof(priv::OBJVertex, normal),   sizeof(priv::OBJVertex)) },
-        { VertexElement(renderer::VertexElementUsage_TexCoord0, renderer::VertexElementFormat_Float2, offsetof(priv::OBJVertex, uv),       sizeof(priv::OBJVertex)) }
+        { VertexElement(renderer::VertexElementUsage_Position,  renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, position), sizeof(OBJ_Vertex)) },
+        { VertexElement(renderer::VertexElementUsage_Normal,    renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, normal),   sizeof(OBJ_Vertex)) },
+        { VertexElement(renderer::VertexElementUsage_TexCoord0, renderer::VertexElementFormat_Float2, offsetof(OBJ_Vertex, texCoord), sizeof(OBJ_Vertex)) }
     };
     auto vertexDeclaration = device->CreateVertexDelclaration(vertexElements);
 
-    auto objModel = priv::OBJ_CompileRawModel(priv::OBJ_Load(filename.c_str()));
+    auto objModel = OBJ_CompileRawModel(OBJ_LoadModel(filename.c_str()));
     //THROW_FATAL_COND(!objModel, std::string("Failed to read model " + filename));
     auto model = std::make_shared<Model>(objModel->name.empty() ? "<unknown>" : objModel->name);
 
@@ -62,7 +62,7 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
         renderer::SurfaceGeometry *geo = &drawSurface.geometry;
         geo->primitive = Primitive_TriangleList;
         geo->vertexDeclaration = vertexDeclaration;
-        geo->VBO = device->CreateBuffer(&surface.vertices[0], sizeof(priv::dev::OBJ_Vertex) * surface.vertices.size(), Buffer_Vertex | Buffer_ReadOnly);
+        geo->VBO = device->CreateBuffer(&surface.vertices[0], sizeof(OBJ_Vertex) * surface.vertices.size(), Buffer_Vertex | Buffer_ReadOnly);
         geo->IBO = device->CreateBuffer(&surface.indices[0], sizeof(uint16_t) * surface.indices.size(), Buffer_Index | Buffer_ReadOnly);
         geo->indexCount = (uint32_t)surface.indices.size();
 

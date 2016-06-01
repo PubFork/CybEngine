@@ -12,20 +12,6 @@
 
 namespace renderer
 {
-namespace priv
-{
-
-bool operator<(const ObjIndex &a, const ObjIndex &b)
-{
-    if (a.v != b.v)
-        return (a.v < b.v);
-    if (a.vn != b.vn)
-        return (a.vn < b.vn);
-    if (a.vt != b.vt)
-        return (a.vt < b.vt);
-
-    return false;
-}
 
 float ReadFloat(const char *&buffer)
 {
@@ -71,46 +57,46 @@ std::string ReadString(const char *&buffer)
     return str;
 }
 
-ObjIndex ReadFaceIndex(const char *&token)
+OBJ_Edge ReadFaceIndex(const char *&token)
 {
-    ObjIndex vi = { 0, 0, 0 };
+    OBJ_Edge edge = {};
 
-    vi.v = atoi(token);
+    edge.vertexIndex = atoi(token);
     token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
-        return vi;
+        return edge;
 
     // i//k
     token++;
     if (token[0] == '/')
     {
         token++;
-        vi.vn = atoi(token);
+        //edge.normalIndex = atoi(token);       // ignore normal index
         token += strcspn(token, "/ \t\r\n");
-        return vi;
+        return edge;
     }
 
     // i/j/k or i/j
-    vi.vt = atoi(token);
+    edge.texCoordIndex = atoi(token);
     token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
-        return vi;
+        return edge;
 
     // i/j/k
     token++;
-    vi.vn = atoi(token);
+    //edge.normalIndex = atoi(token);       // ignore normal index
     token += strcspn(token, "/ \t\r\n");
 
-    return vi;
+    return edge;
 }
 
-ObjFace ReadFace(const char *&buffer)
+OBJ_Face ReadFace(const char *&buffer)
 {
-    ObjFace face;
+    OBJ_Face face;
 
     while (buffer[0] != '\r' && buffer[0] != '\n' && buffer[0] != '\0')
     {
-        face.emplace_back(ReadFaceIndex(buffer));
+        face.edges.emplace_back(ReadFaceIndex(buffer));
         buffer += strspn(buffer, " \t");
     }
 
@@ -145,7 +131,7 @@ bool ReadLine(IFile *file, char *buffer, size_t length)
     return (count == 1);
 }
 
-bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
+bool MTL_Load(const char *filename, OBJ_MaterialMap &outMaterials)
 {
     SysFile mtlFile(filename, FileOpen_Read);
     if (!mtlFile.IsValid())
@@ -193,7 +179,7 @@ bool MTL_Load(const char *filename, ObjMaterialMap &outMaterials)
     return true;
 }
 
-void CalculateNormals(const std::vector<glm::vec3> &vertexList, std::vector<dev::OBJ_FaceGroup> &faceGroupList, std::vector<glm::vec3> &normalList)
+void CalculateNormals(const std::vector<glm::vec3> &vertexList, std::vector<OBJ_FaceGroup> &faceGroupList, std::vector<glm::vec3> &normalList)
 {
     for (auto &faceGroup : faceGroupList)
     {
@@ -220,15 +206,15 @@ void CalculateNormals(const std::vector<glm::vec3> &vertexList, std::vector<dev:
 }
 
 // TODO: Clean up material handling code
-std::shared_ptr<dev::OBJ_RawModel> OBJ_Load(const char *filename)
+std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
 {
     SysFile objFile(filename, FileOpen_Read);
     if (!objFile.IsValid())
         return nullptr;
 
     DEBUG_LOG_TEXT("Loading %s...", filename);
-    auto rawModel = std::make_shared<dev::OBJ_RawModel>();
-    dev::OBJ_FaceGroup *rawFaceGroup = rawModel->CreateEmptyFaceGroup("default");
+    auto rawModel = std::make_shared<OBJ_RawModel>();
+    OBJ_FaceGroup *rawFaceGroup = rawModel->CreateEmptyFaceGroup("default");
 
     OBJ_Material defaultMaterial;
     MakeDefaultMaterial(defaultMaterial);
@@ -263,10 +249,7 @@ std::shared_ptr<dev::OBJ_RawModel> OBJ_Load(const char *filename)
         }
         else if (ReadToken(linebuf, "f "))
         {
-            // TODO: Remove deprecated ObjFace -> OBJ_Face conversion
-            ObjFace f = ReadFace(linebuf);  
-
-            dev::OBJ_Face face(f);
+            OBJ_Face face = ReadFace(linebuf);  
             rawFaceGroup->faces.push_back(face);
         } else if (ReadToken(linebuf, "o "))
         {
@@ -274,7 +257,6 @@ std::shared_ptr<dev::OBJ_RawModel> OBJ_Load(const char *filename)
             rawModel->name = modelName;
         } else if (ReadToken(linebuf, "g "))
         {
-            ObjSurface surf;
             if (material->name == defaultMaterial.name)
             {
                 rawModel->materials[defaultMaterial.name] = defaultMaterial;
@@ -317,8 +299,6 @@ std::shared_ptr<dev::OBJ_RawModel> OBJ_Load(const char *filename)
     return rawModel;
 }
 
-namespace dev
-{
 bool operator<(const OBJ_Edge &a, const OBJ_Edge &b)
 {
     if (a.vertexIndex != b.vertexIndex)
@@ -328,20 +308,18 @@ bool operator<(const OBJ_Edge &a, const OBJ_Edge &b)
 
     return false;
 }
-}
 
-std::shared_ptr<dev::OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<dev::OBJ_RawModel> rawModel)
+std::shared_ptr<OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<OBJ_RawModel> rawModel)
 {
-    auto compiledModel = std::make_shared<dev::OBJ_CompiledModel>();
-
+    auto compiledModel = std::make_shared<OBJ_CompiledModel>();
     compiledModel->name = rawModel->name;
 
     for (const auto &faceGroup : rawModel->faceGroups)
     {
         // TODO: using unordered map would probably be faster
-        std::map<dev::OBJ_Edge, dev::OBJ_Index> vertexCache;
+        std::map<OBJ_Edge, OBJ_Index> vertexCache;
 
-        dev::OBJ_TriSurface surface;
+        OBJ_TriSurface surface;
         surface.name = faceGroup.name;
        
         auto materialSearch = rawModel->materials.find(faceGroup.materialName);
@@ -352,7 +330,7 @@ std::shared_ptr<dev::OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_pt
 
         for (const auto &face : faceGroup.faces)
         {
-            dev::OBJ_Edge triangleEdges[3] = {
+            OBJ_Edge triangleEdges[3] = {
                 face.edges[0],
                 {},
                 face.edges[1]
@@ -394,5 +372,4 @@ std::shared_ptr<dev::OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_pt
     return compiledModel;
 }
 
-} // priv
 } // engine

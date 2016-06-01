@@ -4,64 +4,6 @@
 namespace renderer
 {
 
-namespace priv
-{
-
-struct OBJVertex
-{
-    OBJVertex(const glm::vec3 &inPosition,
-              const glm::vec3 &inNormal,
-              const glm::vec2 &inUv) :
-        position(inPosition),
-        normal(inNormal),
-        uv(inUv)
-    {
-    }
-
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec2 uv;
-};
-
-struct ObjIndex
-{
-    uint16_t v;
-    uint16_t vt;
-    uint16_t vn;
-};
-
-typedef std::vector<ObjIndex> ObjFace;
-typedef std::vector<ObjFace> ObjFaceGroup;
-
-struct OBJ_Material
-{
-    std::string name;
-    glm::vec3 ambientColor;
-    glm::vec3 diffuseColor;
-    glm::vec3 specularColor;
-    std::string ambientTexture;
-    std::string diffuseTexture;
-    std::string specularTexture;
-    float dissolve;
-    float shininess;
-};
-
-typedef std::unordered_map<std::string, OBJ_Material> ObjMaterialMap;
-
-struct ObjSurface
-{
-    std::string name;
-    std::vector<OBJVertex> vertices;
-    std::vector<uint16_t> indices;
-    OBJ_Material *material;
-};
-
-//
-//   =< dev >=
-////////////////////////////////////////////////////////////////////////////
-namespace dev
-{
-
 typedef uint16_t OBJ_Index;
 
 struct OBJ_Edge
@@ -79,17 +21,6 @@ struct OBJ_Edge
 
 struct OBJ_Face
 {
-    OBJ_Face() = default;
-
-    // temporary for easy conversion from the deprecated code
-    OBJ_Face(const ObjFace &src)
-    {
-        for (const auto &it : src)
-        {
-            edges.emplace_back(it.v, it.vt);
-        }
-    }
-
     std::vector<OBJ_Edge> edges;
     glm::vec3 normal;
 };
@@ -105,6 +36,21 @@ struct OBJ_FaceGroup
     std::string materialName;
     std::vector<OBJ_Face> faces;
 };
+
+struct OBJ_Material
+{
+    std::string name;
+    glm::vec3 ambientColor;
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
+    std::string ambientTexture;
+    std::string diffuseTexture;
+    std::string specularTexture;
+    float dissolve;
+    float shininess;
+};
+
+typedef std::unordered_map<std::string, OBJ_Material> OBJ_MaterialMap;
 
 struct OBJ_RawModel
 {
@@ -131,7 +77,7 @@ struct OBJ_RawModel
     std::vector<glm::vec3> normals;
     std::vector<glm::vec2> texCoords;
     std::vector<OBJ_FaceGroup> faceGroups;
-    std::unordered_map<std::string, OBJ_Material> materials;
+    OBJ_MaterialMap materials;
 };
 
 struct OBJ_Vertex
@@ -165,18 +111,7 @@ struct OBJ_CompiledModel
     std::vector<OBJ_TriSurface> surfaces;
 };
 
-}   // namespace dev
+std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename);
+std::shared_ptr<OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<OBJ_RawModel> rawModel);
 
-struct ObjModel
-{
-    std::string name;
-    std::vector<ObjSurface> surfaces;
-    ObjMaterialMap materials;
-};
-
-bool MTL_Load(const char *filename, ObjMaterialMap &materials);
-std::shared_ptr<dev::OBJ_RawModel> OBJ_Load(const char *filename);
-std::shared_ptr<dev::OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<dev::OBJ_RawModel> rawModel);
-
-} // priv
 } // engine

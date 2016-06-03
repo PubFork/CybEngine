@@ -62,8 +62,8 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
         renderer::SurfaceGeometry *geo = &drawSurface.geometry;
         geo->primitive = Primitive_TriangleList;
         geo->vertexDeclaration = vertexDeclaration;
-        geo->VBO = device->CreateBuffer(&surface.vertices[0], sizeof(OBJ_Vertex) * surface.vertices.size(), Buffer_Vertex | Buffer_ReadOnly);
-        geo->IBO = device->CreateBuffer(&surface.indices[0], sizeof(uint16_t) * surface.indices.size(), Buffer_Index | Buffer_ReadOnly);
+        geo->VBO = device->CreateBuffer(Buffer_Vertex | Buffer_ReadOnly, &surface.vertices[0], sizeof(OBJ_Vertex) * surface.vertices.size());
+        geo->IBO = device->CreateBuffer(Buffer_Index | Buffer_ReadOnly, &surface.indices[0], sizeof(uint16_t) * surface.indices.size());
         geo->indexCount = (uint32_t)surface.indices.size();
 
         // copy material

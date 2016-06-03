@@ -107,6 +107,11 @@ struct OBJ_TriSurface
 
 struct OBJ_CompiledModel
 {
+    OBJ_CompiledModel(const std::string &inName) :
+        name(inName)
+    {
+    }
+
     std::string name;
     std::vector<OBJ_TriSurface> surfaces;
 };

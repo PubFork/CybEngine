@@ -174,8 +174,18 @@ public:
     }
 };
 
-typedef OpenGLTextureBase<ITexture>            OpenGLTexture;
-typedef OpenGLTextureBase<OpenGLBaseTexture2D> OpenGLTexture2D;
+class OpenGLBaseTextureCube : public ITextureCube
+{
+public:
+    OpenGLBaseTextureCube(uint32_t inWidth, uint32_t inHeight, uint32_t inNumMips, PixelFormat inFormat) :
+        ITextureCube(inWidth, inHeight, inNumMips, inFormat)
+    {
+    }
+};
+
+typedef OpenGLTextureBase<ITexture>              OpenGLTexture;
+typedef OpenGLTextureBase<OpenGLBaseTexture2D>   OpenGLTexture2D;
+typedef OpenGLTextureBase<OpenGLBaseTextureCube> OpenGLTextureCube;
 
 class OpenGLRenderDevice : public IRenderDevice
 {
@@ -186,12 +196,13 @@ public:
     virtual void Init();
     virtual void Shutdown();
 
-    virtual std::shared_ptr<IBuffer> CreateBuffer(const void *data, size_t size, int usageFlags);
+    virtual std::shared_ptr<IBuffer> CreateBuffer(int usageFlags, const void *data, size_t size);
     virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements);
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &FS);
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &GS, const ShaderBytecode &FS);
     virtual void SetShaderProgram(const std::shared_ptr<IShaderProgram> program);
     virtual std::shared_ptr<ITexture2D> CreateTexture2D(int32_t width, int32_t height, PixelFormat format, int32_t numMipMaps, const void *data);
+    virtual std::shared_ptr<ITextureCube> CreateTextureCube(int32_t width, int32_t height, PixelFormat format, const void *data[]);
     virtual void SetTexture(uint32_t textureIndex, const std::shared_ptr<ITexture> texture);
     virtual std::shared_ptr<ISamplerState> OpenGLRenderDevice::CreateSamplerState(const SamplerStateInitializer &initializer);
     virtual void SetSamplerState(uint32_t textureIndex, const std::shared_ptr<ISamplerState> state);

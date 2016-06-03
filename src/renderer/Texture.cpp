@@ -87,6 +87,51 @@ std::shared_ptr<ITexture2D> TextureCache::LoadTexture2DFromMemory(const char *na
     return image;
 }
 
+std::shared_ptr<ITextureCube> TextureCache::LoadTextureCubeFromFiles(const char *filenames[6])
+{
+    stbi_uc *imageBuffers[6] = {};
+    int32_t cubeWidth = 0;
+    int32_t cubeHeight = 0;
+
+    for (uint32_t i = 0; i < 6; i++)
+    {
+        const char *filename = filenames[i];
+
+        SysFile textureFile(filename, FileOpen_Read);
+        if (textureFile.IsValid())
+        {
+            DEBUG_LOG_TEXT("Loading image from file %s [hash 0x%x]...", filename, CalculateMurmurHash(filename, strlen(filename)));
+
+            const size_t textureBufferSize = textureFile.GetLength();
+            const stbi_uc *rawTextureBuffer = new stbi_uc[textureBufferSize];
+            textureFile.Read((uint8_t *)rawTextureBuffer, textureBufferSize);
+
+            int width, height, bpp;
+            stbi_set_flip_vertically_on_load(1);        // convert to opengl texture coordniate system
+
+            imageBuffers[i] = stbi_load_from_memory(rawTextureBuffer, (int)textureBufferSize, &width, &height, &bpp, 4);
+            cubeWidth = width;
+            cubeHeight = height;
+            delete[] rawTextureBuffer;
+            
+            if (!imageBuffers[i])
+            {
+                DEBUG_LOG_TEXT("Failed to load image %s: %s", filename, stbi_failure_reason());
+                throw FatalException(std::string("Failed to load texture ") + filename);
+            }
+        }
+    }
+
+    auto textureCube = device->CreateTextureCube(cubeWidth, cubeHeight, renderer::PixelFormat_R8G8B8A8, (const void **)imageBuffers);
+
+    for (uint32_t i = 0; i < 6; i++)
+    {
+        stbi_image_free(imageBuffers[i]);
+    }
+
+    return textureCube;
+}
+
 std::shared_ptr<ITexture2D> TextureCache::FindImage(uint32_t hashKey)
 {
     const auto searchResult = imageCache.find(hashKey);

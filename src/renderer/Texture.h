@@ -19,6 +19,8 @@ public:
     std::shared_ptr<ITexture2D> LoadTexture2DFromFile(const char *filename);
     std::shared_ptr<ITexture2D> LoadTexture2DFromMemory(const char *name, uint32_t width, uint32_t height, PixelFormat format, const void *pixels);
 
+    std::shared_ptr<ITextureCube> LoadTextureCubeFromFiles(const char *filesnames[6]);
+
 private:
     std::shared_ptr<ITexture2D> FindImage(uint32_t hashKey);
     std::shared_ptr<ITexture2D> ImageFromMemoryInternal(uint32_t hashKey, uint32_t width, uint32_t height, PixelFormat format, const void *pixels);

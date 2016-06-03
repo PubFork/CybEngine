@@ -61,6 +61,18 @@ enum RasterizerFillMode
     FillMode_Solid
 };
 
+enum CompareFunction
+{
+    CmpFunc_Less,
+    CmpFunc_LessEqual,
+    CmpFunc_Greater,
+    CmpFunc_GreaterEqual,
+    CmpFunc_Equal,
+    CmpFunc_NotEqual,
+    CmpFunc_Never,
+    CmpFunc_Always
+};
+
 enum SamplerFilter
 {
     SamplerFilter_Point,
@@ -261,6 +273,24 @@ private:
     uint32_t height;
 };
 
+class ITextureCube : public ITexture
+{
+public:
+    ITextureCube(uint32_t inWidth, uint32_t inHeight, uint32_t inNumMipMaps, PixelFormat inFormat) :
+        ITexture(inNumMipMaps, inFormat),
+        width(inWidth),
+        height(inHeight)
+    {
+    }
+
+    uint32_t GetWidth()  const { return width; }
+    uint32_t GetHeight() const { return height; }
+
+private:
+    uint32_t width;
+    uint32_t height;
+};
+
 //
 // Surface structures
 //
@@ -291,6 +321,22 @@ struct RasterizerState
     float lineWidth;
 };
 
+struct DepthBufferState
+{
+    DepthBufferState(bool inEnabled = true,
+                     bool inWriteMask = true,
+                     CompareFunction inFunction = CmpFunc_Less) :
+        enabled(inEnabled),
+        writeMask(inWriteMask),
+        function(inFunction)
+    {
+    }
+
+    bool enabled;
+    bool writeMask;
+    CompareFunction function;
+};
+
 struct SurfaceGeometry
 {
     SurfaceGeometry() : 
@@ -298,17 +344,33 @@ struct SurfaceGeometry
     {
     }
 
-    uint32_t indexCount;
+    SurfaceGeometry(PrimitiveType inPrimitive,
+                    std::shared_ptr<IVertexDeclaration> inVertexDeclaration,
+                    std::shared_ptr<IBuffer> inVBO,
+                    std::shared_ptr<IBuffer> inIBO,
+                    uint32_t inIndexCount,
+                    uint32_t inPrimitiveCount) :
+        primitive(inPrimitive),
+        vertexDeclaration(inVertexDeclaration),
+        VBO(inVBO),
+        IBO(inIBO),
+        indexCount(inIndexCount),
+        primitiveCount(inPrimitiveCount)
+    {
+    }
+
     PrimitiveType primitive;
     std::shared_ptr<IVertexDeclaration> vertexDeclaration;
     std::shared_ptr<IBuffer> VBO;
     std::shared_ptr<IBuffer> IBO;
+    uint32_t indexCount;
+    uint32_t primitiveCount;
 };
 
 struct SurfaceMaterial
 {
     enum { MaxNumTextures = 4 };
-    std::shared_ptr<ITexture2D> texture[MaxNumTextures];
+    std::shared_ptr<ITexture> texture[MaxNumTextures];
 
     glm::vec3 ambient;
     glm::vec3 diffuse;
@@ -327,6 +389,7 @@ struct Surface
     SurfaceGeometry geometry;
     SurfaceMaterial material;
     RasterizerState rasterState;
+    DepthBufferState depthState;
 };
 
 //
@@ -352,12 +415,16 @@ public:
     virtual void Init() = 0;
     virtual void Shutdown() = 0;
 
-    virtual std::shared_ptr<IBuffer> CreateBuffer(const void *data, size_t size, int usageFlags) = 0;
+    virtual std::shared_ptr<IBuffer> CreateBuffer(int usageFlags, const void *data, size_t size) = 0;
     virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements) = 0;
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &FS) = 0;
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &GS, const ShaderBytecode &FS) = 0;
     virtual void SetShaderProgram(const std::shared_ptr<IShaderProgram> program) = 0;
     virtual std::shared_ptr<ITexture2D> CreateTexture2D(int32_t width, int32_t height, PixelFormat format, int32_t numMipMaps, const void *data) = 0;
+
+    // data array order has to be: 0=right, 1=left, 2=top, 3=bottom, 4=back, 5=front
+    virtual std::shared_ptr<ITextureCube> CreateTextureCube(int32_t width, int32_t height, PixelFormat format, const void *data[]) = 0;
+
     virtual void SetTexture(uint32_t textureIndex, const std::shared_ptr<ITexture> texture) = 0;
     virtual std::shared_ptr<ISamplerState> CreateSamplerState(const SamplerStateInitializer &initializer) = 0;
     virtual void SetSamplerState(uint32_t textureIndex, const std::shared_ptr<ISamplerState> state) = 0;

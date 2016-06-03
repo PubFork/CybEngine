@@ -26,6 +26,7 @@
     <ClCompile Include="src\Base\Timer.cpp" />
     <ClCompile Include="src\Game\Camera.cpp" />
     <ClCompile Include="src\Game\GameApp.cpp" />
+    <ClCompile Include="src\Game\SkyBox.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Precompiled.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -51,6 +52,7 @@
     <ClInclude Include="src\Base\Timer.h" />
     <ClInclude Include="src\Game\Camera.h" />
     <ClInclude Include="src\Game\GameApp.h" />
+    <ClInclude Include="src\Game\SkyBox.h" />
     <ClInclude Include="src\Renderer\Model.h" />
     <ClInclude Include="src\Renderer\Model_obj.h" />
     <ClInclude Include="src\renderer\RenderDevice.h" />
@@ -66,6 +68,8 @@
     <None Include="assets\shaders\debug-normals_fs.glsl" />
     <None Include="assets\shaders\debug-normals_gs.glsl" />
     <None Include="assets\shaders\debug-normals_vs.glsl" />
+    <None Include="assets\shaders\skybox.frag" />
+    <None Include="assets\shaders\skybox.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F7F37146-1DDE-4A6D-93F0-A1F089C157B8}</ProjectGuid>

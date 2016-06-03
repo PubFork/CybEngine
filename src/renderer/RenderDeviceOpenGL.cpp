@@ -224,6 +224,23 @@ GLint TranslateWrapMode(SamplerWrapMode mode)
     return GL_REPEAT;
 }
 
+GLenum TranslateCompareFunction(CompareFunction function)
+{
+    switch (function)
+    {
+    case CmpFunc_Less: return GL_LESS;
+    case CmpFunc_LessEqual: return GL_LEQUAL;
+    case CmpFunc_Greater: return GL_GREATER;
+    case CmpFunc_GreaterEqual: return GL_GEQUAL;
+    case CmpFunc_Equal: return GL_EQUAL;
+    case CmpFunc_NotEqual: return GL_NOTEQUAL;
+    case CmpFunc_Never: return GL_NEVER;
+    case CmpFunc_Always: return GL_ALWAYS;
+    }
+
+    return GL_LESS;
+}
+
 void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar *message, const void * /*userParam*/)
 {
     static std::unordered_map<GLenum, const char *> toString = {
@@ -287,8 +304,6 @@ void OpenGLRenderDevice::Init()
     glGenVertexArrays(1, &vaoId);
 
     // setup default states
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
     glFrontFace(GL_CCW);
 
    // glEnable(GL_MULTISAMPLE);
@@ -315,7 +330,7 @@ void OpenGLRenderDevice::Shutdown()
     }
 }
 
-std::shared_ptr<IBuffer> OpenGLRenderDevice::CreateBuffer(const void *data, size_t size, int usageFlags)
+std::shared_ptr<IBuffer> OpenGLRenderDevice::CreateBuffer(int usageFlags, const void *data, size_t size)
 {
     GLenum target = GL_INVALID_ENUM;
     switch (usageFlags & Buffer_TypeMask)
@@ -409,15 +424,47 @@ std::shared_ptr<ITexture2D> OpenGLRenderDevice::CreateTexture2D(int32_t width, i
     glCreateTextures(target, 1, &textureId);
     glBindTexture(target, textureId);
 
-    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, numMipMaps > 1 ? GL_NEAREST_MIPMAP_NEAREST : GL_NEAREST);
+    glTextureParameteri(textureId, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTextureParameteri(textureId, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTextureParameteri(textureId, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTextureParameteri(textureId, GL_TEXTURE_MIN_FILTER, numMipMaps > 1 ? GL_NEAREST_MIPMAP_NEAREST : GL_NEAREST);
 
     glTexImage2D(target, 0, formatInfo->internalFormat, width, height, 0, formatInfo->format, formatInfo->type, data);
     glGenerateMipmap(target);
 
     auto texture = std::make_shared<OpenGLTexture2D>(
+        textureId,
+        target,
+        width,
+        height,
+        CalculateNumMipLevels(width, height),
+        format);
+    return texture;
+}
+
+std::shared_ptr<ITextureCube> OpenGLRenderDevice::CreateTextureCube(int32_t width, int32_t height, PixelFormat format, const void *data[])
+{
+    const OpenGLTextureFormatInfo *formatInfo = &pixelFormats[format];
+    const GLenum target = GL_TEXTURE_CUBE_MAP;
+    GLuint textureId = 0;
+
+    glCreateTextures(target, 1, &textureId);
+    glBindTexture(target, textureId);
+
+    glTextureParameteri(textureId, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(textureId, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(textureId, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(textureId, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTextureParameteri(textureId, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    for (uint32_t i = 0; i < 6; i++)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, formatInfo->internalFormat, width, height, 0, formatInfo->format, formatInfo->type, data[i]);
+    }
+
+    glGenerateMipmap(target);
+
+    auto texture = std::make_shared<OpenGLTextureCube>(
         textureId,
         target,
         width,
@@ -481,6 +528,7 @@ std::shared_ptr<ISamplerState> OpenGLRenderDevice::CreateSamplerState(const Samp
     glGenSamplers(1, &samplerState->resource);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_S, samplerState->wrapS);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_T, samplerState->wrapT);
+    glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_R, samplerState->wrapT);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_LOD_BIAS, samplerState->LODBias);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_MAG_FILTER, samplerState->magFilter);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_MIN_FILTER, samplerState->minFilter);
@@ -509,7 +557,7 @@ void OpenGLRenderDevice::Clear(uint32_t targets, const glm::vec4 color, float de
     glClear(mask);
 }
 
-static void SetRasterizerState(const RasterizerState &state)
+void OpenGLSetRasterizerState(const RasterizerState &state)
 {
     const RasterizerCullMode cullMode = state.cullMode;
     if (cullMode == CullMode_None)
@@ -534,6 +582,23 @@ static void SetRasterizerState(const RasterizerState &state)
     }
 }
 
+void OpenGLSetDepthBufferState(const DepthBufferState &state)
+{
+    if (state.enabled)
+    {
+        const GLboolean depthMaskFlag = (state.writeMask == true) ? GL_TRUE : GL_FALSE;
+        const GLenum compareFunction = TranslateCompareFunction(state.function);
+
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(depthMaskFlag);
+        glDepthFunc(compareFunction);
+    }
+    else
+    {
+        glDisable(GL_DEPTH_TEST);
+    }
+}
+
 void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
 {
     assert(surf);
@@ -548,6 +613,13 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     int32_t viewMatrixLoc = currentShaderProgram->GetParameterLocation("u_viewMatrix");
     int32_t modelViewMatrixLoc = currentShaderProgram->GetParameterLocation("u_modelViewMatrix");
 
+    int32_t skyboxViewMatrixLoc = currentShaderProgram->GetParameterLocation("skyboxViewMatrix");
+    if (skyboxViewMatrixLoc != -1)
+    {
+        glm::mat4 skyboxViewMatrix = glm::mat4(glm::mat3(glm::make_mat4(camera->GetViewMatrix())));
+        currentShaderProgram->SetMat4(skyboxViewMatrixLoc, glm::value_ptr(skyboxViewMatrix));
+    }
+
     currentShaderProgram->SetMat4(projMatrixLoc, camera->GetProjMatrix());
     currentShaderProgram->SetMat4(viewMatrixLoc, camera->GetViewMatrix());
     currentShaderProgram->SetMat4(modelViewMatrixLoc, camera->GetViewMatrix());
@@ -555,9 +627,11 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     int32_t viewPosLoc = currentShaderProgram->GetParameterLocation("u_viewPos");
     currentShaderProgram->SetVec3(viewPosLoc, camera->GetViewPositionVector());
 
-    // setup material
-    SetRasterizerState(surf->rasterState);
+    // setup states
+    OpenGLSetRasterizerState(surf->rasterState);
+    OpenGLSetDepthBufferState(surf->depthState);
 
+    // setup materials
     const SurfaceMaterial *material = &surf->material;
     currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Ka"), glm::value_ptr(material->ambient));
     currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Kd"), glm::value_ptr(material->diffuse));
@@ -573,7 +647,11 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     const std::shared_ptr<OpenGLBuffer> VBO = std::static_pointer_cast<OpenGLBuffer>(geo->VBO);
     const std::shared_ptr<OpenGLBuffer> IBO = std::static_pointer_cast<OpenGLBuffer>(geo->IBO);
     glBindBuffer(VBO->target, VBO->resource);
-    glBindBuffer(IBO->target, IBO->resource);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    if (IBO != nullptr)
+    {
+        glBindBuffer(IBO->target, IBO->resource);
+    }
 
     for (const auto &element : vertexDeclaration->vertexElements)
     {
@@ -582,10 +660,20 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     }
 
     // draw
-    //BindVertexLayout(pipelineState->GetVertexLayout());
     const GLuint prim = TranslatePrimitiveType(geo->primitive);
-    glDrawElements(prim, geo->indexCount, GL_UNSIGNED_SHORT, NULL);
-    //UnBindVertexLayout(pipelineState->GetVertexLayout());
+    if (IBO == nullptr)
+    {
+        glDrawArrays(GL_TRIANGLES, 0, geo->primitiveCount);
+    }
+    else
+    {
+        glDrawElements(prim, geo->indexCount, GL_UNSIGNED_SHORT, NULL);
+    }
+
+    for (const auto &element : vertexDeclaration->vertexElements)
+    {
+        glDisableVertexAttribArray(element.attributeLocation);
+    }
 }
 
 std::shared_ptr<IRenderDevice> CreateRenderDevice()

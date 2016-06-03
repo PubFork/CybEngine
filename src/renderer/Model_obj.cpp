@@ -311,8 +311,7 @@ bool operator<(const OBJ_Edge &a, const OBJ_Edge &b)
 
 std::shared_ptr<OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<OBJ_RawModel> rawModel)
 {
-    auto compiledModel = std::make_shared<OBJ_CompiledModel>();
-    compiledModel->name = rawModel->name;
+    auto compiledModel = std::make_shared<OBJ_CompiledModel>(rawModel->name);
 
     for (const auto &faceGroup : rawModel->faceGroups)
     {

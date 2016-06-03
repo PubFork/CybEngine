@@ -39,7 +39,8 @@ const float *BaseCamera::GetProjMatrix() const
 // private:
 void BaseCamera::UpdateProjectionMatrix()
 {
-    projMatrix = glm::perspective(verticalFOV, aspectRatio, nearZClip, farZClip);
+    //projMatrix = glm::perspective(verticalFOV, aspectRatio, nearZClip, farZClip);
+    projMatrix = glm::infinitePerspective(verticalFOV, aspectRatio, nearZClip);
 }
 
 //==============================

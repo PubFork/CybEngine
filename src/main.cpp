@@ -4,8 +4,10 @@
 #include "Base/Debug.h"
 #include "Base/File.h"
 #include "Renderer/Model.h"
+#include "Renderer/Texture.h"
 #include "Game/GameApp.h"
 #include "Game/Camera.h"
+#include "Game/SkyBox.h"
 #include <GLFW/glfw3.h>
 
 class GameApp : public GameAppBase
@@ -22,8 +24,10 @@ private:
     BaseCamera camera;
     CameraController cameraControl;
     std::shared_ptr<renderer::Model> model;
+    renderer::Surface skyboxSurface;
 
     std::shared_ptr<renderer::IShaderProgram> program;
+    std::shared_ptr<renderer::IShaderProgram> skyboxProgram;
     std::shared_ptr<renderer::IShaderProgram> debugNormalProgram;
 };
 
@@ -31,12 +35,26 @@ bool GameApp::Init()
 {
     program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/blinn-phong.vert", "assets/shaders/blinn-phong.frag");
     THROW_FATAL_COND(!program, "Fatal: Failed to create shader program!");
+    skyboxProgram = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/skybox.vert", "assets/shaders/skybox.frag");
+    THROW_FATAL_COND(!skyboxProgram, "Fatal: Failed to create shader program!");
     debugNormalProgram = renderer::CreateShaderProgramFromFiles(renderDevice,
                                                                 "assets/shaders/debug-normals_vs.glsl",
                                                                 "assets/shaders/debug-normals_gs.glsl",
                                                                 "assets/shaders/debug-normals_fs.glsl");
     THROW_FATAL_COND(!debugNormalProgram, "Fatal: Failed to create shader program!");
     renderDevice->SetShaderProgram(program);
+
+    const char *skyboxFilenames[] = 
+    {
+        "assets/nv_sky/right.jpg",
+        "assets/nv_sky/left.jpg",
+        "assets/nv_sky/bottom.jpg",
+        "assets/nv_sky/top.jpg",
+        "assets/nv_sky/back.jpg",
+        "assets/nv_sky/front.jpg",
+    };
+
+    CreateSkyBoxSurface(renderDevice, skyboxSurface, skyboxFilenames);
 
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
     model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
@@ -78,6 +96,9 @@ void GameApp::Render()
 
     {
         SCOOPED_PROFILE_EVENT("Draw");
+        renderDevice->SetShaderProgram(skyboxProgram);
+        renderDevice->Render(&skyboxSurface, &camera);
+
         renderDevice->SetShaderProgram(program);
         model->Render(renderDevice, &camera);
 

@@ -85,7 +85,8 @@ enum SamplerWrapMode
 {
     SamplerWrap_Repeat,
     SamplerWrap_RepeatMirror,
-    SamplerWrap_Clamp
+    SamplerWrap_Clamp,
+    SamplerWrap_ClampToEdge
 };
 
 enum PixelFormat
@@ -207,6 +208,7 @@ struct SamplerStateInitializer
     SamplerStateInitializer(SamplerFilter inFilter,
                             SamplerWrapMode inWrapU = SamplerWrap_Repeat,
                             SamplerWrapMode inWrapV = SamplerWrap_Repeat,
+                            SamplerWrapMode inWrapW = SamplerWrap_Repeat,
                             uint32_t inMaxAnisotropy = 0,
                             int32_t inMipBias = 0,
                             uint32_t inMinMipLevel = 0,
@@ -214,6 +216,7 @@ struct SamplerStateInitializer
         filter(inFilter),
         wrapU(inWrapU),
         wrapV(inWrapV),
+        wrapW(inWrapW),
         mipBias(inMipBias),
         minMipLevel(inMinMipLevel),
         maxMipLevel(inMaxMipLevel),
@@ -226,6 +229,7 @@ struct SamplerStateInitializer
     SamplerFilter filter;
     SamplerWrapMode wrapU;
     SamplerWrapMode wrapV;
+    SamplerWrapMode wrapW;
     int32_t mipBias;
     uint32_t minMipLevel;
     uint32_t maxMipLevel;
@@ -370,8 +374,9 @@ struct SurfaceGeometry
 struct SurfaceMaterial
 {
     enum { MaxNumTextures = 4 };
-    std::shared_ptr<ITexture> texture[MaxNumTextures];
 
+    std::shared_ptr<ISamplerState> sampler[MaxNumTextures];
+    std::shared_ptr<ITexture> texture[MaxNumTextures];
     glm::vec3 ambient;
     glm::vec3 diffuse;
     glm::vec3 specular;

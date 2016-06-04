@@ -23,6 +23,7 @@ private:
     std::shared_ptr<renderer::ISamplerState> samplerState;
     BaseCamera camera;
     CameraController cameraControl;
+    std::shared_ptr<renderer::ISamplerState> modelSampler;
     std::shared_ptr<renderer::Model> model;
     renderer::Surface skyboxSurface;
 
@@ -70,11 +71,11 @@ bool GameApp::Init()
     BindMouseMove([=](const MouseStateInfo &mouseState) { if (mouseState.isGrabbed) { cameraControl.RotateLookAtDirection(mouseState.offset); } });
 
     // sampler state control
-    BindKey(GLFW_KEY_1, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point))); });
-    BindKey(GLFW_KEY_2, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Bilinear))); });
-    BindKey(GLFW_KEY_3, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Trilinear))); });
-    BindKey(GLFW_KEY_4, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Anisotropic, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 16))); });
-    BindKey(GLFW_KEY_5, [=](void) { renderDevice->SetSamplerState(0, renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 0, 3))); });
+    BindKey(GLFW_KEY_1, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point)); });
+    BindKey(GLFW_KEY_2, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Bilinear)); });
+    BindKey(GLFW_KEY_3, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Trilinear)); });
+    BindKey(GLFW_KEY_4, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Anisotropic, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 16)); });
+    BindKey(GLFW_KEY_5, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 0, 3)); });
 
     return true;
 }
@@ -99,6 +100,10 @@ void GameApp::Render()
         renderDevice->SetShaderProgram(skyboxProgram);
         renderDevice->Render(&skyboxSurface, &camera);
 
+        if (modelSampler)
+        {
+            renderDevice->SetSamplerState(0, modelSampler);
+        }
         renderDevice->SetShaderProgram(program);
         model->Render(renderDevice, &camera);
 

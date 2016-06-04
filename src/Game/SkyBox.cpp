@@ -64,6 +64,13 @@ void CreateSkyBoxSurface(std::shared_ptr<renderer::IRenderDevice> device, render
     );
 
     surface.material.texture[0] = renderer::globalTextureCache->LoadTextureCubeFromFiles(textureFileNames);
+    surface.material.sampler[0] = device->CreateSamplerState(renderer::SamplerStateInitializer(
+        renderer::SamplerFilter_Anisotropic,
+        renderer::SamplerWrap_Clamp,
+        renderer::SamplerWrap_Clamp,
+        renderer::SamplerWrap_Clamp
+    ));
+
     surface.rasterState.cullMode = renderer::CullMode_CW;
     surface.depthState.enabled = true;
     surface.depthState.writeMask = false;

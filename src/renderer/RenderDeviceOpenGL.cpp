@@ -311,7 +311,7 @@ void OpenGLRenderDevice::Init()
     // set default filter mode to anisotropic with max anisotropy
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, (GLint *)&imageFilterMaxAnisotropy);
     DEBUG_LOG_TEXT("Max texture anisotropy: %d", imageFilterMaxAnisotropy);
-    const SamplerStateInitializer initializer(SamplerFilter_Anisotropic, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, imageFilterMaxAnisotropy);
+    const SamplerStateInitializer initializer(SamplerFilter_Anisotropic, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, imageFilterMaxAnisotropy);
     const std::shared_ptr<ISamplerState> samplerState = CreateSamplerState(initializer);
     SetSamplerState(0, samplerState);
     SetSamplerState(1, samplerState);
@@ -502,6 +502,7 @@ std::shared_ptr<ISamplerState> OpenGLRenderDevice::CreateSamplerState(const Samp
 
     samplerState->wrapS = TranslateWrapMode(initializer.wrapU);
     samplerState->wrapT = TranslateWrapMode(initializer.wrapV);
+    samplerState->wrapR = TranslateWrapMode(initializer.wrapW);
     samplerState->LODBias = initializer.mipBias;
 
     switch (initializer.filter)
@@ -528,7 +529,7 @@ std::shared_ptr<ISamplerState> OpenGLRenderDevice::CreateSamplerState(const Samp
     glGenSamplers(1, &samplerState->resource);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_S, samplerState->wrapS);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_T, samplerState->wrapT);
-    glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_R, samplerState->wrapT);
+    glSamplerParameteri(samplerState->resource, GL_TEXTURE_WRAP_R, samplerState->wrapR);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_LOD_BIAS, samplerState->LODBias);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_MAG_FILTER, samplerState->magFilter);
     glSamplerParameteri(samplerState->resource, GL_TEXTURE_MIN_FILTER, samplerState->minFilter);
@@ -639,7 +640,13 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     currentShaderProgram->SetFloat(currentShaderProgram->GetParameterLocation("Ns"), material->shininess);
 
     if (material->texture[0])
+    {
+        if (material->sampler[0])
+        {
+            SetSamplerState(0, material->sampler[0]);
+        }
         SetTexture(0, material->texture[0]);    // TODO: Texture state should be manually set by the user!
+    }
 
     // setup geometry
     const SurfaceGeometry *geo = &surf->geometry;

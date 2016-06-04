@@ -118,6 +118,7 @@ public:
         minFilter(GL_NEAREST),
         wrapS(GL_REPEAT),
         wrapT(GL_REPEAT),
+        wrapR(GL_REPEAT),
         LODBias(0),
         maxAnisotropy(1)
     {
@@ -129,6 +130,7 @@ public:
     GLint minFilter;
     GLint wrapS;
     GLint wrapT;
+    GLint wrapR;
     GLint LODBias;
     GLint maxAnisotropy;
 };

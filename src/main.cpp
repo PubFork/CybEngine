@@ -39,9 +39,9 @@ bool GameApp::Init()
     skyboxProgram = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/skybox.vert", "assets/shaders/skybox.frag");
     THROW_FATAL_COND(!skyboxProgram, "Fatal: Failed to create shader program!");
     debugNormalProgram = renderer::CreateShaderProgramFromFiles(renderDevice,
-                                                                "assets/shaders/debug-normals_vs.glsl",
-                                                                "assets/shaders/debug-normals_gs.glsl",
-                                                                "assets/shaders/debug-normals_fs.glsl");
+                                                                "assets/shaders/debug-normals.vert",
+                                                                "assets/shaders/debug-normals.geom",
+                                                                "assets/shaders/debug-normals.frag");
     THROW_FATAL_COND(!debugNormalProgram, "Fatal: Failed to create shader program!");
     renderDevice->SetShaderProgram(program);
 
@@ -71,10 +71,11 @@ bool GameApp::Init()
     BindMouseMove([=](const MouseStateInfo &mouseState) { if (mouseState.isGrabbed) { cameraControl.RotateLookAtDirection(mouseState.offset); } });
 
     // sampler state control
+    modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Anisotropic));
     BindKey(GLFW_KEY_1, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point)); });
     BindKey(GLFW_KEY_2, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Bilinear)); });
     BindKey(GLFW_KEY_3, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Trilinear)); });
-    BindKey(GLFW_KEY_4, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Anisotropic, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 16)); });
+    BindKey(GLFW_KEY_4, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Anisotropic)); });
     BindKey(GLFW_KEY_5, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 0, 3)); });
 
     return true;

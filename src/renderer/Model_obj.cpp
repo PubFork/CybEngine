@@ -26,7 +26,7 @@ glm::vec2 ReadVec2(const char *&buffer)
     const float x = ReadFloat(buffer);
     const float y = ReadFloat(buffer);
     return glm::vec2(x, y);
-}
+} 
 
 glm::vec3 ReadVec3(const char *&buffer)
 {
@@ -61,7 +61,7 @@ OBJ_Edge ReadFaceIndex(const char *&token)
 {
     OBJ_Edge edge = {};
 
-    edge.vertexIndex = atoi(token);
+    edge.vertexIndex = (OBJ_Index)atoi(token);
     token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
         return edge;
@@ -77,7 +77,7 @@ OBJ_Edge ReadFaceIndex(const char *&token)
     }
 
     // i/j/k or i/j
-    edge.texCoordIndex = atoi(token);
+    edge.texCoordIndex = (OBJ_Index)atoi(token);
     token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
         return edge;

@@ -1,4 +1,4 @@
-#version 420 core
+#version 330 core
 
 uniform mat4 u_projMatrix;
 uniform mat4 u_modelViewMatrix;

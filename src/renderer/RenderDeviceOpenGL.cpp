@@ -71,7 +71,7 @@ OpenGLShaderCompiler::~OpenGLShaderCompiler()
     std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glDeleteShader(shader); });
 }
 
-bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode)
+OpenGLShaderCompiler::Error OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode)
 {
     GLuint shader = glCreateShader(stage);
     glShaderSource(shader, 1, (const GLchar **)&bytecode.source, (const GLint *)&bytecode.length);
@@ -82,17 +82,19 @@ bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode
     if (!compiled)
     {
         GLchar infoLog[InfoLogSize];
-        glGetShaderInfoLog(shader, InfoLogSize, 0, infoLog);
+        glGetShaderInfoLog(shader, Min((GLsizei)bytecode.length, (GLsizei)InfoLogSize), 0, infoLog);
         DEBUG_LOG_TEXT_COND(infoLog[0], "Compiling shader:\n\n%s\nFailed: %s", bytecode.source, infoLog);
-        return false;
+        errorFlag = FailedToCompile;
+        return errorFlag;
     }
 
     compiledShaderStages.push_back(shader);
-    return true;
+    return errorFlag;
 }
 
-bool OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
+OpenGLShaderCompiler::Error OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
 {
+    errorFlag = NoError;
     GLuint program = glCreateProgram();
     std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glAttachShader(program, shader); });
 
@@ -113,11 +115,12 @@ bool OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
         GLchar infoLog[InfoLogSize];
         glGetProgramInfoLog(program, InfoLogSize, 0, infoLog);
         DEBUG_LOG_TEXT_COND(infoLog[0], "Linking shaders failed: %s", infoLog);
-        return false;
+        errorFlag = FailedToLink;
+        return errorFlag;
     }
 
     outProgram = program;
-    return true;
+    return errorFlag;
 }
 
 //
@@ -384,12 +387,15 @@ std::shared_ptr<IShaderProgram> OpenGLRenderDevice::CreateShaderProgram(const Sh
     compiler.CompileShaderStage(GL_FRAGMENT_SHADER, FS);
 
     GLuint programId = 0;
-    if (!compiler.LinkAndClearShaderStages(programId))
+    if (compiler.GetErrorFlag() == OpenGLShaderCompiler::NoError)
     {
-        return nullptr;
+        if (compiler.LinkAndClearShaderStages(programId) == OpenGLShaderCompiler::NoError)
+        {
+            return std::make_shared<OpenGLShaderProgram>(programId);
+        }
     }
 
-    return std::make_shared<OpenGLShaderProgram>(programId);
+    return nullptr;
 }
 
 std::shared_ptr<IShaderProgram> OpenGLRenderDevice::CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &GS, const ShaderBytecode &FS)
@@ -400,14 +406,16 @@ std::shared_ptr<IShaderProgram> OpenGLRenderDevice::CreateShaderProgram(const Sh
     compiler.CompileShaderStage(GL_FRAGMENT_SHADER, FS);
 
     GLuint programId = 0;
-    if (!compiler.LinkAndClearShaderStages(programId))
+    if (compiler.GetErrorFlag() == OpenGLShaderCompiler::NoError)
     {
-        return nullptr;
+        if (compiler.LinkAndClearShaderStages(programId) == OpenGLShaderCompiler::NoError)
+        {
+            return std::make_shared<OpenGLShaderProgram>(programId);
+        }
     }
 
-    return std::make_shared<OpenGLShaderProgram>(programId);
+    return nullptr;
 }
-
 
 void OpenGLRenderDevice::SetShaderProgram(const std::shared_ptr<IShaderProgram> program)
 {
@@ -515,14 +523,17 @@ std::shared_ptr<ISamplerState> OpenGLRenderDevice::CreateSamplerState(const Samp
     case SamplerFilter_Trilinear:
         samplerState->magFilter = GL_LINEAR;
         samplerState->minFilter = GL_LINEAR_MIPMAP_LINEAR;
+        samplerState->maxAnisotropy = 0;
         break;
     case SamplerFilter_Bilinear:
         samplerState->magFilter = GL_LINEAR;
         samplerState->minFilter = GL_LINEAR_MIPMAP_NEAREST;
+        samplerState->maxAnisotropy = 0;
         break;
     case SamplerFilter_Point:
         samplerState->magFilter = GL_NEAREST;
         samplerState->minFilter = GL_NEAREST_MIPMAP_NEAREST;
+        samplerState->maxAnisotropy = 0;
         break;
     }
 

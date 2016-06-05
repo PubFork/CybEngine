@@ -1,4 +1,4 @@
-#version 420 core
+#version 330 core
 out vec4 fragColor;
 
 in VertexInfo
@@ -23,20 +23,20 @@ uniform vec3 Ls = vec3(0.8);
 void main()
 {
 	const vec3 lightPos = vec3(0.0, 10.0, 0.0);
-	const vec3 L = normalize(lightPos - inVertex.position);
-	const vec3 N = normalize(inVertex.normal);
-	const vec3 V = normalize(u_viewPos - inVertex.position);
-	const vec3 H = normalize(L + V);
+	vec3 L = normalize(lightPos - inVertex.position);
+	vec3 N = normalize(inVertex.normal);
+	vec3 V = normalize(u_viewPos - inVertex.position);
+	vec3 H = normalize(L + V);
 	
-	const float NdotL = max(dot(N, L), 0.0);
+	float NdotL = max(dot(N, L), 0.0);
 
 	float specular = 0.0;
 	if (NdotL > 0)
 	{
-		const float NdotH = max(dot(N, H), 0.0);
+		float NdotH = max(dot(N, H), 0.0);
 		specular = pow(NdotH, Ns);
 	}
 
-	const vec3 finalLight = Ka*La + Kd*NdotL*Ld + Ks*specular*Ls;
+	vec3 finalLight = Ka*La + Kd*NdotL*Ld + Ks*specular*Ls;
 	fragColor = vec4(finalLight * texture(tex0, inVertex.texCoord0).rgb, 1.0);
 }

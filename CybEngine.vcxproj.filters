@@ -135,15 +135,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\shaders\debug-normals_gs.glsl">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="assets\shaders\debug-normals_vs.glsl">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="assets\shaders\debug-normals_fs.glsl">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
     <None Include="assets\shaders\cook-torrance.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
@@ -157,6 +148,15 @@
       <Filter>Resource Files\shaders</Filter>
     </None>
     <None Include="assets\shaders\skybox.vert">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\debug-normals.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\debug-normals.geom">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\debug-normals.vert">
       <Filter>Resource Files\shaders</Filter>
     </None>
   </ItemGroup>

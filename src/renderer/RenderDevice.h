@@ -209,7 +209,7 @@ struct SamplerStateInitializer
                             SamplerWrapMode inWrapU = SamplerWrap_Repeat,
                             SamplerWrapMode inWrapV = SamplerWrap_Repeat,
                             SamplerWrapMode inWrapW = SamplerWrap_Repeat,
-                            uint32_t inMaxAnisotropy = 0,
+                            uint32_t inMaxAnisotropy = 16,
                             int32_t inMipBias = 0,
                             uint32_t inMinMipLevel = 0,
                             uint32_t inMaxMipLevel = UINT32_MAX) :

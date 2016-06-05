@@ -83,13 +83,26 @@ class OpenGLShaderCompiler
 {
 public:
     enum { InfoLogSize = 1024 * 4 };
+    enum Error
+    {
+        NoError,
+        FailedToCompile,
+        FailedToLink
+    };
+
+    OpenGLShaderCompiler() :
+        errorFlag(NoError)
+    {
+    }
 
     ~OpenGLShaderCompiler();
-    bool CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode);
-    bool LinkAndClearShaderStages(GLuint &outProgram);
+    Error CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode);
+    Error LinkAndClearShaderStages(GLuint &outProgram); // Note: this clears any previous error flag
+    Error GetErrorFlag() const { return errorFlag; }
 
 private:
     std::vector<GLuint> compiledShaderStages;
+    Error errorFlag;
 };
 
 class OpenGLShaderProgram : public IShaderProgram

@@ -65,9 +65,9 @@
     <None Include="assets\shaders\blinn-phong.frag" />
     <None Include="assets\shaders\blinn-phong.vert" />
     <None Include="assets\shaders\cook-torrance.frag" />
-    <None Include="assets\shaders\debug-normals_fs.glsl" />
-    <None Include="assets\shaders\debug-normals_gs.glsl" />
-    <None Include="assets\shaders\debug-normals_vs.glsl" />
+    <None Include="assets\shaders\debug-normals.frag" />
+    <None Include="assets\shaders\debug-normals.geom" />
+    <None Include="assets\shaders\debug-normals.vert" />
     <None Include="assets\shaders\skybox.frag" />
     <None Include="assets\shaders\skybox.vert" />
   </ItemGroup>

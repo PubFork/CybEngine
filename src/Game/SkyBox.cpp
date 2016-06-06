@@ -4,8 +4,8 @@
 
 void CreateSkyBoxSurface(std::shared_ptr<renderer::IRenderDevice> device, renderer::Surface &surface, const char *textureFileNames[6])
 {
-    const float skyboxVertices[] = {
-        // Positions          
+    const float skyboxVertices[] = 
+    {
         -1.0f,  1.0f, -1.0f,
         -1.0f, -1.0f, -1.0f,
         1.0f, -1.0f, -1.0f,
@@ -49,7 +49,8 @@ void CreateSkyBoxSurface(std::shared_ptr<renderer::IRenderDevice> device, render
         1.0f, -1.0f,  1.0f
     };
 
-    const renderer::VertexElementList vertexLayout = {
+    const renderer::VertexElementList vertexLayout = 
+    {
         { renderer::VertexElement(renderer::VertexElementUsage_Position,  renderer::VertexElementFormat_Float3, 0, sizeof(float)*3) }
     };
 
@@ -71,8 +72,6 @@ void CreateSkyBoxSurface(std::shared_ptr<renderer::IRenderDevice> device, render
         renderer::SamplerWrap_Clamp
     ));
 
-    surface.rasterState.cullMode = renderer::CullMode_CW;
-    surface.depthState.enabled = true;
-    surface.depthState.writeMask = false;
-    surface.depthState.function = renderer::CmpFunc_LessEqual;
+    surface.rasterState = renderer::RasterizerState(renderer::CullMode_CW, renderer::FillMode_Solid);
+    surface.depthState = renderer::DepthBufferState(true, false, renderer::CmpFunc_LessEqual);
 }

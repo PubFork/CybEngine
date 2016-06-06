@@ -43,7 +43,8 @@ void Model::Render(std::shared_ptr<renderer::IRenderDevice> device, const ICamer
 
 std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> device, const std::string &filename)
 {
-    static const renderer::VertexElementList vertexElements = {
+    static const renderer::VertexElementList vertexElements = 
+    {
         { VertexElement(renderer::VertexElementUsage_Position,  renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, position), sizeof(OBJ_Vertex)) },
         { VertexElement(renderer::VertexElementUsage_Normal,    renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, normal),   sizeof(OBJ_Vertex)) },
         { VertexElement(renderer::VertexElementUsage_TexCoord0, renderer::VertexElementFormat_Float2, offsetof(OBJ_Vertex, texCoord), sizeof(OBJ_Vertex)) }
@@ -63,7 +64,7 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
         geo->primitive = Primitive_TriangleList;
         geo->vertexDeclaration = vertexDeclaration;
         geo->VBO = device->CreateBuffer(Buffer_Vertex | Buffer_ReadOnly, &surface.vertices[0], sizeof(OBJ_Vertex) * surface.vertices.size());
-        geo->IBO = device->CreateBuffer(Buffer_Index | Buffer_ReadOnly, &surface.indices[0], sizeof(uint16_t) * surface.indices.size());
+        geo->IBO = device->CreateBuffer(Buffer_Index | Buffer_ReadOnly, &surface.indices[0], sizeof(uint32_t) * surface.indices.size());
         geo->indexCount = (uint32_t)surface.indices.size();
 
         // copy material

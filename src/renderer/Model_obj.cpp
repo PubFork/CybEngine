@@ -2,8 +2,14 @@
 #include "Model_obj.h"
 #include "Base/Debug.h"
 #include "Base/File.h"
+#include "Base/MurmurHash.h"
 
-#define LINEBUFFER_SIZE     1024
+#include "Base/Profiler.h"
+
+#define LINEBUFFER_SIZE         1024
+#define DEFAULT_MODEL_NAME      "<unknown>"
+#define DEFAULT_FACEGROUP_NAME  "default"
+#define DEFAULT_MATERIAL_NAME   "_default"
 
 /*
  * Some parts are based of syoyo's tinyobjloader:
@@ -12,6 +18,20 @@
 
 namespace renderer
 {
+
+struct OBJ_EdgeHasher
+{
+    size_t operator()(const OBJ_Edge &edge) const
+    {
+        return CalculateMurmurHash(&edge, sizeof(edge));
+    }
+};
+
+bool operator==(const OBJ_Edge &rhs, const OBJ_Edge &lhs)
+{
+    return rhs.vertexIndex == lhs.vertexIndex &&
+        rhs.texCoordIndex == lhs.texCoordIndex;
+}
 
 float ReadFloat(const char *&buffer)
 {
@@ -59,12 +79,13 @@ std::string ReadString(const char *&buffer)
 
 OBJ_Edge ReadFaceIndex(const char *&token)
 {
-    OBJ_Edge edge = {};
-
-    edge.vertexIndex = (OBJ_Index)atoi(token);
+    const OBJ_Index vertexIndex = (OBJ_Index)atoi(token);
+    assert(vertexIndex != 0);
     token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
-        return edge;
+    {
+        return OBJ_Edge(vertexIndex, 0);
+    }
 
     // i//k
     token++;
@@ -73,21 +94,23 @@ OBJ_Edge ReadFaceIndex(const char *&token)
         token++;
         //edge.normalIndex = atoi(token);       // ignore normal index
         token += strcspn(token, "/ \t\r\n");
-        return edge;
+        return OBJ_Edge(vertexIndex, 0);
     }
 
     // i/j/k or i/j
-    edge.texCoordIndex = (OBJ_Index)atoi(token);
+    const OBJ_Index texCoordIndex = (OBJ_Index)atoi(token);
     token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
-        return edge;
+    {
+        return OBJ_Edge(vertexIndex, texCoordIndex);
+    }
 
     // i/j/k
     token++;
     //edge.normalIndex = atoi(token);       // ignore normal index
     token += strcspn(token, "/ \t\r\n");
 
-    return edge;
+    return OBJ_Edge(vertexIndex, texCoordIndex);
 }
 
 OBJ_Face ReadFace(const char *&buffer)
@@ -103,17 +126,19 @@ OBJ_Face ReadFace(const char *&buffer)
     return face;
 }
 
-void MakeDefaultMaterial(OBJ_Material &material)
+OBJ_Material CreateDefaultMaterial(const std::string &name)
 {
-    material.name            = "_default";
-    material.ambientColor    = glm::vec3(0.0f, 0.0f, 0.0f);
-    material.diffuseColor    = glm::vec3(1.0f, 1.0f, 1.0f);
-    material.specularColor   = glm::vec3(0.0f, 0.0f, 0.0f);
+    OBJ_Material material;
+    material.name = name;
+    material.ambientColor = glm::vec3(0.0f, 0.0f, 0.0f);
+    material.diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    material.specularColor = glm::vec3(0.0f, 0.0f, 0.0f);
     material.ambientTexture.clear();
     material.diffuseTexture.clear();
     material.specularTexture.clear();
-    material.dissolve        = 1.0f;
-    material.shininess       = 1.0f;
+    material.dissolve = 1.0f;
+    material.shininess = 1.0f;
+    return material;
 }
 
 bool ReadLine(IFile *file, char *buffer, size_t length)
@@ -145,34 +170,57 @@ bool MTL_Load(const char *filename, OBJ_MaterialMap &outMaterials)
     {
         const char *lineBuffer = buffer;
         lineBuffer += strspn(lineBuffer, " \t");
-        if (lineBuffer[0] == '#' || lineBuffer[0] == '\r'|| lineBuffer[0] == '\n' || lineBuffer[0] == '\0')
+        if (lineBuffer[0] == '#' || lineBuffer[0] == '\r' || lineBuffer[0] == '\n' || lineBuffer[0] == '\0')
+        {
             continue;
+        }
 
         if (ReadToken(lineBuffer, "newmtl "))
         {
             if (!material.name.empty())
+            {
                 outMaterials[material.name] = material;
+            }
 
-            MakeDefaultMaterial(material);
-            material.name = ReadString(lineBuffer);
-        } else if (ReadToken(lineBuffer, "Ka "))
+            std::string materialName = ReadString(lineBuffer);
+            material = CreateDefaultMaterial(materialName);
+        } 
+        else if (ReadToken(lineBuffer, "Ka "))
+        {
             material.ambientColor = ReadVec3(lineBuffer);
+        }
         else if (ReadToken(lineBuffer, "Kd "))
+        {
             material.diffuseColor = ReadVec3(lineBuffer);
+        }
         else if (ReadToken(lineBuffer, "Ks "))
+        {
             material.specularColor = ReadVec3(lineBuffer);
+        }
         else if (ReadToken(lineBuffer, "map_Ka "))
+        {
             material.ambientTexture = std::string(mtlFile.GetFileBaseDir()) + ReadString(lineBuffer);
+        }
         else if (ReadToken(lineBuffer, "map_Kd "))
+        {
             material.diffuseTexture = std::string(mtlFile.GetFileBaseDir()) + ReadString(lineBuffer);
+        }
         else if (ReadToken(lineBuffer, "map_Ks "))
-            material.diffuseTexture = std::string(mtlFile.GetFileBaseDir()) + ReadString(lineBuffer);
+        {
+            material.specularTexture = std::string(mtlFile.GetFileBaseDir()) + ReadString(lineBuffer);
+        }
         else if (ReadToken(lineBuffer, "d "))
+        {
             material.dissolve = ReadFloat(lineBuffer);
+        }
         else if (ReadToken(lineBuffer, "Tr "))
+        {
             material.dissolve = 1.0f - ReadFloat(lineBuffer);
+        }
         else if (ReadToken(lineBuffer, "Ns "))
+        {
             material.shininess = ReadFloat(lineBuffer);
+        }
     }
 
     outMaterials[material.name] = material;
@@ -213,12 +261,10 @@ std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
         return nullptr;
 
     DEBUG_LOG_TEXT("Loading %s...", filename);
-    auto rawModel = std::make_shared<OBJ_RawModel>();
-    OBJ_FaceGroup *rawFaceGroup = rawModel->CreateEmptyFaceGroup("default");
+    auto rawModel = std::make_shared<OBJ_RawModel>(DEFAULT_MODEL_NAME);
+    OBJ_FaceGroup *rawFaceGroup = rawModel->CreateEmptyFaceGroup(DEFAULT_FACEGROUP_NAME);
 
-    OBJ_Material defaultMaterial;
-    MakeDefaultMaterial(defaultMaterial);
-    OBJ_Material *material = &defaultMaterial;
+    std::string mtllibPath("");
 
     char buffer[LINEBUFFER_SIZE];
     while (ReadLine(&objFile, buffer, LINEBUFFER_SIZE))
@@ -228,70 +274,61 @@ std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
         // skip comments and empty lines
         linebuf += strspn(linebuf, " \t");
         if (linebuf[0] == '#' || linebuf[0] == '\r' || linebuf[0] == '\n' || linebuf[0] == '\0')
+        {
             continue;
+        }
 
         // parse all tokens
         if (ReadToken(linebuf, "v "))
         {
-            glm::vec3 pos(ReadVec3(linebuf));
+            const glm::vec3 pos(ReadVec3(linebuf));
             rawModel->vertices.push_back(pos);
             rawModel->normals.push_back(glm::vec3(0.0f, 0.0f, 0.0f));   // add an zero normal for all vertices
         } 
         else if (ReadToken(linebuf, "vn "))
         {
-            glm::vec3 norm(ReadVec3(linebuf));
+            const glm::vec3 norm(ReadVec3(linebuf));
             rawModel->normals.push_back(norm);
         } 
         else if (ReadToken(linebuf, "vt "))
         {
-            glm::vec2 uv(ReadVec2(linebuf));
+            const glm::vec2 uv(ReadVec2(linebuf));
             rawModel->texCoords.push_back(uv);
         }
         else if (ReadToken(linebuf, "f "))
         {
-            OBJ_Face face = ReadFace(linebuf);  
+            const OBJ_Face face = ReadFace(linebuf);  
             rawFaceGroup->faces.push_back(face);
-        } else if (ReadToken(linebuf, "o "))
+        } 
+        else if (ReadToken(linebuf, "o "))
         {
-            std::string modelName = ReadString(linebuf);
+            const std::string modelName = ReadString(linebuf);
             rawModel->name = modelName;
-        } else if (ReadToken(linebuf, "g "))
+        } 
+        else if (ReadToken(linebuf, "g "))
         {
-            if (material->name == defaultMaterial.name)
-            {
-                rawModel->materials[defaultMaterial.name] = defaultMaterial;
-                material = &rawModel->materials[defaultMaterial.name];
-            }
-
             std::string faceGroupName(ReadString(linebuf));
             rawFaceGroup = rawModel->CreateEmptyFaceGroup(faceGroupName);
-        } else if (ReadToken(linebuf, "mtllib "))
+        } 
+        else if (ReadToken(linebuf, "mtllib "))
         {
-            const std::string materialFilename = std::string(objFile.GetFileBaseDir()) + ReadString(linebuf);
-            const bool result = MTL_Load(materialFilename.c_str(), rawModel->materials);
-            if (!result || rawModel->materials.empty())
-            {
-                DEBUG_LOG_TEXT_COND(true, "Failed to read MTL file %s (Using default)", materialFilename.c_str());
-                rawModel->materials[defaultMaterial.name] = defaultMaterial;  // fallback to default material if none is defined
-            }
-
-            material = &rawModel->materials.begin()->second;
-        } else if (ReadToken(linebuf, "usemtl "))
+            const std::string mtllibString = ReadString(linebuf);
+            mtllibPath = std::string(objFile.GetFileBaseDir()) + mtllibString;
+        } 
+        else if (ReadToken(linebuf, "usemtl "))
         {
-            const std::string matString = ReadString(linebuf);
-            auto searchResult = rawModel->materials.find(matString);
-            if (searchResult != rawModel->materials.end())
-            {
-                material = &searchResult->second;
-            } else
-            {
-                // if the material isn't found, create a default one in the model
-                // and point the material pointer to it.
-                rawModel->materials[defaultMaterial.name] = defaultMaterial;
-                material = &rawModel->materials[defaultMaterial.name];
-            }
+            rawFaceGroup->materialName = ReadString(linebuf);
+        }
+    }
 
-            rawFaceGroup->materialName = matString;
+    // parse material library is one is specified
+    if (!mtllibPath.empty())
+    {
+        const bool succeededToMTLLoad = MTL_Load(mtllibPath.c_str(), rawModel->materials);
+        if (!succeededToMTLLoad || rawModel->materials.empty())
+        {
+            DEBUG_LOG_TEXT_COND(true, "Failed to read MTL file %s (Using default)", mtllibPath.c_str());
+            rawModel->materials[DEFAULT_MATERIAL_NAME] = CreateDefaultMaterial(DEFAULT_MATERIAL_NAME);
         }
     }
 
@@ -302,9 +339,14 @@ std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
 bool operator<(const OBJ_Edge &a, const OBJ_Edge &b)
 {
     if (a.vertexIndex != b.vertexIndex)
+    {
         return (a.vertexIndex < b.vertexIndex);
+    }
+
     if (a.texCoordIndex != b.texCoordIndex)
+    {
         return (a.texCoordIndex < b.texCoordIndex);
+    }
 
     return false;
 }
@@ -313,25 +355,24 @@ std::shared_ptr<OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<OBJ
 {
     auto compiledModel = std::make_shared<OBJ_CompiledModel>(rawModel->name);
 
+    SCOOPED_PROFILE_EVENT("OBJ COMPILATION");
     for (const auto &faceGroup : rawModel->faceGroups)
     {
-        // TODO: using unordered map would probably be faster
-        std::map<OBJ_Edge, OBJ_Index> vertexCache;
+        std::unordered_map<OBJ_Edge, OBJ_Index, OBJ_EdgeHasher> vertexCache;
 
-        OBJ_TriSurface surface;
-        surface.name = faceGroup.name;
-       
-        auto materialSearch = rawModel->materials.find(faceGroup.materialName);
-        if (materialSearch != rawModel->materials.end())
-        {
-            surface.material = materialSearch->second;
-        }
+        // get the material name
+        const auto materialSearch = rawModel->materials.find(faceGroup.materialName);
+        const std::string materialName = (materialSearch != rawModel->materials.end()) ? faceGroup.materialName : DEFAULT_MATERIAL_NAME;
+        
+        // create a new tri surface for the facegroup
+        OBJ_TriSurface triSurface(faceGroup.name, rawModel->materials[materialName]);
 
         for (const auto &face : faceGroup.faces)
         {
-            OBJ_Edge triangleEdges[3] = {
+            OBJ_Edge triangleEdges[3] = 
+            {
                 face.edges[0],
-                {},
+                {0, 0},
                 face.edges[1]
             };
 
@@ -348,24 +389,24 @@ std::shared_ptr<OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<OBJ
                     const auto it = vertexCache.find(edge);
                     if (it != vertexCache.end())
                     {
-                        surface.indices.push_back(it->second);
+                        triSurface.indices.push_back(it->second);
                     }
                     else
                     {
                         // create vertices not found in cache and insert them
-                        const uint16_t idx = static_cast<uint16_t>(surface.vertices.size());
+                        const uint16_t idx = static_cast<uint16_t>(triSurface.vertices.size());
                         vertexCache[edge] = idx;
-                        surface.vertices.emplace_back(
+                        triSurface.vertices.emplace_back(
                             rawModel->vertices[edge.vertexIndex - 1],
                             rawModel->normals[edge.vertexIndex - 1],
                             edge.texCoordIndex ? rawModel->texCoords[edge.texCoordIndex - 1] : glm::vec2());
-                        surface.indices.push_back(idx);
+                        triSurface.indices.push_back(idx);
                     }
                 }
             }
         }
 
-        compiledModel->surfaces.push_back(surface);
+        compiledModel->surfaces.push_back(triSurface);
     }
 
     return compiledModel;

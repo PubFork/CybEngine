@@ -49,7 +49,7 @@ void BaseCamera::UpdateProjectionMatrix()
 
 CameraController::CameraController()
 {
-    walkSpeed = 8.2f;
+    walkSpeed = 118.2f * 4;
     mouseSensitivity = 0.134f;
     position = glm::vec3(0.0f, 0.0f, 0.0f);
     yaw = 0.0f;

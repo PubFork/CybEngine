@@ -58,7 +58,7 @@ bool GameApp::Init()
     CreateSkyBoxSurface(renderDevice, skyboxSurface, skyboxFilenames);
 
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
-    model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
+    model = renderer::Model::LoadOBJ(renderDevice, "assets/crytek-sponza/sponza.obj");
     //model = renderer::Model::LoadOBJ(renderDevice, "assets/capsule.obj");
 
     // move controls

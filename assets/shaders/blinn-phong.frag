@@ -5,7 +5,7 @@ in VertexInfo
 {
 	vec3 position;
 	vec3 normal;
-	vec2 texCoord0;
+	vec2 texCoord;
 } inVertex;
 
 uniform sampler2D tex0;
@@ -38,5 +38,5 @@ void main()
 	}
 
 	vec3 finalLight = Ka*La + Kd*NdotL*Ld + Ks*specular*Ls;
-	fragColor = vec4(finalLight * texture(tex0, inVertex.texCoord0).rgb, 1.0);
+	fragColor = vec4(finalLight * texture(tex0, inVertex.texCoord).rgb, 1.0);
 }

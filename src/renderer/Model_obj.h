@@ -4,11 +4,11 @@
 namespace renderer
 {
 
-typedef uint16_t OBJ_Index;
+typedef uint32_t OBJ_Index;
 
 struct OBJ_Edge
 {
-    OBJ_Edge() = default;
+    //OBJ_Edge() = default;
     OBJ_Edge(const OBJ_Index inVertexIndex, const OBJ_Index inTexCoordIndex) :
         vertexIndex(inVertexIndex),
         texCoordIndex(inTexCoordIndex)
@@ -54,8 +54,8 @@ typedef std::unordered_map<std::string, OBJ_Material> OBJ_MaterialMap;
 
 struct OBJ_RawModel
 {
-    OBJ_RawModel() :
-        name("<unknown>")
+    OBJ_RawModel(const std::string &inName) :
+        name(inName)
     {
     }
 
@@ -99,6 +99,12 @@ struct OBJ_Vertex
 
 struct OBJ_TriSurface
 {
+    OBJ_TriSurface(const std::string &inName, const OBJ_Material &inMaterial) :
+        name(inName),
+        material(inMaterial)
+    {
+    }
+
     std::string name;
     std::vector<OBJ_Vertex> vertices;
     std::vector<OBJ_Index> indices;

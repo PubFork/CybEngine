@@ -11,7 +11,7 @@ out VertexInfo
 {
 	vec3 position;
 	vec3 normal;
-	vec2 texCoord0;
+	vec2 texCoord;
 } outVertex;
 
 void main()
@@ -19,5 +19,5 @@ void main()
 	gl_Position = u_projMatrix * u_modelViewMatrix * vec4(a_position, 1.0);
 	outVertex.position = a_position;
 	outVertex.normal = a_normal;
-	outVertex.texCoord0 = a_texCoord0;
+	outVertex.texCoord = a_texCoord0;
 }

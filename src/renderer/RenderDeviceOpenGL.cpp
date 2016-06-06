@@ -685,7 +685,7 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     }
     else
     {
-        glDrawElements(prim, geo->indexCount, GL_UNSIGNED_SHORT, NULL);
+        glDrawElements(prim, geo->indexCount, GL_UNSIGNED_INT, NULL);
     }
 
     for (const auto &element : vertexDeclaration->vertexElements)

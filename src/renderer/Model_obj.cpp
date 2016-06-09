@@ -4,8 +4,6 @@
 #include "Base/File.h"
 #include "Base/MurmurHash.h"
 
-#include "Base/Profiler.h"
-
 #define LINEBUFFER_SIZE         1024
 #define DEFAULT_MODEL_NAME      "<unknown>"
 #define DEFAULT_FACEGROUP_NAME  "default"
@@ -29,8 +27,7 @@ struct OBJ_EdgeHasher
 
 bool operator==(const OBJ_Edge &rhs, const OBJ_Edge &lhs)
 {
-    return rhs.vertexIndex == lhs.vertexIndex &&
-        rhs.texCoordIndex == lhs.texCoordIndex;
+    return (rhs.vertexIndex == lhs.vertexIndex && rhs.texCoordIndex == lhs.texCoordIndex);
 }
 
 float ReadFloat(const char *&buffer)
@@ -163,7 +160,7 @@ bool MTL_Load(const char *filename, OBJ_MaterialMap &outMaterials)
         return false;
 
     DEBUG_LOG_TEXT("Loading %s...", filename);
-    OBJ_Material material;
+    OBJ_Material material = CreateDefaultMaterial(DEFAULT_MATERIAL_NAME);
 
     char buffer[LINEBUFFER_SIZE];
     while (ReadLine(&mtlFile, buffer, LINEBUFFER_SIZE))
@@ -209,6 +206,10 @@ bool MTL_Load(const char *filename, OBJ_MaterialMap &outMaterials)
         {
             material.specularTexture = std::string(mtlFile.GetFileBaseDir()) + ReadString(lineBuffer);
         }
+        else if (ReadToken(lineBuffer, "map_bump "))    // TODO: or "bump "
+        {
+            material.bumpTexture = std::string(mtlFile.GetFileBaseDir()) + ReadString(lineBuffer);
+        }
         else if (ReadToken(lineBuffer, "d "))
         {
             material.dissolve = ReadFloat(lineBuffer);
@@ -223,6 +224,7 @@ bool MTL_Load(const char *filename, OBJ_MaterialMap &outMaterials)
         }
     }
 
+    DEBUG_LOG_TEXT_COND(outMaterials.empty(), "Warning: Parsed material %s without finding any materials (falling back to default)", filename);
     outMaterials[material.name] = material;
     return true;
 }
@@ -253,6 +255,44 @@ void CalculateNormals(const std::vector<glm::vec3> &vertexList, std::vector<OBJ_
     }
 }
 
+void CalculateNormalsAndTangents(std::shared_ptr<OBJ_RawModel> rawModel)
+{
+    for (auto &faceGroup : rawModel->faceGroups)
+    {
+        for (auto &face : faceGroup.faces)
+        {
+            assert(face.edges.size() >= 3);
+            const OBJ_PosNormalTangentVertex &a = rawModel->vertices[face.edges[0].vertexIndex - 1];
+            const OBJ_PosNormalTangentVertex &b = rawModel->vertices[face.edges[1].vertexIndex - 1];
+            const OBJ_PosNormalTangentVertex &c = rawModel->vertices[face.edges[2].vertexIndex - 1];
+            const glm::vec3 v1 = b.pos - a.pos;
+            const glm::vec3 v2 = c.pos - a.pos;
+            face.normal = glm::cross(v1, v2);
+
+            const glm::vec2 &ta = rawModel->texCoords[face.edges[0].texCoordIndex - 1];
+            const glm::vec2 &tb = rawModel->texCoords[face.edges[1].texCoordIndex - 1];
+            const glm::vec2 &tc = rawModel->texCoords[face.edges[2].texCoordIndex - 1];
+            const glm::vec2 st1 = tb - ta;
+            const glm::vec2 st2 = tc - ta;
+
+            float tangentCoef = 1.0f / (st1.s * st2.t - st2.s * st1.t);
+            glm::vec3 tangent = (v1 * st2.y - v2 * st1.y) * tangentCoef;
+
+            for (const auto &edge : face.edges)
+            {
+                rawModel->vertices[edge.vertexIndex - 1].normal += face.normal;
+                rawModel->vertices[edge.vertexIndex - 1].tangent += tangent;
+            }
+        }
+    }
+
+    for (auto &vertex : rawModel->vertices)
+    {
+        vertex.normal = glm::normalize(vertex.normal);
+        vertex.tangent = glm::normalize(vertex.tangent);
+    }
+}
+
 // TODO: Clean up material handling code
 std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
 {
@@ -262,11 +302,10 @@ std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
 
     DEBUG_LOG_TEXT("Loading %s...", filename);
     auto rawModel = std::make_shared<OBJ_RawModel>(DEFAULT_MODEL_NAME);
-    OBJ_FaceGroup *rawFaceGroup = rawModel->CreateEmptyFaceGroup(DEFAULT_FACEGROUP_NAME);
-
+    OBJ_FaceGroup *rawFaceGroup = rawModel->AddEmptyFaceGroup(DEFAULT_FACEGROUP_NAME);
     std::string mtllibPath("");
 
-    char buffer[LINEBUFFER_SIZE];
+    char buffer[LINEBUFFER_SIZE] = {};
     while (ReadLine(&objFile, buffer, LINEBUFFER_SIZE))
     {
         const char *linebuf = buffer;
@@ -282,13 +321,15 @@ std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
         if (ReadToken(linebuf, "v "))
         {
             const glm::vec3 pos(ReadVec3(linebuf));
-            rawModel->vertices.push_back(pos);
-            rawModel->normals.push_back(glm::vec3(0.0f, 0.0f, 0.0f));   // add an zero normal for all vertices
+
+            // add vertex with pos and a zero normal and tangent
+            rawModel->vertices.push_back(OBJ_PosNormalTangentVertex(pos, glm::vec3(0.0f), glm::vec3(0.0f)));    
         } 
         else if (ReadToken(linebuf, "vn "))
         {
-            const glm::vec3 norm(ReadVec3(linebuf));
-            rawModel->normals.push_back(norm);
+            // these are manually calculated after file is loaded
+            //const glm::vec3 norm(ReadVec3(linebuf));
+            //rawModel->normals.push_back(norm);
         } 
         else if (ReadToken(linebuf, "vt "))
         {
@@ -308,7 +349,7 @@ std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
         else if (ReadToken(linebuf, "g "))
         {
             std::string faceGroupName(ReadString(linebuf));
-            rawFaceGroup = rawModel->CreateEmptyFaceGroup(faceGroupName);
+            rawFaceGroup = rawModel->AddEmptyFaceGroup(faceGroupName);
         } 
         else if (ReadToken(linebuf, "mtllib "))
         {
@@ -322,17 +363,14 @@ std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
     }
 
     // parse material library is one is specified
-    if (!mtllibPath.empty())
+    const bool succeededToMTLLoad = MTL_Load(mtllibPath.c_str(), rawModel->materials);
+    if (!succeededToMTLLoad)
     {
-        const bool succeededToMTLLoad = MTL_Load(mtllibPath.c_str(), rawModel->materials);
-        if (!succeededToMTLLoad || rawModel->materials.empty())
-        {
-            DEBUG_LOG_TEXT_COND(true, "Failed to read MTL file %s (Using default)", mtllibPath.c_str());
-            rawModel->materials[DEFAULT_MATERIAL_NAME] = CreateDefaultMaterial(DEFAULT_MATERIAL_NAME);
-        }
+        DEBUG_LOG_TEXT_COND(true, "Failed to read MTL file %s (Using default material)", mtllibPath.c_str());
+        rawModel->materials[DEFAULT_MATERIAL_NAME] = CreateDefaultMaterial(DEFAULT_MATERIAL_NAME);
     }
 
-    CalculateNormals(rawModel->vertices, rawModel->faceGroups, rawModel->normals);
+    CalculateNormalsAndTangents(rawModel);
     return rawModel;
 }
 
@@ -355,7 +393,6 @@ std::shared_ptr<OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<OBJ
 {
     auto compiledModel = std::make_shared<OBJ_CompiledModel>(rawModel->name);
 
-    SCOOPED_PROFILE_EVENT("OBJ COMPILATION");
     for (const auto &faceGroup : rawModel->faceGroups)
     {
         std::unordered_map<OBJ_Edge, OBJ_Index, OBJ_EdgeHasher> vertexCache;
@@ -396,10 +433,13 @@ std::shared_ptr<OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<OBJ
                         // create vertices not found in cache and insert them
                         const uint16_t idx = static_cast<uint16_t>(triSurface.vertices.size());
                         vertexCache[edge] = idx;
+
+                        const OBJ_PosNormalTangentVertex &vertex = rawModel->vertices[edge.vertexIndex - 1];
                         triSurface.vertices.emplace_back(
-                            rawModel->vertices[edge.vertexIndex - 1],
-                            rawModel->normals[edge.vertexIndex - 1],
-                            edge.texCoordIndex ? rawModel->texCoords[edge.texCoordIndex - 1] : glm::vec2());
+                            vertex.pos,
+                            vertex.normal,
+                            vertex.tangent,
+                            edge.texCoordIndex ? rawModel->texCoords[edge.texCoordIndex - 1] : glm::vec2(0.0f));
                         triSurface.indices.push_back(idx);
                     }
                 }

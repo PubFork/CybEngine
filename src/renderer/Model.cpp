@@ -47,6 +47,7 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
     {
         { VertexElement(renderer::VertexElementUsage_Position,  renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, position), sizeof(OBJ_Vertex)) },
         { VertexElement(renderer::VertexElementUsage_Normal,    renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, normal),   sizeof(OBJ_Vertex)) },
+        { VertexElement(renderer::VertexElementUsage_Tangent,   renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, tangent),  sizeof(OBJ_Vertex)) },
         { VertexElement(renderer::VertexElementUsage_TexCoord0, renderer::VertexElementFormat_Float2, offsetof(OBJ_Vertex, texCoord), sizeof(OBJ_Vertex)) }
     };
     auto vertexDeclaration = device->CreateVertexDelclaration(vertexElements);
@@ -72,6 +73,16 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
         if (!surface.material.diffuseTexture.empty())
         {
             mat->texture[0] = renderer::globalTextureCache->LoadTexture2DFromFile(surface.material.diffuseTexture.c_str());
+        }
+
+        if (!surface.material.specularTexture.empty())
+        {
+            mat->texture[1] = renderer::globalTextureCache->LoadTexture2DFromFile(surface.material.specularTexture.c_str());
+        }
+
+        if (!surface.material.bumpTexture.empty())
+        {
+            mat->texture[2] = renderer::globalTextureCache->LoadTexture2DFromFile(surface.material.bumpTexture.c_str());
         }
 
         mat->ambient = surface.material.ambientColor;

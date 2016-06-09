@@ -24,6 +24,9 @@
     <Filter Include="Resource Files\shaders">
       <UniqueIdentifier>{3a603afa-adfd-41f3-9f28-adaed72575d8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\GUI">
+      <UniqueIdentifier>{34e5d840-8041-4ca4-987d-67adafc92ed5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -70,6 +73,12 @@
     </ClCompile>
     <ClCompile Include="src\Game\SkyBox.cpp">
       <Filter>Source Files\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GUI\imgui.cpp">
+      <Filter>Source Files\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GUI\imgui_draw.cpp">
+      <Filter>Source Files\GUI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -133,6 +142,24 @@
     <ClInclude Include="src\Game\SkyBox.h">
       <Filter>Source Files\Game</Filter>
     </ClInclude>
+    <ClInclude Include="src\GUI\imgui_internal.h">
+      <Filter>Source Files\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GUI\stb_rect_pack.h">
+      <Filter>Source Files\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GUI\stb_textedit.h">
+      <Filter>Source Files\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GUI\stb_truetype.h">
+      <Filter>Source Files\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GUI\imconfig.h">
+      <Filter>Source Files\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GUI\imgui.h">
+      <Filter>Source Files\GUI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\cook-torrance.frag">
@@ -157,6 +184,9 @@
       <Filter>Resource Files\shaders</Filter>
     </None>
     <None Include="assets\shaders\debug-normals.vert">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\blinn-phong-bump.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
   </ItemGroup>

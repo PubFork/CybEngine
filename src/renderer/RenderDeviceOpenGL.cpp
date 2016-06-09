@@ -22,6 +22,7 @@ static const OpenGLVertexElementUsageInfo vertexElementUsageInfo[VertexElementUs
 //    attribLocation        attribName
     { 0,                    "a_position"  },                                        // VertexElementUsage_Position
     { 1,                    "a_normal"    },                                        // VertexElementUsage_Normal
+    { 7,                    "a_tangent"   },                                        // VertexElementUsage_Tangent
     { 2,                    "a_texCoord0" },                                        // VertexElementUsage_TexCoord0
     { 3,                    "a_texCoord1" },                                        // VertexElementUsage_TexCoord1
     { 4,                    "a_texCoord2" },                                        // VertexElementUsage_TexCoord2
@@ -136,9 +137,14 @@ int32_t OpenGLShaderProgram::GetParameterLocation(const char *name)
     return glGetUniformLocation(resource, name);
 }
 
-void OpenGLShaderProgram::SetFloatArray(int32_t location, size_t num, const float *values)
+void OpenGLShaderProgram::SetBool(int32_t location, bool value)
 {
-    glProgramUniform1fv(resource, location, (GLsizei)num, values);
+    glProgramUniform1i(resource, location, value);
+}
+
+void OpenGLShaderProgram::SetFloat(int32_t location, const float value)
+{
+    glProgramUniform1f(resource, location, value);
 }
 
 void OpenGLShaderProgram::SetVec3(int32_t location, const float *values)
@@ -657,6 +663,36 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
             SetSamplerState(0, material->sampler[0]);
         }
         SetTexture(0, material->texture[0]);    // TODO: Texture state should be manually set by the user!
+        glProgramUniform1i(currentShaderProgram->resource, currentShaderProgram->GetParameterLocation("diffuseTexture"), 0);
+    }
+
+    if (material->texture[1])
+    {
+        if (material->sampler[0])
+        {
+            SetSamplerState(1, material->sampler[0]);
+        }
+
+        currentShaderProgram->SetBool(currentShaderProgram->GetParameterLocation("useSpecularTexture"), true);
+        SetTexture(1, material->texture[1]);
+        glProgramUniform1i(currentShaderProgram->resource, currentShaderProgram->GetParameterLocation("specularTexture"), 1);
+
+    }
+
+    if (material->texture[2])
+    {
+        if (material->sampler[0])
+        {
+            SetSamplerState(2, material->sampler[0]);
+        }
+
+        currentShaderProgram->SetBool(currentShaderProgram->GetParameterLocation("useNormalTexture"), true);
+        SetTexture(2, material->texture[2]);
+        glProgramUniform1i(currentShaderProgram->resource, currentShaderProgram->GetParameterLocation("normalTexture"), 2);
+    }
+    else
+    {
+        currentShaderProgram->SetBool(currentShaderProgram->GetParameterLocation("useNormalTexture"), false);
     }
 
     // setup geometry

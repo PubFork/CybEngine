@@ -21,21 +21,6 @@ bool SamplerStateInitializer::operator==(const SamplerStateInitializer &initiali
     return memcmp(this, &initializer, sizeof(initializer)) == 0;
 }
 
-void IShaderProgram::SetFloat(int32_t location, const float value)
-{
-    SetFloatArray(location, 1, &value);
-}
-
-void IShaderProgram::SetVec3(int32_t location, const float *values)
-{
-    SetFloatArray(location, 3, values);
-}
-
-void IShaderProgram::SetMat4(int32_t location, const float *values)
-{
-    SetFloatArray(location, 16, values);
-}
-
 struct ShaderBytecodeFromFile : public ShaderBytecode
 {
     ShaderBytecodeFromFile(const char *filename);

@@ -34,7 +34,7 @@ private:
 
 bool GameApp::Init()
 {
-    program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/blinn-phong.vert", "assets/shaders/blinn-phong.frag");
+    program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/blinn-phong.vert", "assets/shaders/blinn-phong-bump.frag");
     THROW_FATAL_COND(!program, "Fatal: Failed to create shader program!");
     skyboxProgram = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/skybox.vert", "assets/shaders/skybox.frag");
     THROW_FATAL_COND(!skyboxProgram, "Fatal: Failed to create shader program!");
@@ -59,7 +59,7 @@ bool GameApp::Init()
 
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
     model = renderer::Model::LoadOBJ(renderDevice, "assets/crytek-sponza/sponza.obj");
-    //model = renderer::Model::LoadOBJ(renderDevice, "assets/capsule.obj");
+    //model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
 
     // move controls
     BindKey(GLFW_KEY_W,     [=](void) { cameraControl.MoveForward((float)frameTimer); });

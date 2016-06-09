@@ -115,7 +115,9 @@ public:
 
     virtual ~OpenGLShaderProgram();
     virtual int32_t GetParameterLocation(const char *name);
-    virtual void SetFloatArray(int32_t location, size_t num, const float *values);
+
+    virtual void SetBool(int32_t location, bool value);
+    virtual void SetFloat(int32_t location, const float value);
     virtual void SetVec3(int32_t location, const float *values);
     virtual void SetMat3(int32_t location, const float *values);
     virtual void SetMat4(int32_t location, const float *values);

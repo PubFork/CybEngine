@@ -17,6 +17,7 @@ enum VertexElementUsage
 {
     VertexElementUsage_Position,
     VertexElementUsage_Normal,
+    VertexElementUsage_Tangent,
     VertexElementUsage_TexCoord0,
     VertexElementUsage_TexCoord1,
     VertexElementUsage_TexCoord2,
@@ -187,13 +188,12 @@ public:
     ~IShaderProgram() = default;
 
     virtual int32_t GetParameterLocation(const char *name) = 0;
-    virtual void SetFloatArray(int32_t location, size_t num, const float *values) = 0;
 
-    // helper functions that uses SetFloatArray, implemented genericly
-    virtual void SetFloat(int32_t location, const float value);
-    virtual void SetVec3(int32_t location, const float *values);
+    virtual void SetBool(int32_t location, bool value) = 0;
+    virtual void SetFloat(int32_t location, const float value) = 0;
+    virtual void SetVec3(int32_t location, const float *values) = 0;
     virtual void SetMat3(int32_t location, const float *values) = 0;
-    virtual void SetMat4(int32_t location, const float *values);
+    virtual void SetMat4(int32_t location, const float *values) = 0;
 };
 
 std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *FSFilename);

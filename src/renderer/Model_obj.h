@@ -8,14 +8,13 @@ typedef uint32_t OBJ_Index;
 
 struct OBJ_Edge
 {
-    //OBJ_Edge() = default;
     OBJ_Edge(const OBJ_Index inVertexIndex, const OBJ_Index inTexCoordIndex) :
         vertexIndex(inVertexIndex),
         texCoordIndex(inTexCoordIndex)
     {
     }
 
-    OBJ_Index vertexIndex;          // this is also used as normal index
+    OBJ_Index vertexIndex;
     OBJ_Index texCoordIndex;
 };
 
@@ -46,11 +45,28 @@ struct OBJ_Material
     std::string ambientTexture;
     std::string diffuseTexture;
     std::string specularTexture;
+    std::string bumpTexture;
     float dissolve;
     float shininess;
 };
 
 typedef std::unordered_map<std::string, OBJ_Material> OBJ_MaterialMap;
+
+struct OBJ_PosNormalTangentVertex
+{
+    OBJ_PosNormalTangentVertex(const glm::vec3 &inPos,
+                               const glm::vec3 &inNormal,
+                               const glm::vec3 &inTangent) :
+        pos(inPos),
+        normal(inNormal),
+        tangent(inTangent)
+    {
+    }
+
+    glm::vec3 pos;
+    glm::vec3 normal;
+    glm::vec3 tangent;
+};
 
 struct OBJ_RawModel
 {
@@ -59,8 +75,9 @@ struct OBJ_RawModel
     {
     }
 
-    OBJ_FaceGroup *CreateEmptyFaceGroup(const std::string &faceGroupName)
+    OBJ_FaceGroup *AddEmptyFaceGroup(const std::string &faceGroupName)
     {
+        
         if (!faceGroups.empty() && faceGroups.back().faces.empty())
         {
             faceGroups.back().name = faceGroupName;
@@ -73,9 +90,8 @@ struct OBJ_RawModel
     }
 
     std::string name;
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> texCoords;
+    std::vector<OBJ_PosNormalTangentVertex> vertices;
+    std::vector<glm::vec2> texCoords;       // texCoords are held oudside vertices sence a vertex can have more than one texCoord in an .obj
     std::vector<OBJ_FaceGroup> faceGroups;
     OBJ_MaterialMap materials;
 };
@@ -85,15 +101,18 @@ struct OBJ_Vertex
     OBJ_Vertex() = default;
     OBJ_Vertex(const glm::vec3 &inPosition,
                const glm::vec3 &inNormal,
+               const glm::vec3 &inTangent,
                const glm::vec2 &inTexCoord) :
         position(inPosition),
         normal(inNormal),
+        tangent(inTangent),
         texCoord(inTexCoord)
     {
     }
 
     glm::vec3 position;
     glm::vec3 normal;
+    glm::vec3 tangent;
     glm::vec2 texCoord;
 };
 

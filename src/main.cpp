@@ -34,7 +34,7 @@ private:
 
 bool GameApp::Init()
 {
-    program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/blinn-phong.vert", "assets/shaders/blinn-phong-bump.frag");
+    program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/blinn-phong-bump.vert", "assets/shaders/blinn-phong-bump.frag");
     THROW_FATAL_COND(!program, "Fatal: Failed to create shader program!");
     skyboxProgram = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/skybox.vert", "assets/shaders/skybox.frag");
     THROW_FATAL_COND(!skyboxProgram, "Fatal: Failed to create shader program!");

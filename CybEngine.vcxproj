@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\blinn-phong-bump.frag" />
+    <None Include="assets\shaders\blinn-phong-bump.vert" />
     <None Include="assets\shaders\blinn-phong.frag" />
     <None Include="assets\shaders\blinn-phong.vert" />
     <None Include="assets\shaders\cook-torrance.frag" />

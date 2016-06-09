@@ -97,7 +97,7 @@ void GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(window);
     glfwWindow = window;
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
     
     // setup glfw input callbacks
     memset(&callbackData.mouseState, 0, sizeof(callbackData.mouseState));

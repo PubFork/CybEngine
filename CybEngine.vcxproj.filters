@@ -189,5 +189,8 @@
     <None Include="assets\shaders\blinn-phong-bump.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
+    <None Include="assets\shaders\blinn-phong-bump.vert">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

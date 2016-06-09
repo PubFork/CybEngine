@@ -9,7 +9,7 @@ in VertexInfo
 	vec2 texCoord;
 } inVertex;
 
-uniform sampler2D tex0;
+uniform sampler2D diffuseTexture;
 uniform bool useSpecularTexture = false;
 uniform sampler2D specularTexture;
 uniform vec3 u_viewPos;
@@ -46,5 +46,5 @@ void main()
 	}
 
 	vec3 finalLight = Ka*La + Kd*NdotL*Ld + finalKs*specular*Ls;
-	fragColor = vec4(finalLight * texture(tex0, inVertex.texCoord).rgb, 1.0);
+	fragColor = vec4(finalLight * texture(diffuseTexture, inVertex.texCoord).rgb, 1.0);
 }

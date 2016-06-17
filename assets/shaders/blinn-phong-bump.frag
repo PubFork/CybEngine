@@ -43,7 +43,7 @@ void main()
 		N = normalize((2.0f * texture(normalTexture, inVertex.texCoord).rgb) - 1.0f);
 	}
 
-	vec3 finalKs = Ks;
+	vec3 finalKs = vec3(Ks);
 	if (useSpecularTexture)
 	{
 		finalKs = texture(specularTexture, inVertex.texCoord).rgb;
@@ -58,5 +58,5 @@ void main()
 	}
 
 	vec3 finalLight = Ka*La + Kd*NdotL*Ld + finalKs*specular*Ls;
-	fragColor = vec4(finalLight * texture(diffuseTexture, inVertex.texCoord).rgb, 1.0);
+	fragColor = vec4(finalLight * texture(diffuseTexture, inVertex.texCoord).rgb , 1.0);
 }

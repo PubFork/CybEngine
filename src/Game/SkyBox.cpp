@@ -1,6 +1,7 @@
 #include "Precompiled.h"
 #include "SkyBox.h"
 #include "Renderer/Texture.h"
+#include "Renderer/Definitions.h"
 
 void CreateSkyBoxSurface(std::shared_ptr<renderer::IRenderDevice> device, renderer::Surface &surface, const char *textureFileNames[6])
 {
@@ -54,15 +55,11 @@ void CreateSkyBoxSurface(std::shared_ptr<renderer::IRenderDevice> device, render
         { renderer::VertexElement(renderer::VertexElementUsage_Position,  renderer::VertexElementFormat_Float3, 0, sizeof(float)*3) }
     };
 
-    surface.name = "SkyBox";
-    surface.geometry = renderer::SurfaceGeometry(
-        renderer::Primitive_TriangleList,
-        device->CreateVertexDelclaration(vertexLayout),
-        device->CreateBuffer(renderer::Buffer_Vertex | renderer::Buffer_ReadOnly, skyboxVertices, sizeof(skyboxVertices)),
-        nullptr,
-        0,
-        36
-    );
+    surface.Clear();
+    surface.drawStateFlags = DrawState_DepthTest_LessEqual | DrawState_Cull_CW;
+    surface.vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex | renderer::Buffer_ReadOnly, skyboxVertices, sizeof(skyboxVertices));
+    surface.vertexDeclaration = device->CreateVertexDelclaration(vertexLayout);
+    surface.primitiveCount = 36;
 
     surface.material.texture[0] = renderer::globalTextureCache->LoadTextureCubeFromFiles(textureFileNames);
     surface.material.sampler[0] = device->CreateSamplerState(renderer::SamplerStateInitializer(
@@ -71,7 +68,4 @@ void CreateSkyBoxSurface(std::shared_ptr<renderer::IRenderDevice> device, render
         renderer::SamplerWrap_Clamp,
         renderer::SamplerWrap_Clamp
     ));
-
-    surface.rasterState = renderer::RasterizerState(renderer::CullMode_CW, renderer::FillMode_Solid);
-    surface.depthState = renderer::DepthBufferState(true, false, renderer::CmpFunc_LessEqual);
 }

@@ -6,86 +6,100 @@ in VertexInfo
 {
 	vec3 position;
 	vec3 normal;
-	vec2 texCoord0;
+	vec3 tangent;
+	vec2 texCoord;
 } inVertex;
 
-struct LightInfo
-{
-	vec3 position;
-	vec3 ambientIntensity;
-	vec3 diffuseIntensity;
-	vec3 specularIntensity;
-};
-
-LightInfo light;
-
-uniform sampler2D tex0;
+uniform sampler2D diffuseTexture;
 uniform vec3 u_viewPos;
 
-uniform vec3 u_matAmbientReflectance;
-uniform vec3 u_matDiffuseReflectance;
-uniform vec3 u_matSpecularReflectance;
-uniform float u_matShininess;
+uniform sampler2D specularTexture;
+uniform bool useSpecularTexture = false;
+
+uniform vec3 Ka = vec3(1.0);
+uniform vec3 Kd = vec3(1.0);
+uniform vec3 Ks = vec3(1.0);
+uniform float Ns = 80;
+
+uniform vec3 La = vec3(0.6);
+uniform vec3 Ld = vec3(1.0);
+uniform vec3 Ls = vec3(0.8);
+
+// Schlicks fresnel approximation
+vec3 Fresnel_Schlick(float VdotH, vec3 F0)
+{
+	return F0 + (1.0 - F0) * pow(1.0 - VdotH, 5.0);
+}
+
+// Normal Distribution Function (microfacet distrubation)
+float Backman_NDF(float roughness2, float NdotH)
+{
+	float r1 = 1.0 / ( 4.0 * roughness2 * pow(NdotH, 4.0));
+	float r2 = (NdotH * NdotH - 1.0) / (roughness2 * NdotH * NdotH);
+	return r1 * exp(r2);
+}
+
+// Trowbridge-Reitz
+float GGX_NDF(float roughness2, float NdotH)
+{
+	float alpha2 = roughness2*roughness2;
+	float denom = pow( ((NdotH)*(NdotH)) * (alpha2-1.0) + 1.0, 2.0 );
+ 
+	return alpha2 / (3.14 * denom);
+}
+ 
+float BlinnPhong_NDF(float roughness2, float NdotH)
+{
+	float alpha2 = roughness2*roughness2;
+ 
+	float first = 1.0 / (3.14 * alpha2);
+	float sec = pow(NdotH, (2.0 / (alpha2)-2.0));
+ 
+	return first * sec;
+}
+
+float Geo_Implicit(float NdotL, float NdotV)
+{
+	return NdotL * NdotV;
+}
 
 void main()
 {
-	const float Ka = 0.2;
-	const float Kd = 0.6;
-	const float Ks = 1.0;
+	const vec3 lightPos = vec3(0.0, 100.0, 0.0);
 
-	light.position = vec3(0.0, 20.0, 0.0);
-	light.ambientIntensity = vec3(0.0);
-	light.diffuseIntensity = vec3(1.0);
-	light.specularIntensity = vec3(1);
-
-	const vec3 L = normalize(light.position - inVertex.position);
+	const vec3 L = normalize(lightPos - inVertex.position);
 	const vec3 N = normalize(inVertex.normal);
 	const vec3 V = normalize(u_viewPos - inVertex.position);
 	const vec3 H = normalize(L + V);
 
-	// set important material values
-    float roughnessValue = 0.6; // 0 : smooth, 1: rough
-    float F0 = 0.2; // fresnel reflectance at normal incidence
-    float k = 0.2; // fraction of diffuse reflection (specular reflection = 1 - k)
-    
-    // interpolating normals will change the length of the normal, so renormalize the normal.
-    vec3 normal = normalize(inVertex.normal);
-    
-    // do the lighting calculation for each fragment.
-    float NdotL = max(dot(N, L), 0.0);
-    
-    float specular = 0.0;
-    if (NdotL > 0.0)
-    {
-        // calculate intermediary values
-        float NdotH = max(dot(N, H), 0.0); 
-        float NdotV = max(dot(N, V), 0.0);	// note: this could also be NdotL, which is the same value
-        float VdotH = max(dot(V, H), 0.0);
-        float mSquared = roughnessValue * roughnessValue;
-        
-        // geometric attenuation
-        float NH2 = 2.0 * NdotH;
-        float g1 = (NH2 * NdotV) / VdotH;
-        float g2 = (NH2 * NdotL) / VdotH;
-        float geoAtt = min(1.0, min(g1, g2));
-     
-        // roughness (or: microfacet distribution function)
-        // beckmann distribution function
-        float r1 = 1.0 / ( 4.0 * mSquared * pow(NdotH, 4.0));
-        float r2 = (NdotH * NdotH - 1.0) / (mSquared * NdotH * NdotH);
-        float roughness = r1 * exp(r2);
-        
-        // fresnel
-        // Schlick approximation
-        float fresnel = pow(1.0 - VdotH, 5.0);
-        fresnel *= (1.0 - F0);
-        fresnel += F0;
-        
-        specular = (fresnel * geoAtt * roughness) / (NdotV * NdotL * 3.14);
-    }
-    
-	const vec3 color0 = texture(tex0, inVertex.texCoord0).rgb;
-	const vec3 light0 = vec3(1.0) * min(Ka + Kd*NdotL + Ks*(k + specular * (1.0 - k)), 1.0);
+	vec3 finalKs = vec3(1);
+	
 
-	fragColor = vec4(color0 * light0, 1.0);
+	// set important material values
+    float roughnessValue = 0.2; // 0 : smooth, 1: rough
+    float F0 = 1.2; // fresnel reflectance at normal incidence
+	roughnessValue = pow(1 - (1 / Ns), 4);
+	roughnessValue = roughnessValue * roughnessValue;
+	if (useSpecularTexture)
+	{
+		float v = texture(specularTexture, inVertex.texCoord).g;
+		roughnessValue = 1 - pow(v, 4);
+		roughnessValue = roughnessValue * roughnessValue;
+	}
+            
+	// calculate intermediary values
+	float NdotL = max(dot(N, L), 0.0);
+	float NdotH = max(dot(N, H), 0.0); 
+	float NdotV = max(dot(N, V), 0.0);
+	float VdotH = max(dot(V, H), 0.0);
+	float roughness2 = roughnessValue * roughnessValue;
+
+	vec3 F = Fresnel_Schlick(VdotH, vec3(F0));
+	float D = GGX_NDF(roughness2, NdotH);
+	float G = Geo_Implicit(NdotL, NdotV);
+	vec3 specular = ( (F * D * G) / (4.0 * NdotL * NdotV) );
+    	
+	vec3 finalLight = Ka*La + Kd*NdotL*Ld + specular*Ls;
+
+	fragColor = vec4(finalLight * texture(diffuseTexture, inVertex.texCoord).rgb, 1.0);
 }

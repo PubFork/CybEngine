@@ -1,4 +1,5 @@
 #include "Precompiled.h"
+#include "Definitions.h"
 #include "Model.h"
 #include "Base/Debug.h"
 #include "Base/Algorithm.h"
@@ -56,44 +57,39 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
     //THROW_FATAL_COND(!objModel, std::string("Failed to read model " + filename));
     auto model = std::make_shared<Model>(objModel->name.empty() ? "<unknown>" : objModel->name);
 
-    for (auto &surface : objModel->surfaces)
+    for (auto &objSurface : objModel->surfaces)
     {
-        renderer::Surface drawSurface;
+        renderer::Surface surface;
 
-        // copy geometry
-        renderer::SurfaceGeometry *geo = &drawSurface.geometry;
-        geo->primitive = Primitive_TriangleList;
-        geo->vertexDeclaration = vertexDeclaration;
-        geo->VBO = device->CreateBuffer(Buffer_Vertex | Buffer_ReadOnly, &surface.vertices[0], sizeof(OBJ_Vertex) * surface.vertices.size());
-        geo->IBO = device->CreateBuffer(Buffer_Index | Buffer_ReadOnly, &surface.indices[0], sizeof(uint32_t) * surface.indices.size());
-        geo->indexCount = (uint32_t)surface.indices.size();
+        surface.Clear();
+        surface.vertexBuffer = device->CreateBuffer(Buffer_Vertex | Buffer_ReadOnly, &objSurface.vertices[0], sizeof(OBJ_Vertex) * objSurface.vertices.size());
+        surface.vertexDeclaration = vertexDeclaration;
+        surface.indexBuffer = device->CreateBuffer(Buffer_Index | Buffer_ReadOnly, &objSurface.indices[0], sizeof(uint32_t) * objSurface.indices.size());
+        surface.indexCount = (uint32_t)objSurface.indices.size();
 
-        // copy material
-        renderer::SurfaceMaterial *mat = &drawSurface.material;
-        if (!surface.material.diffuseTexture.empty())
+        renderer::SurfaceMaterial *mat = &surface.material;
+        if (!objSurface.material.diffuseTexture.empty())
         {
-            mat->texture[0] = renderer::globalTextureCache->LoadTexture2DFromFile(surface.material.diffuseTexture.c_str());
+            mat->texture[0] = renderer::globalTextureCache->LoadTexture2DFromFile(objSurface.material.diffuseTexture.c_str());
         }
 
-        if (!surface.material.specularTexture.empty())
+        if (!objSurface.material.specularTexture.empty())
         {
-            mat->texture[1] = renderer::globalTextureCache->LoadTexture2DFromFile(surface.material.specularTexture.c_str());
+            mat->texture[1] = renderer::globalTextureCache->LoadTexture2DFromFile(objSurface.material.specularTexture.c_str());
         }
 
-        if (!surface.material.bumpTexture.empty())
+        if (!objSurface.material.bumpTexture.empty())
         {
-            mat->texture[2] = renderer::globalTextureCache->LoadTexture2DFromFile(surface.material.bumpTexture.c_str());
+            mat->texture[2] = renderer::globalTextureCache->LoadTexture2DFromFile(objSurface.material.bumpTexture.c_str());
         }
 
-        mat->ambient = surface.material.ambientColor;
-        mat->diffuse = surface.material.diffuseColor;
-        mat->specular = surface.material.specularColor;
-        mat->shininess = surface.material.shininess;
+        mat->ambient = objSurface.material.ambientColor;
+        mat->diffuse = objSurface.material.diffuseColor;
+        mat->specular = objSurface.material.specularColor;
+        mat->shininess = objSurface.material.shininess;
 
-        // finish up and add to model
-        drawSurface.name = surface.name;
-        drawSurface.rasterState = RasterizerState(renderer::CullMode_CW, renderer::FillMode_Solid);
-        model->AddSurface(drawSurface);
+        // add surface to the model
+        model->AddSurface(surface);
     }
 
     return model;

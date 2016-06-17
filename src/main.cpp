@@ -42,6 +42,7 @@ bool GameApp::Init()
                                                                 "assets/shaders/debug-normals.vert",
                                                                 "assets/shaders/debug-normals.geom",
                                                                 "assets/shaders/debug-normals.frag");
+    debugNormalProgram->SetFloat(debugNormalProgram->GetParameterLocation("debugLineLength"), 0.2f);
     THROW_FATAL_COND(!debugNormalProgram, "Fatal: Failed to create shader program!");
     renderDevice->SetShaderProgram(program);
 
@@ -59,6 +60,7 @@ bool GameApp::Init()
 
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
     model = renderer::Model::LoadOBJ(renderDevice, "assets/crytek-sponza/sponza.obj");
+    //cameraControl.SetWalkSpeed(5.5f);
     //model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
 
     // move controls
@@ -98,19 +100,23 @@ void GameApp::Render()
 
     {
         SCOOPED_PROFILE_EVENT("Draw");
-        renderDevice->SetShaderProgram(skyboxProgram);
-        renderDevice->Render(&skyboxSurface, &camera);
-
+        
         if (modelSampler)
         {
             renderDevice->SetSamplerState(0, modelSampler);
         }
+
+        // render model
         renderDevice->SetShaderProgram(program);
         model->Render(renderDevice, &camera);
 
-        // DEBUG DRAW NORMALS
+        // render model tangent-space vectors
         //renderDevice->SetShaderProgram(debugNormalProgram);
         //model->Render(renderDevice, &camera);
+
+        // render skybox
+        renderDevice->SetShaderProgram(skyboxProgram);
+        renderDevice->Render(&skyboxSurface, &camera);
     }
 }
 

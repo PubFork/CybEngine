@@ -96,6 +96,7 @@ OBJ_Edge ReadFaceIndex(const char *&token)
 
     // i/j/k or i/j
     const OBJ_Index texCoordIndex = (OBJ_Index)atoi(token);
+    assert(texCoordIndex != 0);
     token += strcspn(token, "/ \t\r\n");
     if (token[0] != '/')
     {
@@ -229,32 +230,6 @@ bool MTL_Load(const char *filename, OBJ_MaterialMap &outMaterials)
     return true;
 }
 
-void CalculateNormals(const std::vector<glm::vec3> &vertexList, std::vector<OBJ_FaceGroup> &faceGroupList, std::vector<glm::vec3> &normalList)
-{
-    for (auto &faceGroup : faceGroupList)
-    {
-        for (auto &face : faceGroup.faces)
-        {
-            assert(face.edges.size() >= 3);
-            const glm::vec3 &a = vertexList[face.edges[0].vertexIndex - 1];
-            const glm::vec3 &b = vertexList[face.edges[1].vertexIndex - 1];
-            const glm::vec3 &c = vertexList[face.edges[2].vertexIndex - 1];
-
-            face.normal = (glm::cross(b - a, c - a));
-
-            for (const auto &edge : face.edges)
-            {
-                normalList[edge.vertexIndex - 1] += face.normal;
-            }
-        }
-    }
-
-    for (auto &normal : normalList)
-    {
-        normal = glm::normalize(normal);
-    }
-}
-
 void CalculateNormalsAndTangents(std::shared_ptr<OBJ_RawModel> rawModel)
 {
     for (auto &faceGroup : rawModel->faceGroups)
@@ -269,14 +244,21 @@ void CalculateNormalsAndTangents(std::shared_ptr<OBJ_RawModel> rawModel)
             const glm::vec3 v2 = c.pos - a.pos;
             face.normal = glm::cross(v1, v2);
 
-            const glm::vec2 &ta = rawModel->texCoords[face.edges[0].texCoordIndex - 1];
-            const glm::vec2 &tb = rawModel->texCoords[face.edges[1].texCoordIndex - 1];
-            const glm::vec2 &tc = rawModel->texCoords[face.edges[2].texCoordIndex - 1];
-            const glm::vec2 st1 = tb - ta;
-            const glm::vec2 st2 = tc - ta;
-
-            float tangentCoef = 1.0f / (st1.s * st2.t - st2.s * st1.t);
-            glm::vec3 tangent = (v1 * st2.y - v2 * st1.y) * tangentCoef;
+            glm::vec2 st1 = glm::vec2(0, 1) - glm::vec2(0, 0);
+            glm::vec2 st2 = glm::vec2(1, 1) - glm::vec2(0, 0);
+            bool faceHasTexCoords = (face.edges[0].texCoordIndex && face.edges[1].texCoordIndex && face.edges[2].texCoordIndex);
+            if (faceHasTexCoords)
+            {
+                // align tangent with texCoords
+                const glm::vec2 &ta = rawModel->texCoords[face.edges[0].texCoordIndex - 1];
+                const glm::vec2 &tb = rawModel->texCoords[face.edges[1].texCoordIndex - 1];
+                const glm::vec2 &tc = rawModel->texCoords[face.edges[2].texCoordIndex - 1];
+                st1 = tb - ta;
+                st2 = tc - ta;           
+            }
+  
+            const float tangentCoef = 1.0f / (st1.s * st2.t - st2.s * st1.t);
+            const glm::vec3 tangent = (v1 * st2.y - v2 * st1.y) * tangentCoef;
 
             for (const auto &edge : face.edges)
             {

@@ -160,6 +160,9 @@
     <ClInclude Include="src\GUI\imgui.h">
       <Filter>Source Files\GUI</Filter>
     </ClInclude>
+    <ClInclude Include="src\Renderer\Definitions.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\cook-torrance.frag">
@@ -190,6 +193,9 @@
       <Filter>Resource Files\shaders</Filter>
     </None>
     <None Include="assets\shaders\blinn-phong-bump.vert">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="assets\shaders\cook-torrance.vert">
       <Filter>Resource Files\shaders</Filter>
     </None>
   </ItemGroup>

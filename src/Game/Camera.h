@@ -43,6 +43,8 @@ public:
     void RotateLookAtDirection(const glm::vec2 mouseOffset);
     void UpdateCameraView(BaseCamera *camera);
 
+    void SetWalkSpeed(float inWalkSpeed) { walkSpeed = inWalkSpeed; }
+
 private:
     void UpdateDirectionVector();
 

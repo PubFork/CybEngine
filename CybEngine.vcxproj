@@ -61,6 +61,7 @@
     <ClInclude Include="src\GUI\stb_rect_pack.h" />
     <ClInclude Include="src\GUI\stb_textedit.h" />
     <ClInclude Include="src\GUI\stb_truetype.h" />
+    <ClInclude Include="src\Renderer\Definitions.h" />
     <ClInclude Include="src\Renderer\Model.h" />
     <ClInclude Include="src\Renderer\Model_obj.h" />
     <ClInclude Include="src\renderer\RenderDevice.h" />
@@ -75,6 +76,7 @@
     <None Include="assets\shaders\blinn-phong.frag" />
     <None Include="assets\shaders\blinn-phong.vert" />
     <None Include="assets\shaders\cook-torrance.frag" />
+    <None Include="assets\shaders\cook-torrance.vert" />
     <None Include="assets\shaders\debug-normals.frag" />
     <None Include="assets\shaders\debug-normals.geom" />
     <None Include="assets\shaders\debug-normals.vert" />

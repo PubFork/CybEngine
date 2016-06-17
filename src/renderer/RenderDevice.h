@@ -1,4 +1,5 @@
 #pragma once
+#include "Definitions.h"
 
 namespace renderer
 {
@@ -37,41 +38,6 @@ enum VertexElementFormat
     VertexElementFormat_Short2,
     VertexElementFormat_Short4,
     VertexElementFormat_Count
-};
-
-enum PrimitiveType
-{
-    Primitive_TriangleList,
-    Primitive_TriangleStrip,
-    Primitive_LineList,
-    Primitive_PointList,
-    Primitive_QuadList
-};
-
-enum RasterizerCullMode
-{
-    CullMode_None,                          // No rasterizer face culling
-    CullMode_CCW,                           // Cull counter-clockwise ordered faces (front facing)
-    CullMode_CW                             // Cull clockwise ordered faces (back facing)
-};
-
-enum RasterizerFillMode
-{
-    FillMode_Point,
-    FillMode_Wireframe,
-    FillMode_Solid
-};
-
-enum CompareFunction
-{
-    CmpFunc_Less,
-    CmpFunc_LessEqual,
-    CmpFunc_Greater,
-    CmpFunc_GreaterEqual,
-    CmpFunc_Equal,
-    CmpFunc_NotEqual,
-    CmpFunc_Never,
-    CmpFunc_Always
 };
 
 enum SamplerFilter
@@ -298,78 +264,6 @@ private:
 //
 // Surface structures
 //
-struct RasterizerState
-{
-    RasterizerState() :
-        cullMode(CullMode_CW),
-        fillMode(FillMode_Solid),
-        lineWidth(1.0f),
-        pointSize(1.0f)
-    {
-    }
-
-    RasterizerState(RasterizerCullMode inCullMode,
-                    RasterizerFillMode inFillMode,
-                    float inPointSize = 1.0f,
-                    float inLineWidth = 1.0f) :
-        cullMode(inCullMode),
-        fillMode(inFillMode),
-        pointSize(inPointSize),
-        lineWidth(inLineWidth)
-    {
-    }
-
-    RasterizerCullMode cullMode;
-    RasterizerFillMode fillMode;
-    float pointSize;
-    float lineWidth;
-};
-
-struct DepthBufferState
-{
-    DepthBufferState(bool inEnabled = true,
-                     bool inWriteMask = true,
-                     CompareFunction inFunction = CmpFunc_Less) :
-        enabled(inEnabled),
-        writeMask(inWriteMask),
-        function(inFunction)
-    {
-    }
-
-    bool enabled;
-    bool writeMask;
-    CompareFunction function;
-};
-
-struct SurfaceGeometry
-{
-    SurfaceGeometry() : 
-        indexCount(0) 
-    {
-    }
-
-    SurfaceGeometry(PrimitiveType inPrimitive,
-                    std::shared_ptr<IVertexDeclaration> inVertexDeclaration,
-                    std::shared_ptr<IBuffer> inVBO,
-                    std::shared_ptr<IBuffer> inIBO,
-                    uint32_t inIndexCount,
-                    uint32_t inPrimitiveCount) :
-        primitive(inPrimitive),
-        vertexDeclaration(inVertexDeclaration),
-        VBO(inVBO),
-        IBO(inIBO),
-        indexCount(inIndexCount),
-        primitiveCount(inPrimitiveCount)
-    {
-    }
-
-    PrimitiveType primitive;
-    std::shared_ptr<IVertexDeclaration> vertexDeclaration;
-    std::shared_ptr<IBuffer> VBO;
-    std::shared_ptr<IBuffer> IBO;
-    uint32_t indexCount;
-    uint32_t primitiveCount;
-};
 
 struct SurfaceMaterial
 {
@@ -385,16 +279,23 @@ struct SurfaceMaterial
 
 struct Surface
 {
-    Surface() : 
-        name("<unknown>") 
-    {
-    }
-
-    std::string name;
-    SurfaceGeometry geometry;
+    uint32_t drawStateFlags;
+    std::shared_ptr<IBuffer> vertexBuffer;
+    std::shared_ptr<IVertexDeclaration> vertexDeclaration;
+    std::shared_ptr<IBuffer> indexBuffer;
+    uint32_t indexCount;
+    uint32_t primitiveCount;
     SurfaceMaterial material;
-    RasterizerState rasterState;
-    DepthBufferState depthState;
+    
+    void Clear()
+    {
+        drawStateFlags = DrawState_Default;
+        vertexBuffer = nullptr;
+        vertexDeclaration = nullptr;
+        indexBuffer = nullptr;
+        indexCount = 0;
+        primitiveCount = 0;
+    }
 };
 
 //

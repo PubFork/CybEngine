@@ -1,4 +1,5 @@
 ﻿#include "Precompiled.h"
+#include "Definitions.h"
 #include "RenderDevice.h"
 #include "RenderDeviceOpenGL.h"
 #include "Base/Debug.h"
@@ -41,6 +42,35 @@ static const OpenGLVertexElementFormatInfo vertexElementTypeInfo[VertexElementFo
     { GL_UNSIGNED_BYTE,     4,                  4,                  GL_TRUE  },     // VertexElementFormat_UByte4N
     { GL_UNSIGNED_SHORT,    2,                  4,                  GL_FALSE },     // VertexElementFormat_Short2
     { GL_UNSIGNED_SHORT,    4,                  8,                  GL_FALSE },     // VertexElementFormat_Short4
+};
+
+static const GLenum compareFunctionTable[] =
+{
+    GL_NONE,
+    GL_LESS,
+    GL_LEQUAL,
+    GL_GREATER,
+    GL_GEQUAL,
+    GL_EQUAL,
+    GL_NOTEQUAL,
+    GL_NEVER,
+    GL_ALWAYS
+};
+
+static const GLenum cullFaceTable[] =
+{
+    GL_NONE,
+    GL_BACK,                                                                        // DrawState_Cull_CW
+    GL_FRONT,                                                                       // DrawState_Cull_CCW
+};
+
+static const GLenum primitiveTable[] =
+{
+    GL_TRIANGLES,                                                                   // Default
+    GL_TRIANGLE_STRIP,                                                              // DrawState_Primitive_TriangleStrip
+    GL_LINES,                                                                       // DrawState_Primitive_Lines
+    GL_LINE_STRIP,                                                                  // DrawState_Primitive_LineStrip
+    GL_POINTS                                                                       // DrawState_Primitive_Points
 };
 
 //
@@ -184,42 +214,6 @@ OpenGLTextureBase<BaseType>::~OpenGLTextureBase()
 // Render Device
 //==============================
 
-GLenum TranslatePrimitiveType(PrimitiveType prim)
-{
-    switch (prim)
-    {
-    case Primitive_TriangleList: return GL_TRIANGLES;
-    case Primitive_TriangleStrip: return GL_TRIANGLE_STRIP;
-    case Primitive_LineList: return GL_LINES;
-    case Primitive_PointList: return GL_POINTS;
-    case Primitive_QuadList: return GL_QUADS;
-    }
-
-    return GL_POINT;
-}
-
-GLenum TranslateCullMode(RasterizerCullMode mode)
-{
-    switch (mode)
-    {
-    case CullMode_CW: return GL_FRONT;
-    case CullMode_CCW: return GL_BACK;
-    }
-
-    return GL_NONE;
-}
-
-GLenum TranslateFillMode(RasterizerFillMode mode)
-{
-    switch (mode)
-    {
-    case FillMode_Point: return GL_POINT;
-    case FillMode_Wireframe: return GL_LINE;
-    case FillMode_Solid: return GL_FILL;
-    }
-
-    return GL_LINE;
-}
 
 GLint TranslateWrapMode(SamplerWrapMode mode)
 {
@@ -231,23 +225,6 @@ GLint TranslateWrapMode(SamplerWrapMode mode)
     }
 
     return GL_REPEAT;
-}
-
-GLenum TranslateCompareFunction(CompareFunction function)
-{
-    switch (function)
-    {
-    case CmpFunc_Less: return GL_LESS;
-    case CmpFunc_LessEqual: return GL_LEQUAL;
-    case CmpFunc_Greater: return GL_GREATER;
-    case CmpFunc_GreaterEqual: return GL_GEQUAL;
-    case CmpFunc_Equal: return GL_EQUAL;
-    case CmpFunc_NotEqual: return GL_NOTEQUAL;
-    case CmpFunc_Never: return GL_NEVER;
-    case CmpFunc_Always: return GL_ALWAYS;
-    }
-
-    return GL_LESS;
 }
 
 void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar *message, const void * /*userParam*/)
@@ -575,45 +552,36 @@ void OpenGLRenderDevice::Clear(uint32_t targets, const glm::vec4 color, float de
     glClear(mask);
 }
 
-void OpenGLSetRasterizerState(const RasterizerState &state)
+void OpenGLUpdateDrawState(uint32_t state)
 {
-    const RasterizerCullMode cullMode = state.cullMode;
-    if (cullMode == CullMode_None)
+    uint32_t depthMask = state & DrawState_DepthTest_Mask;
+    if (!!depthMask)
     {
-        glDisable(GL_CULL_FACE);
-    }
-    else
-    {
-        glEnable(GL_CULL_FACE);
-        switch (cullMode)
-        {
-        case CullMode_CCW: glCullFace(GL_FRONT); break;
-        case CullMode_CW: glCullFace(GL_BACK); break;
-        }
-    }
-
-    switch (state.fillMode)
-    {
-    case FillMode_Point: glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); glPointSize(state.pointSize); break;
-    case FillMode_Wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glLineWidth(state.lineWidth); break;
-    case FillMode_Solid: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
-    }
-}
-
-void OpenGLSetDepthBufferState(const DepthBufferState &state)
-{
-    if (state.enabled)
-    {
-        const GLboolean depthMaskFlag = (state.writeMask == true) ? GL_TRUE : GL_FALSE;
-        const GLenum compareFunction = TranslateCompareFunction(state.function);
+        const uint32_t compareFunctionIndex = depthMask >> DrawState_DepthTest_Shift;
+        assert(compareFunctionIndex < _countof(compareFunctionTable));
+        const GLenum depthCompareFunction = compareFunctionTable[compareFunctionIndex];
 
         glEnable(GL_DEPTH_TEST);
-        glDepthMask(depthMaskFlag);
-        glDepthFunc(compareFunction);
+        glDepthFunc(depthCompareFunction);
     }
     else
     {
         glDisable(GL_DEPTH_TEST);
+    }
+
+    uint32_t cullMask = state & DrawState_Cull_Mask;
+    if (!!cullMask)
+    {
+        const uint32_t cullFaceIndex = cullMask >> DrawState_Cull_Shift;
+        assert(cullFaceIndex < _countof(cullFaceTable));
+        const GLenum cullFace = cullFaceTable[cullFaceIndex];
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(cullFace);
+    }
+    else
+    {
+        glDisable(GL_CULL_FACE);
     }
 }
 
@@ -646,8 +614,7 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     currentShaderProgram->SetVec3(viewPosLoc, camera->GetViewPositionVector());
 
     // setup states
-    OpenGLSetRasterizerState(surf->rasterState);
-    OpenGLSetDepthBufferState(surf->depthState);
+    OpenGLUpdateDrawState(surf->drawStateFlags);
 
     // setup materials
     const SurfaceMaterial *material = &surf->material;
@@ -662,6 +629,7 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
         {
             SetSamplerState(0, material->sampler[0]);
         }
+
         SetTexture(0, material->texture[0]);    // TODO: Texture state should be manually set by the user!
         glProgramUniform1i(currentShaderProgram->resource, currentShaderProgram->GetParameterLocation("diffuseTexture"), 0);
     }
@@ -696,34 +664,32 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     }
 
     // setup geometry
-    const SurfaceGeometry *geo = &surf->geometry;
-    const std::shared_ptr<OpenGLVertexDeclaration> vertexDeclaration = std::static_pointer_cast<OpenGLVertexDeclaration>(geo->vertexDeclaration);
-    const std::shared_ptr<OpenGLBuffer> VBO = std::static_pointer_cast<OpenGLBuffer>(geo->VBO);
-    const std::shared_ptr<OpenGLBuffer> IBO = std::static_pointer_cast<OpenGLBuffer>(geo->IBO);
+    const std::shared_ptr<OpenGLBuffer> VBO = std::static_pointer_cast<OpenGLBuffer>(surf->vertexBuffer);
     glBindBuffer(VBO->target, VBO->resource);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    if (IBO != nullptr)
-    {
-        glBindBuffer(IBO->target, IBO->resource);
-    }
 
+    const std::shared_ptr<OpenGLVertexDeclaration> vertexDeclaration = std::static_pointer_cast<OpenGLVertexDeclaration>(surf->vertexDeclaration);
     for (const auto &element : vertexDeclaration->vertexElements)
     {
         glEnableVertexAttribArray(element.attributeLocation);
         glVertexAttribPointer(element.attributeLocation, element.numComponents, element.type, element.normalized, element.stride, (const GLvoid *)element.offset);
     }
 
-    // draw
-    const GLuint prim = TranslatePrimitiveType(geo->primitive);
-    if (IBO == nullptr)
+    const uint32_t primIndex = (surf->drawStateFlags & DrawState_Primitive_Mask) >> DrawState_Primitive_Shift;
+    assert(primIndex < _countof(primitiveTable));
+    const GLuint prim = primitiveTable[primIndex];
+    
+    if (surf->indexBuffer != nullptr)
     {
-        glDrawArrays(GL_TRIANGLES, 0, geo->primitiveCount);
+        const std::shared_ptr<OpenGLBuffer> IBO = std::static_pointer_cast<OpenGLBuffer>(surf->indexBuffer);
+        glBindBuffer(IBO->target, IBO->resource);
+        glDrawElements(prim, surf->indexCount, GL_UNSIGNED_INT, NULL);
     }
     else
     {
-        glDrawElements(prim, geo->indexCount, GL_UNSIGNED_INT, NULL);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glDrawArrays(prim, 0, surf->primitiveCount);
     }
-
+    
     for (const auto &element : vertexDeclaration->vertexElements)
     {
         glDisableVertexAttribArray(element.attributeLocation);

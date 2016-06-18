@@ -122,7 +122,7 @@ std::shared_ptr<ITextureCube> TextureCache::LoadTextureCubeFromFiles(const char 
         }
     }
 
-    auto textureCube = device->CreateTextureCube(cubeWidth, cubeHeight, renderer::PixelFormat_R8G8B8A8, (const void **)imageBuffers);
+    auto textureCube = device->CreateTextureCube(cubeWidth, cubeHeight, PixelFormat_R8G8B8A8, (const void **)imageBuffers);
 
     for (uint32_t i = 0; i < 6; i++)
     {

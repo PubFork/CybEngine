@@ -52,20 +52,20 @@ void CreateSkyBoxSurface(std::shared_ptr<renderer::IRenderDevice> device, render
 
     const renderer::VertexElementList vertexLayout = 
     {
-        { renderer::VertexElement(renderer::VertexElementUsage_Position,  renderer::VertexElementFormat_Float3, 0, sizeof(float)*3) }
+        { renderer::VertexElement(VertexElementUsage_Position,  VertexElementFormat_Float3, 0, sizeof(float)*3) }
     };
 
     surface.Clear();
     surface.drawStateFlags = DrawState_DepthTest_LessEqual | DrawState_Cull_CW;
-    surface.vertexBuffer = device->CreateBuffer(renderer::Buffer_Vertex | renderer::Buffer_ReadOnly, skyboxVertices, sizeof(skyboxVertices));
+    surface.vertexBuffer = device->CreateBuffer(Buffer_Vertex | Buffer_ReadOnly, skyboxVertices, sizeof(skyboxVertices));
     surface.vertexDeclaration = device->CreateVertexDelclaration(vertexLayout);
     surface.primitiveCount = 36;
 
     surface.material.texture[0] = renderer::globalTextureCache->LoadTextureCubeFromFiles(textureFileNames);
     surface.material.sampler[0] = device->CreateSamplerState(renderer::SamplerStateInitializer(
-        renderer::SamplerFilter_Anisotropic,
-        renderer::SamplerWrap_Clamp,
-        renderer::SamplerWrap_Clamp,
-        renderer::SamplerWrap_Clamp
+        SamplerFilter_Anisotropic,
+        SamplerWrap_Clamp,
+        SamplerWrap_Clamp,
+        SamplerWrap_Clamp
     ));
 }

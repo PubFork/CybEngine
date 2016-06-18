@@ -73,12 +73,12 @@ bool GameApp::Init()
     BindMouseMove([=](const MouseStateInfo &mouseState) { if (mouseState.isGrabbed) { cameraControl.RotateLookAtDirection(mouseState.offset); } });
 
     // sampler state control
-    modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Anisotropic));
-    BindKey(GLFW_KEY_1, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point)); });
-    BindKey(GLFW_KEY_2, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Bilinear)); });
-    BindKey(GLFW_KEY_3, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Trilinear)); });
-    BindKey(GLFW_KEY_4, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Anisotropic)); });
-    BindKey(GLFW_KEY_5, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(renderer::SamplerFilter_Point, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, 0, 3)); });
+    modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(SamplerFilter_Anisotropic));
+    BindKey(GLFW_KEY_1, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(SamplerFilter_Point)); });
+    BindKey(GLFW_KEY_2, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(SamplerFilter_Bilinear)); });
+    BindKey(GLFW_KEY_3, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(SamplerFilter_Trilinear)); });
+    BindKey(GLFW_KEY_4, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(SamplerFilter_Anisotropic)); });
+    BindKey(GLFW_KEY_5, [=](void) { modelSampler = renderDevice->CreateSamplerState(renderer::SamplerStateInitializer(SamplerFilter_Point, SamplerWrap_Repeat, SamplerWrap_Repeat, SamplerWrap_Repeat, 0, 3)); });
 
     return true;
 }
@@ -95,7 +95,7 @@ void GameApp::Render()
 
     {
         SCOOPED_PROFILE_EVENT("Clear");
-        renderDevice->Clear(renderer::Clear_Color | renderer::Clear_Depth, glm::vec4(0.125f, 0.188f, 0.250f, 1.0f));
+        renderDevice->Clear(Clear_Color | Clear_Depth, glm::vec4(0.125f, 0.188f, 0.250f, 1.0f));
     }
 
     {

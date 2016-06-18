@@ -35,8 +35,9 @@ ShaderBytecodeFromFile::ShaderBytecodeFromFile(const char *filename)
     length = shaderFile.GetLength();
     if (length > 0)
     {
-        source = new char[length];
+        source = new char[length + 1];
         shaderFile.Read((uint8_t *)source, length);
+        source[length] = '\0';
     }
 }
 
@@ -48,33 +49,23 @@ ShaderBytecodeFromFile::~ShaderBytecodeFromFile()
     }
 }
 
-// TODO: Add error messages
 std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *FSFilename)
 {
     ShaderBytecodeFromFile VS(VSFilename);
     ShaderBytecodeFromFile FS(FSFilename);
 
-    if (!VS.IsValid() || !FS.IsValid())
-    {
-        return nullptr;
-    }
-
-    return device->CreateShaderProgram(VS, FS);
+    const bool validShaders = (VS.IsValid() && FS.IsValid());
+    return validShaders ? device->CreateShaderProgram(VS, FS) : nullptr;
 }
 
-// TODO: Add error messages
 std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *GSFilename, const char *FSFilename)
 {
     ShaderBytecodeFromFile VS(VSFilename);
     ShaderBytecodeFromFile GS(GSFilename);
     ShaderBytecodeFromFile FS(FSFilename);
 
-    if (!VS.IsValid() || !GS.IsValid() || !FS.IsValid())
-    {
-        return nullptr;
-    }
-
-    return device->CreateShaderProgram(VS, GS, FS);
+    const bool validShaders = (VS.IsValid() && GS.IsValid() && FS.IsValid());
+    return validShaders ? device->CreateShaderProgram(VS, GS, FS) : nullptr;
 }
 
 int CalculateNumMipLevels(uint32_t width, uint32_t height)

@@ -1,5 +1,75 @@
 #pragma once
 
+enum BufferUsage
+{
+    Buffer_Vertex       = 0x00000001,
+    Buffer_Index        = 0x00000002,
+    Buffer_TypeMask     = 0x000000ff,
+    Buffer_ReadOnly     = 0x00002000,           
+    Buffer_32BitIndex   = 0x00004000,           // Only used with index buffers, if flag is not set, 16-bit indices is assumed
+};
+
+enum VertexElementUsage
+{
+    VertexElementUsage_Position,
+    VertexElementUsage_Normal,
+    VertexElementUsage_Tangent,
+    VertexElementUsage_TexCoord0,
+    VertexElementUsage_TexCoord1,
+    VertexElementUsage_TexCoord2,
+    VertexElementUsage_TexCoord3,
+    VertexElementUsage_Color,
+    VertexElementUsage_Count
+};
+
+enum VertexElementFormat
+{
+    VertexElementFormat_Float1,
+    VertexElementFormat_Float2,
+    VertexElementFormat_Float3,
+    VertexElementFormat_Float4,
+    VertexElementFormat_UByte4,
+    VertexElementFormat_UByte4N,
+    VertexElementFormat_Short2,
+    VertexElementFormat_Short4,
+    VertexElementFormat_Count
+};
+
+enum SamplerFilter
+{
+    SamplerFilter_Point,
+    SamplerFilter_Bilinear,
+    SamplerFilter_Trilinear,
+    SamplerFilter_Anisotropic
+};
+
+enum SamplerWrapMode
+{
+    SamplerWrap_Repeat,
+    SamplerWrap_RepeatMirror,
+    SamplerWrap_Clamp,
+    SamplerWrap_ClampToEdge
+};
+
+enum PixelFormat
+{
+    PixelFormat_Unknown,
+    PixelFormat_R8G8B8A8,
+    PixelFormat_R8,
+    PixelFormat_R32G32B32A32F,
+    PixelFormat_Depth24,
+    PixelFormat_Count
+};
+
+enum ClearFlags
+{
+    Clear_None = 0x00,
+    Clear_Color = 0x01,
+    Clear_Depth = 0x02,
+    Clear_Stencil = 0x04,
+    Clear_All = Clear_Color | Clear_Depth | Clear_Stencil
+};
+
 enum DrawStateFlags
 {
     DrawState_DepthTest_Less            = 0x00000010,

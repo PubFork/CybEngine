@@ -46,10 +46,10 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
 {
     static const renderer::VertexElementList vertexElements = 
     {
-        { VertexElement(renderer::VertexElementUsage_Position,  renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, position), sizeof(OBJ_Vertex)) },
-        { VertexElement(renderer::VertexElementUsage_Normal,    renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, normal),   sizeof(OBJ_Vertex)) },
-        { VertexElement(renderer::VertexElementUsage_Tangent,   renderer::VertexElementFormat_Float3, offsetof(OBJ_Vertex, tangent),  sizeof(OBJ_Vertex)) },
-        { VertexElement(renderer::VertexElementUsage_TexCoord0, renderer::VertexElementFormat_Float2, offsetof(OBJ_Vertex, texCoord), sizeof(OBJ_Vertex)) }
+        { VertexElement(VertexElementUsage_Position,  VertexElementFormat_Float3, offsetof(OBJ_Vertex, position), sizeof(OBJ_Vertex)) },
+        { VertexElement(VertexElementUsage_Normal,    VertexElementFormat_Float3, offsetof(OBJ_Vertex, normal),   sizeof(OBJ_Vertex)) },
+        { VertexElement(VertexElementUsage_Tangent,   VertexElementFormat_Float3, offsetof(OBJ_Vertex, tangent),  sizeof(OBJ_Vertex)) },
+        { VertexElement(VertexElementUsage_TexCoord0, VertexElementFormat_Float2, offsetof(OBJ_Vertex, texCoord), sizeof(OBJ_Vertex)) }
     };
     auto vertexDeclaration = device->CreateVertexDelclaration(vertexElements);
 
@@ -64,8 +64,9 @@ std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> d
         surface.Clear();
         surface.vertexBuffer = device->CreateBuffer(Buffer_Vertex | Buffer_ReadOnly, &objSurface.vertices[0], sizeof(OBJ_Vertex) * objSurface.vertices.size());
         surface.vertexDeclaration = vertexDeclaration;
-        surface.indexBuffer = device->CreateBuffer(Buffer_Index | Buffer_ReadOnly, &objSurface.indices[0], sizeof(uint32_t) * objSurface.indices.size());
-        surface.indexCount = (uint32_t)objSurface.indices.size();
+        surface.indexBuffer = device->CreateBuffer(Buffer_Index | Buffer_32BitIndex | Buffer_ReadOnly, &objSurface.indices[0], sizeof(uint32_t) * objSurface.indices.size());
+        surface.numVertices = (uint32_t)objSurface.vertices.size();
+        surface.numIndices = (uint32_t)objSurface.indices.size();
 
         renderer::SurfaceMaterial *mat = &surface.material;
         if (!objSurface.material.diffuseTexture.empty())

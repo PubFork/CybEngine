@@ -6,75 +6,6 @@ namespace renderer
 
 class IRenderDevice;
 
-enum BufferUsage
-{
-    Buffer_Vertex,
-    Buffer_Index,
-    Buffer_TypeMask = 0xff,
-    Buffer_ReadOnly
-};
-
-enum VertexElementUsage
-{
-    VertexElementUsage_Position,
-    VertexElementUsage_Normal,
-    VertexElementUsage_Tangent,
-    VertexElementUsage_TexCoord0,
-    VertexElementUsage_TexCoord1,
-    VertexElementUsage_TexCoord2,
-    VertexElementUsage_TexCoord3,
-    VertexElementUsage_Color,
-    VertexElementUsage_Count
-};
-
-enum VertexElementFormat
-{
-    VertexElementFormat_Float1,
-    VertexElementFormat_Float2,
-    VertexElementFormat_Float3,
-    VertexElementFormat_Float4,
-    VertexElementFormat_UByte4,
-    VertexElementFormat_UByte4N,
-    VertexElementFormat_Short2,
-    VertexElementFormat_Short4,
-    VertexElementFormat_Count
-};
-
-enum SamplerFilter
-{
-    SamplerFilter_Point,
-    SamplerFilter_Bilinear,
-    SamplerFilter_Trilinear,
-    SamplerFilter_Anisotropic
-};
-
-enum SamplerWrapMode
-{
-    SamplerWrap_Repeat,
-    SamplerWrap_RepeatMirror,
-    SamplerWrap_Clamp,
-    SamplerWrap_ClampToEdge
-};
-
-enum PixelFormat
-{
-    PixelFormat_Unknown,
-    PixelFormat_R8G8B8A8,
-    PixelFormat_R8,
-    PixelFormat_R32G32B32A32F,
-    PixelFormat_Depth24,
-    PixelFormat_Count
-};
-
-enum ClearFlags
-{
-    Clear_None = 0x00,
-    Clear_Color = 0x01,
-    Clear_Depth = 0x02,
-    Clear_Stencil = 0x04,
-    Clear_All = Clear_Color | Clear_Depth | Clear_Stencil
-};
-
 class IGPUResource
 {
 public:
@@ -144,7 +75,7 @@ public:
 //
 struct ShaderBytecode
 {
-    const char *source;
+    char *source;
     size_t length;
 };
 
@@ -283,7 +214,8 @@ struct Surface
     std::shared_ptr<IBuffer> vertexBuffer;
     std::shared_ptr<IVertexDeclaration> vertexDeclaration;
     std::shared_ptr<IBuffer> indexBuffer;
-    uint32_t indexCount;
+    uint32_t numVertices;
+    uint32_t numIndices;
     uint32_t primitiveCount;
     SurfaceMaterial material;
     
@@ -293,7 +225,8 @@ struct Surface
         vertexBuffer = nullptr;
         vertexDeclaration = nullptr;
         indexBuffer = nullptr;
-        indexCount = 0;
+        numVertices = UINT32_MAX;
+        numIndices = UINT32_MAX;
         primitiveCount = 0;
     }
 };

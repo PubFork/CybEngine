@@ -7,7 +7,8 @@ namespace renderer
 class OpenGLBuffer : public IBuffer
 {
 public:
-    OpenGLBuffer(GLuint inResource, GLenum inTarget, GLenum inUsage, GLsizeiptr inSize) :
+    OpenGLBuffer(uint32_t inFlags, GLuint inResource, GLenum inTarget, GLenum inUsage, GLsizeiptr inSize) :
+        flags(inFlags),
         resource(inResource),
         target(inTarget),
         usage(inUsage),
@@ -19,6 +20,7 @@ public:
     virtual void *Map();
     virtual void Unmap();
 
+    uint32_t flags;
     GLuint resource;
     GLenum target;
     GLenum usage;
@@ -37,6 +39,13 @@ struct OpenGLVertexElementFormatInfo
     GLint numComponents;
     GLsizei alignedSíze;
     GLboolean normalized;
+};
+
+struct OpenGLPrimitiveInfo
+{
+    GLenum type;
+    uint32_t div;
+    uint32_t sub;
 };
 
 struct OpenGLVertexElement
@@ -83,26 +92,19 @@ class OpenGLShaderCompiler
 {
 public:
     enum { InfoLogSize = 1024 * 4 };
-    enum Error
-    {
-        NoError,
-        FailedToCompile,
-        FailedToLink
-    };
 
     OpenGLShaderCompiler() :
-        errorFlag(NoError)
+        compileErrorFlag(false)
     {
     }
 
     ~OpenGLShaderCompiler();
-    Error CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode);
-    Error LinkAndClearShaderStages(GLuint &outProgram); // Note: this clears any previous error flag
-    Error GetErrorFlag() const { return errorFlag; }
+    bool CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode);
+    bool LinkAndClearShaderStages(GLuint &outProgram);
 
 private:
     std::vector<GLuint> compiledShaderStages;
-    Error errorFlag;
+    bool compileErrorFlag;
 };
 
 class OpenGLShaderProgram : public IShaderProgram

@@ -46,7 +46,7 @@ static const OpenGLVertexElementFormatInfo vertexElementTypeInfo[VertexElementFo
 
 static const GLenum compareFunctionTable[] =
 {
-    GL_NONE,
+    GL_INVALID_ENUM,
     GL_LESS,
     GL_LEQUAL,
     GL_GREATER,
@@ -59,18 +59,19 @@ static const GLenum compareFunctionTable[] =
 
 static const GLenum cullFaceTable[] =
 {
-    GL_NONE,
+    GL_INVALID_ENUM,
     GL_BACK,                                                                        // DrawState_Cull_CW
     GL_FRONT,                                                                       // DrawState_Cull_CCW
 };
 
-static const GLenum primitiveTable[] =
+static const OpenGLPrimitiveInfo primitiveTable[] =
 {
-    GL_TRIANGLES,                                                                   // Default
-    GL_TRIANGLE_STRIP,                                                              // DrawState_Primitive_TriangleStrip
-    GL_LINES,                                                                       // DrawState_Primitive_Lines
-    GL_LINE_STRIP,                                                                  // DrawState_Primitive_LineStrip
-    GL_POINTS                                                                       // DrawState_Primitive_Points
+//    type                  div     sub
+    { GL_TRIANGLES,         3,      0 },                                            // Default
+    { GL_TRIANGLE_STRIP,    1,      2 },                                            // DrawState_Primitive_TriangleStrip
+    { GL_LINES,             2,      0 },                                            // DrawState_Primitive_Lines
+    { GL_LINE_STRIP,        1,      1 },                                            // DrawState_Primitive_LineStrip
+    { GL_POINTS,            1,      0 },                                            // DrawState_Primitive_Points
 };
 
 //
@@ -102,8 +103,13 @@ OpenGLShaderCompiler::~OpenGLShaderCompiler()
     std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glDeleteShader(shader); });
 }
 
-OpenGLShaderCompiler::Error OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode)
+bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode)
 {
+    if (compileErrorFlag)
+    {
+        return false;
+    }
+
     GLuint shader = glCreateShader(stage);
     glShaderSource(shader, 1, (const GLchar **)&bytecode.source, (const GLint *)&bytecode.length);
     glCompileShader(shader);
@@ -113,19 +119,23 @@ OpenGLShaderCompiler::Error OpenGLShaderCompiler::CompileShaderStage(GLenum stag
     if (!compiled)
     {
         GLchar infoLog[InfoLogSize];
-        glGetShaderInfoLog(shader, Min((GLsizei)bytecode.length, (GLsizei)InfoLogSize), 0, infoLog);
+        glGetShaderInfoLog(shader, (GLsizei)InfoLogSize, 0, infoLog);
         DEBUG_LOG_TEXT_COND(infoLog[0], "Compiling shader:\n\n%s\nFailed: %s", bytecode.source, infoLog);
-        errorFlag = FailedToCompile;
-        return errorFlag;
+        compileErrorFlag = true;
+        return false;
     }
 
     compiledShaderStages.push_back(shader);
-    return errorFlag;
+    return true;
 }
 
-OpenGLShaderCompiler::Error OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
+bool OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
 {
-    errorFlag = NoError;
+    if (compileErrorFlag || compiledShaderStages.empty())
+    {
+        return false;
+    }
+
     GLuint program = glCreateProgram();
     std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glAttachShader(program, shader); });
 
@@ -146,12 +156,11 @@ OpenGLShaderCompiler::Error OpenGLShaderCompiler::LinkAndClearShaderStages(GLuin
         GLchar infoLog[InfoLogSize];
         glGetProgramInfoLog(program, InfoLogSize, 0, infoLog);
         DEBUG_LOG_TEXT_COND(infoLog[0], "Linking shaders failed: %s", infoLog);
-        errorFlag = FailedToLink;
-        return errorFlag;
+        return false;
     }
 
     outProgram = program;
-    return errorFlag;
+    return true;
 }
 
 //
@@ -229,7 +238,8 @@ GLint TranslateWrapMode(SamplerWrapMode mode)
 
 void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar *message, const void * /*userParam*/)
 {
-    static std::unordered_map<GLenum, const char *> toString = {
+    static std::unordered_map<GLenum, const char *> toString = 
+    {
         { GL_DEBUG_SOURCE_API_ARB,                  "OpenGL"                },
         { GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB,        "Windows"               },
         { GL_DEBUG_SOURCE_SHADER_COMPILER_ARB,      "Shader compiler"       },
@@ -297,7 +307,7 @@ void OpenGLRenderDevice::Init()
     // set default filter mode to anisotropic with max anisotropy
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, (GLint *)&imageFilterMaxAnisotropy);
     DEBUG_LOG_TEXT("Max texture anisotropy: %d", imageFilterMaxAnisotropy);
-    const SamplerStateInitializer initializer(SamplerFilter_Anisotropic, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, renderer::SamplerWrap_Repeat, imageFilterMaxAnisotropy);
+    const SamplerStateInitializer initializer(SamplerFilter_Anisotropic, SamplerWrap_Repeat, SamplerWrap_Repeat, SamplerWrap_Repeat, imageFilterMaxAnisotropy);
     const std::shared_ptr<ISamplerState> samplerState = CreateSamplerState(initializer);
     SetSamplerState(0, samplerState);
     SetSamplerState(1, samplerState);
@@ -332,7 +342,7 @@ std::shared_ptr<IBuffer> OpenGLRenderDevice::CreateBuffer(int usageFlags, const 
     glBindBuffer(target, resource);
     glBufferData(target, size, data, usage);
 
-    return std::make_shared<OpenGLBuffer>(resource, target, usage, size);
+    return std::make_shared<OpenGLBuffer>(usageFlags, resource, target, usage, size);
 }
 
 std::shared_ptr<IVertexDeclaration> OpenGLRenderDevice::CreateVertexDelclaration(const VertexElementList &vertexElements)
@@ -370,15 +380,8 @@ std::shared_ptr<IShaderProgram> OpenGLRenderDevice::CreateShaderProgram(const Sh
     compiler.CompileShaderStage(GL_FRAGMENT_SHADER, FS);
 
     GLuint programId = 0;
-    if (compiler.GetErrorFlag() == OpenGLShaderCompiler::NoError)
-    {
-        if (compiler.LinkAndClearShaderStages(programId) == OpenGLShaderCompiler::NoError)
-        {
-            return std::make_shared<OpenGLShaderProgram>(programId);
-        }
-    }
-
-    return nullptr;
+    const bool validProgram = compiler.LinkAndClearShaderStages(programId);
+    return validProgram ? std::make_shared<OpenGLShaderProgram>(programId) : nullptr;
 }
 
 std::shared_ptr<IShaderProgram> OpenGLRenderDevice::CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &GS, const ShaderBytecode &FS)
@@ -389,15 +392,8 @@ std::shared_ptr<IShaderProgram> OpenGLRenderDevice::CreateShaderProgram(const Sh
     compiler.CompileShaderStage(GL_FRAGMENT_SHADER, FS);
 
     GLuint programId = 0;
-    if (compiler.GetErrorFlag() == OpenGLShaderCompiler::NoError)
-    {
-        if (compiler.LinkAndClearShaderStages(programId) == OpenGLShaderCompiler::NoError)
-        {
-            return std::make_shared<OpenGLShaderProgram>(programId);
-        }
-    }
-
-    return nullptr;
+    const bool validProgram = compiler.LinkAndClearShaderStages(programId);
+    return validProgram ? std::make_shared<OpenGLShaderProgram>(programId) : nullptr;
 }
 
 void OpenGLRenderDevice::SetShaderProgram(const std::shared_ptr<IShaderProgram> program)
@@ -501,7 +497,7 @@ std::shared_ptr<ISamplerState> OpenGLRenderDevice::CreateSamplerState(const Samp
     case SamplerFilter_Anisotropic:
         samplerState->magFilter = GL_LINEAR;
         samplerState->minFilter = GL_LINEAR_MIPMAP_LINEAR;
-        samplerState->maxAnisotropy = Clamp(initializer.maxAnisotropy, 1U, imageFilterMaxAnisotropy);
+        samplerState->maxAnisotropy = Clamp(initializer.maxAnisotropy, UINT32_C(1), imageFilterMaxAnisotropy);
         break;
     case SamplerFilter_Trilinear:
         samplerState->magFilter = GL_LINEAR;
@@ -676,18 +672,32 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
 
     const uint32_t primIndex = (surf->drawStateFlags & DrawState_Primitive_Mask) >> DrawState_Primitive_Shift;
     assert(primIndex < _countof(primitiveTable));
-    const GLuint prim = primitiveTable[primIndex];
-    
+    const OpenGLPrimitiveInfo &primitiveInfo = primitiveTable[primIndex];
+
     if (surf->indexBuffer != nullptr)
     {
         const std::shared_ptr<OpenGLBuffer> IBO = std::static_pointer_cast<OpenGLBuffer>(surf->indexBuffer);
         glBindBuffer(IBO->target, IBO->resource);
-        glDrawElements(prim, surf->indexCount, GL_UNSIGNED_INT, NULL);
+
+        int32_t numIndices = surf->numIndices;
+        if (numIndices == UINT32_MAX)
+        {
+            numIndices = IBO->size / sizeof(uint32_t);
+        }
+
+        GLenum indexType = (IBO->flags & Buffer_32BitIndex) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+        glDrawElements(primitiveInfo.type, numIndices, indexType, NULL);
     }
     else
     {
+        int32_t numVertices = surf->numVertices;
+        if (numVertices == UINT32_MAX)
+        {
+            numVertices = VBO->size / vertexDeclaration->vertexElements[0].stride;
+        }
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        glDrawArrays(prim, 0, surf->primitiveCount);
+        glDrawArrays(primitiveInfo.type, 0, numVertices);
     }
     
     for (const auto &element : vertexDeclaration->vertexElements)

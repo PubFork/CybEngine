@@ -1,5 +1,6 @@
 #pragma once
 #include "Definitions.h"
+#include "Base/Math/Vector.h"
 
 namespace renderer
 {
@@ -36,21 +37,19 @@ public:
 //
 //  VertexElementList elements = {};
 //  const size_t stride = sizeof(Vertex);
-//  elements.emplace_back(VertexElementUsage_Position,  VertexElementFormat_Float3, offsetof(Vertex, pos),    stride);
-//  elements.emplace_back(VertexElementUsage_Normal,    VertexElementFormat_Float3, offsetof(Vertex, normal), stride);
-//  elements.emplace_back(VertexElementUsage_TexCoord0, VertexElementFormat_Float2, offsetof(Vertex, uv),     stride);
+//  elements.emplace_back(VertexElementUsage_Position,  VertexElementFormat_Float3, offsetof(Vertex, pos));
+//  elements.emplace_back(VertexElementUsage_Normal,    VertexElementFormat_Float3, offsetof(Vertex, normal));
+//  elements.emplace_back(VertexElementUsage_TexCoord0, VertexElementFormat_Float2, offsetof(Vertex, uv));
 //
 struct VertexElement
 {
     VertexElement() = default;
     VertexElement(VertexElementUsage inUsage,
                   VertexElementFormat inFormat,
-                  size_t inAlignedOffset,
-                  size_t inStride) :
+                  size_t inAlignedOffset) :
         usage(inUsage),
         format(inFormat),
-        alignedOffset(inAlignedOffset),
-        stride(inStride)
+        alignedOffset(inAlignedOffset)
     {
     }
 
@@ -59,7 +58,6 @@ struct VertexElement
     VertexElementUsage usage;
     VertexElementFormat format;
     size_t alignedOffset;
-    size_t stride;
 };
 
 typedef std::vector<VertexElement> VertexElementList;
@@ -202,9 +200,9 @@ struct SurfaceMaterial
 
     std::shared_ptr<ISamplerState> sampler[MaxNumTextures];
     std::shared_ptr<ITexture> texture[MaxNumTextures];
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
+    Vec3f ambient;
+    Vec3f diffuse;
+    Vec3f specular;
     float shininess;
 };
 
@@ -238,9 +236,9 @@ class ICamera
 {
 public:
     virtual ~ICamera() = default;
-    virtual const float *GetViewPositionVector() const = 0;       // vec3
-    virtual const float *GetViewMatrix() const = 0;     // mat4
-    virtual const float *GetProjMatrix() const = 0;     // mat4
+    virtual const glm::vec3 &GetViewPositionVector() const = 0;
+    virtual const glm::mat4 &GetViewMatrix() const = 0;
+    virtual const glm::mat4 &GetProjMatrix() const = 0;
 };
 
 //
@@ -251,11 +249,11 @@ class IRenderDevice
 public:
     virtual ~IRenderDevice() {}
 
-    virtual void Init() = 0;
+    virtual bool Init() = 0;
     virtual void Shutdown() = 0;
 
     virtual std::shared_ptr<IBuffer> CreateBuffer(int usageFlags, const void *data, size_t size) = 0;
-    virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements) = 0;
+    virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements, size_t stride) = 0;
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &FS) = 0;
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &GS, const ShaderBytecode &FS) = 0;
     virtual void SetShaderProgram(const std::shared_ptr<IShaderProgram> program) = 0;

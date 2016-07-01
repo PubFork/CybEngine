@@ -21,19 +21,19 @@ void BaseCamera::SetPerspectiveMatrix(float fov, float aspect, float zNear, floa
     UpdateProjectionMatrix();
 }
 
-const float *BaseCamera::GetViewPositionVector() const
+const glm::vec3 &BaseCamera::GetViewPositionVector() const
 {
-    return glm::value_ptr(viewPosition);
+    return viewPosition;
 }
 
-const float *BaseCamera::GetViewMatrix() const
+const glm::mat4 &BaseCamera::GetViewMatrix() const
 {
-    return glm::value_ptr(viewMatrix);
+    return viewMatrix;
 }
 
-const float *BaseCamera::GetProjMatrix() const
+const glm::mat4 &BaseCamera::GetProjMatrix() const
 {
-    return glm::value_ptr(projMatrix);
+    return projMatrix;
 }
 
 // private:

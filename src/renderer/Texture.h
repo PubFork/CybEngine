@@ -4,6 +4,7 @@
 namespace renderer
 {
 
+// TODO: Generate a "default" texture to use when loading failes
 class TextureCache
 {
 public:

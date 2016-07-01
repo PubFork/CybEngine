@@ -1,13 +1,11 @@
 #include "Precompiled.h"
-#include "GameApp.h"
+#include "Game/GameApp.h"
 #include "Base/Debug.h"
 #include "Base/File.h"
 #include "Base/Timer.h"
-#include "Base/Profiler.h"
-#include "Base/SysInfo.h"
+#include "Base/Sys.h"
 #include "Renderer/stb_image.h"
 #include "Renderer/Texture.h"
-#include <Windows.h>
 #include <GLFW/glfw3.h>
 
 static void KeyCallback(GLFWwindow *window, int key, int /*scancode*/, int action, int /*mods*/)
@@ -71,11 +69,11 @@ GameAppBase::GameAppBase() :
     memset(callbackData.keyState, 0, sizeof(callbackData.keyState));
 }
 
-void GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title)
+bool GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title)
 {
     // initialize glfw
-    glfwSetErrorCallback([](int, const char *msg) { throw FatalException(msg); });
-    THROW_FATAL_COND(glfwInit() != GL_TRUE, "glfwInit() failed");
+    glfwSetErrorCallback([](int, const char *msg) { Sys_ErrorPrintf("glfw: %s\n", msg); });
+    RETURN_FALSE_IF(glfwInit() != GL_TRUE);
 
     /*
     GLFWmonitor *monitor = glfwGetPrimaryMonitor();
@@ -111,10 +109,12 @@ void GameAppBase::SetupWindow(uint32_t width, uint32_t height, const char *title
 
     // initialize the renderer
     renderDevice = renderer::CreateRenderDevice();
-    renderDevice->Init();
+    RETURN_FALSE_IF(!renderDevice->Init());
 
     // load custom cursor (if avialable)
     SetMouseCursor("assets/cursor.png", 0, 0);
+
+    return true;
 }
 
 void GameAppBase::UpdateWindowTitle(const char *title)
@@ -151,38 +151,31 @@ void GameAppBase::MainLoop()
 
     while (!glfwWindowShouldClose(window))
     {
-        SCOOPED_PROFILE_EVENT("Frame");
+        const double timerStart = HiPerformanceTimer::GetSeconds();
+
         {
-            const double timerStart = HiPerformanceTimer::GetSeconds();
-
-            {
-                SCOOPED_PROFILE_EVENT("Application_Render");
-                Render();
-            }
-
-            {
-                SCOOPED_PROFILE_EVENT("SwapBuffers");
-                glfwSwapBuffers(window);
-            }
-
-            {
-                SCOOPED_PROFILE_EVENT("PollEvents");
-                glfwPollEvents();
-
-                // process key bindings
-                for (auto keyBinding : callbackData.keyBinds)
-                {
-                    if (callbackData.keyState[keyBinding.first])
-                    {
-                        keyBinding.second();
-                    }
-                }
-            }
-
-            const double timerEnd = HiPerformanceTimer::GetSeconds();
-            frameTimer = timerEnd - timerStart;
-            timer += frameTimer;
+            TIMED_NAMED_BLOCK("UpdateGameLogic");
+            UpdateGameLogic();
         }
+        
+        {
+            TIMED_NAMED_BLOCK("RenderFrame");
+            Render();
+            glfwSwapBuffers(window);
+        }
+
+        // process key bindings
+        glfwPollEvents();
+        for (auto keyBinding : callbackData.keyBinds)
+        {
+            if (callbackData.keyState[keyBinding.first])
+            {
+                keyBinding.second();
+            }
+        }
+
+        frameTimer = HiPerformanceTimer::GetSeconds() - timerStart;
+        timer += frameTimer;
     }
 }
 
@@ -196,51 +189,50 @@ void GameAppBase::BindMouseMove(std::function<void(const MouseStateInfo &)> call
     callbackData.mouseMoveCallback = callback;
 }
 
-int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width, uint32_t height, const char *title)
+static bool InitializeApplication(GameAppBase *application, uint32_t width, uint32_t height, const char *title)
 {
-    int returnValue = 0;
+    TIMED_NAMED_BLOCK("Initialization");
+    RETURN_FALSE_IF(!application->SetupWindow(width, height, title));
+    renderer::globalTextureCache->Initialize(application->GetRenderDevice());
+    RETURN_FALSE_IF(!application->Init());
+    
+    return true;
+}
 
-    DEBUG_LOG_TEXT("CPU: %s", GetProcessorInfo().c_str());
-    const std::vector<std::string> gpuList = GetGraphicCardList();
+int RunGameApplication(GameAppBase *application, uint32_t width, uint32_t height, const char *title)
+{
+    Sys_ProcessorInfo cpuInfo;
+    Sys_GetProcessorInfo(&cpuInfo);
+
+    DebugPrintf("CPU: %s, with %d cores and %d logical processors\n", 
+                   cpuInfo.cpuString, 
+                   cpuInfo.numCores, 
+                   cpuInfo.numLogicalProcessors);
+
+    const std::vector<std::string> gpuList = Sys_GetGraphicCardList();
     uint16_t gpuNum = 0;
     for (const auto &gpu : gpuList)
     {
-        DEBUG_LOG_TEXT("GPU(%d): %s", gpuNum, gpu.c_str());
+        DebugPrintf("GPU(%d): %s\n", gpuNum, gpu.c_str());
         gpuNum++;
     }
 
-    try
+    int returnValue = EXIT_FAILURE;
+    if (InitializeApplication(application, width, height, title))
     {
-        {
-            SCOOPED_PROFILE_EVENT("Init");
-            {
-                SCOOPED_PROFILE_EVENT("Engine_Init");
-                application->SetupWindow(width, height, title);
-                renderer::globalTextureCache->Initialize(application->GetRenderDevice());
-            }
-            {
-                SCOOPED_PROFILE_EVENT("Application_Init");
-                THROW_FATAL_COND(!application->Init(), "Failed to initialize application...");
-            }
-        }
-        {
-            SCOOPED_PROFILE_EVENT("MainLoop");
-            application->MainLoop();
-        }
-    } catch (const std::exception &e)
-    {
-        DEBUG_LOG_TEXT("*** Error: %s", e.what());
-        MessageBox(0, e.what(), 0, MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
-        returnValue = 1;
-    }
+        application->MainLoop();
+        returnValue = EXIT_SUCCESS;
+    } 
 
     renderer::globalTextureCache->Destroy();
     application->Shutdown();
+    delete application;
     glfwTerminate();
-    if (returnValue != 1)
+    if (returnValue != EXIT_FAILURE)
     {
-        DEBUG_LOG_TEXT("%s", globalEventProfiler->CreateInfoMessage().c_str());
+        DebugLogPerformanceCounters(DebugPerformenceRecord::staticRecords);
     }
+
     SaveDebugLogToFile("debuglog.txt");
     return returnValue;
 }

@@ -11,9 +11,9 @@ public:
     void SetViewMatrix(const glm::vec3 &pos, const glm::vec3 &target, const glm::vec3 &up);
     void SetPerspectiveMatrix(float fov, float aspect, float zNear, float zFar);
 
-    virtual const float *GetViewPositionVector() const;
-    virtual const float *GetViewMatrix() const;
-    virtual const float *GetProjMatrix() const;
+    virtual const glm::vec3 &GetViewPositionVector() const;
+    virtual const glm::mat4 &GetViewMatrix() const;
+    virtual const glm::mat4 &GetProjMatrix() const;
 
 private:
     void UpdateProjectionMatrix();

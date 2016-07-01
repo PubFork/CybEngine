@@ -1,4 +1,5 @@
 #pragma once
+#include "Base/Math/Vector.h"
 #include "renderer/RenderDevice.h"
 
 namespace renderer
@@ -21,7 +22,7 @@ struct OBJ_Edge
 struct OBJ_Face
 {
     std::vector<OBJ_Edge> edges;
-    glm::vec3 normal;
+    Vec3f normal;
 };
 
 struct OBJ_FaceGroup
@@ -39,9 +40,9 @@ struct OBJ_FaceGroup
 struct OBJ_Material
 {
     std::string name;
-    glm::vec3 ambientColor;
-    glm::vec3 diffuseColor;
-    glm::vec3 specularColor;
+    Vec3f ambientColor;
+    Vec3f diffuseColor;
+    Vec3f specularColor;
     std::string ambientTexture;
     std::string diffuseTexture;
     std::string specularTexture;
@@ -54,18 +55,18 @@ typedef std::unordered_map<std::string, OBJ_Material> OBJ_MaterialMap;
 
 struct OBJ_PosNormalTangentVertex
 {
-    OBJ_PosNormalTangentVertex(const glm::vec3 &inPos,
-                               const glm::vec3 &inNormal,
-                               const glm::vec3 &inTangent) :
+    OBJ_PosNormalTangentVertex(const Vec3f &inPos,
+                               const Vec3f &inNormal,
+                               const Vec3f &inTangent) :
         pos(inPos),
         normal(inNormal),
         tangent(inTangent)
     {
     }
 
-    glm::vec3 pos;
-    glm::vec3 normal;
-    glm::vec3 tangent;
+    Vec3f pos;
+    Vec3f normal;
+    Vec3f tangent;
 };
 
 struct OBJ_RawModel
@@ -99,9 +100,9 @@ struct OBJ_RawModel
 struct OBJ_Vertex
 {
     OBJ_Vertex() = default;
-    OBJ_Vertex(const glm::vec3 &inPosition,
-               const glm::vec3 &inNormal,
-               const glm::vec3 &inTangent,
+    OBJ_Vertex(const Vec3f &inPosition,
+               const Vec3f &inNormal,
+               const Vec3f &inTangent,
                const glm::vec2 &inTexCoord) :
         position(inPosition),
         normal(inNormal),
@@ -110,9 +111,9 @@ struct OBJ_Vertex
     {
     }
 
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec3 tangent;
+    Vec3f position;
+    Vec3f normal;
+    Vec3f tangent;
     glm::vec2 texCoord;
 };
 
@@ -141,7 +142,7 @@ struct OBJ_CompiledModel
     std::vector<OBJ_TriSurface> surfaces;
 };
 
-std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename);
+std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const std::string &filename);
 std::shared_ptr<OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<OBJ_RawModel> rawModel);
 
 } // engine

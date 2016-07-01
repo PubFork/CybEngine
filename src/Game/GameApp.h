@@ -26,7 +26,7 @@ public:
     GameAppBase();
     virtual ~GameAppBase() {}
 
-    void SetupWindow(uint32_t width, uint32_t height, const char *title);
+    bool SetupWindow(uint32_t width, uint32_t height, const char *title);
     void UpdateWindowTitle(const char *title);
     bool SetMouseCursor(const char *filename, int xHot, int yHot);
     void MainLoop();
@@ -38,6 +38,7 @@ public:
 
     virtual bool Init() = 0;
     virtual void Shutdown() = 0;
+    virtual void UpdateGameLogic() = 0;
     virtual void Render() = 0;
 
 protected:
@@ -50,4 +51,4 @@ private:
     GLFWCallbackPointerData callbackData;
 };
 
-int RunGameApplication(std::unique_ptr<GameAppBase> application, uint32_t width, uint32_t height, const char *title);
+int RunGameApplication(GameAppBase *application, uint32_t width, uint32_t height, const char *title);

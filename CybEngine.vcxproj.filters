@@ -27,6 +27,9 @@
     <Filter Include="Source Files\GUI">
       <UniqueIdentifier>{34e5d840-8041-4ca4-987d-67adafc92ed5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Base\Math">
+      <UniqueIdentifier>{4b1ad925-95a2-4e28-9891-c8ae81b5f9b8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -44,14 +47,8 @@
     <ClCompile Include="src\Renderer\Model.cpp">
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\Base\Profiler.cpp">
-      <Filter>Source Files\Base</Filter>
-    </ClCompile>
     <ClCompile Include="src\Game\GameApp.cpp">
       <Filter>Source Files\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Base\SysInfo.cpp">
-      <Filter>Source Files\Base</Filter>
     </ClCompile>
     <ClCompile Include="src\Game\Camera.cpp">
       <Filter>Source Files\Game</Filter>
@@ -79,6 +76,12 @@
     </ClCompile>
     <ClCompile Include="src\GUI\imgui_draw.cpp">
       <Filter>Source Files\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Base\ParallelJobQueue.cpp">
+      <Filter>Source Files\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Base\Sys_Win32.cpp">
+      <Filter>Source Files\Base</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -109,12 +112,6 @@
     <ClInclude Include="src\Game\GameApp.h">
       <Filter>Source Files\Game</Filter>
     </ClInclude>
-    <ClInclude Include="src\Base\Profiler.h">
-      <Filter>Source Files\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Base\SysInfo.h">
-      <Filter>Source Files\Base</Filter>
-    </ClInclude>
     <ClInclude Include="src\Game\Camera.h">
       <Filter>Source Files\Game</Filter>
     </ClInclude>
@@ -131,9 +128,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Base\File.h">
-      <Filter>Source Files\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Base\Algorithm.h">
       <Filter>Source Files\Base</Filter>
     </ClInclude>
     <ClInclude Include="src\Renderer\Model_obj.h">
@@ -162,6 +156,21 @@
     </ClInclude>
     <ClInclude Include="src\Renderer\Definitions.h">
       <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Base\Memory.h">
+      <Filter>Source Files\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Base\Math\Vector.h">
+      <Filter>Source Files\Base\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Base\ParallelJobQueue.h">
+      <Filter>Source Files\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Base\Sys.h">
+      <Filter>Source Files\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Base\Algorithm.h">
+      <Filter>Source Files\Base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -21,8 +21,8 @@
   <ItemGroup>
     <ClCompile Include="src\Base\Debug.cpp" />
     <ClCompile Include="src\Base\File.cpp" />
-    <ClCompile Include="src\Base\Profiler.cpp" />
-    <ClCompile Include="src\Base\SysInfo.cpp" />
+    <ClCompile Include="src\Base\ParallelJobQueue.cpp" />
+    <ClCompile Include="src\Base\Sys_Win32.cpp" />
     <ClCompile Include="src\Base\Timer.cpp" />
     <ClCompile Include="src\Game\Camera.cpp" />
     <ClCompile Include="src\Game\GameApp.cpp" />
@@ -42,15 +42,17 @@
     <ClCompile Include="src\Renderer\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Base\Algorithm.h" />
     <ClInclude Include="src\Base\Container\InsertionOrderedMap.h" />
     <ClInclude Include="src\Base\Container\LinkedList.h" />
     <ClInclude Include="src\Base\Container\TempArray.h" />
     <ClInclude Include="src\Base\Debug.h" />
     <ClInclude Include="src\Base\File.h" />
-    <ClInclude Include="src\Base\Algorithm.h" />
+    <ClInclude Include="src\Base\Math\Vector.h" />
+    <ClInclude Include="src\Base\Memory.h" />
     <ClInclude Include="src\Base\MurmurHash.h" />
-    <ClInclude Include="src\Base\Profiler.h" />
-    <ClInclude Include="src\Base\SysInfo.h" />
+    <ClInclude Include="src\Base\ParallelJobQueue.h" />
+    <ClInclude Include="src\Base\Sys.h" />
     <ClInclude Include="src\Base\Timer.h" />
     <ClInclude Include="src\Game\Camera.h" />
     <ClInclude Include="src\Game\GameApp.h" />

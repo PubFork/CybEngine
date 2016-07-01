@@ -1,6 +1,7 @@
 #include "Precompiled.h"
+#include "Base/Timer.h"
 #include <iomanip>
-#include "Timer.h"
+#include <chrono>           // TODO: Replace with Sys_GetClockTicks* functions
 
 double HiPerformanceTimer::GetSeconds()
 {

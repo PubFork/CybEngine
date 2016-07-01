@@ -55,13 +55,11 @@ struct OpenGLVertexElement
         GLint inNumComponents,
         GLenum inType,
         GLboolean inNormalized,
-        GLsizei inStride​,
         GLintptr inOffset​) :
         attributeLocation(inAttributeLocation),
         numComponents(inNumComponents),
         type(inType),
         normalized(inNormalized),
-        stride(inStride​),
         offset(inOffset​)
     {
     }
@@ -70,7 +68,6 @@ struct OpenGLVertexElement
     GLint numComponents;
     GLenum type;
     GLboolean normalized;
-    GLsizei stride;
     GLintptr offset;
 };
 
@@ -79,13 +76,15 @@ typedef std::vector<OpenGLVertexElement> OpenGLVertexElementList;
 class OpenGLVertexDeclaration : public IVertexDeclaration
 {
 public:
-    explicit OpenGLVertexDeclaration(const OpenGLVertexElementList &inElements) :
-        vertexElements(inElements)
+    explicit OpenGLVertexDeclaration(const OpenGLVertexElementList &inElements, GLsizei inStride) :
+        vertexElements(inElements),
+        stride(inStride)
     {
     }
 
 public:
     OpenGLVertexElementList vertexElements;
+    GLsizei stride;
 };
 
 class OpenGLShaderCompiler
@@ -212,11 +211,11 @@ public:
     OpenGLRenderDevice() : isInitialized(false) {}
     virtual ~OpenGLRenderDevice() { Shutdown(); }
 
-    virtual void Init();
+    virtual bool Init();
     virtual void Shutdown();
 
     virtual std::shared_ptr<IBuffer> CreateBuffer(int usageFlags, const void *data, size_t size);
-    virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements);
+    virtual std::shared_ptr<IVertexDeclaration> CreateVertexDelclaration(const VertexElementList &vertexElements, size_t stride);
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &FS);
     virtual std::shared_ptr<IShaderProgram> CreateShaderProgram(const ShaderBytecode &VS, const ShaderBytecode &GS, const ShaderBytecode &FS);
     virtual void SetShaderProgram(const std::shared_ptr<IShaderProgram> program);

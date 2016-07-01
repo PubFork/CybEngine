@@ -1,6 +1,7 @@
 #include "Precompiled.h"
-#include "Texture.h"
+#include "Renderer/Texture.h"
 #include "Base/Debug.h"
+#include "Base/Sys.h"
 #include "Base/File.h"
 #include "Base/MurmurHash.h"
 #define STB_IMAGE_IMPLEMENTATION
@@ -51,7 +52,7 @@ std::shared_ptr<ITexture2D> TextureCache::LoadTexture2DFromFile(const char *file
         SysFile textureFile(filename, FileOpen_Read);
         if (textureFile.IsValid())
         {
-            DEBUG_LOG_TEXT("Loading image from file %s [hash 0x%x]...", filename, CalculateMurmurHash(filename, strlen(filename)));
+            DebugPrintf("Loading image from file %s [hash 0x%x]...\n", filename, CalculateMurmurHash(filename, strlen(filename)));
 
             const size_t textureBufferSize = textureFile.GetLength();
             const stbi_uc *rawTextureBuffer = new stbi_uc[textureBufferSize];
@@ -63,8 +64,8 @@ std::shared_ptr<ITexture2D> TextureCache::LoadTexture2DFromFile(const char *file
             delete[] rawTextureBuffer;
             if (!data)
             {
-                DEBUG_LOG_TEXT("Failed to load image %s: %s", filename, stbi_failure_reason());
-                throw FatalException(std::string("Failed to load texture ") + filename);
+                Sys_ErrorPrintf("Failed to load image %s: %s\n", filename, stbi_failure_reason());
+                return nullptr;
             }
 
             image = ImageFromMemoryInternal(hashKey, width, height, PixelFormat_R8G8B8A8, data);
@@ -92,15 +93,16 @@ std::shared_ptr<ITextureCube> TextureCache::LoadTextureCubeFromFiles(const char 
     stbi_uc *imageBuffers[6] = {};
     int32_t cubeWidth = 0;
     int32_t cubeHeight = 0;
+    bool errorFlag = false;
 
-    for (uint32_t i = 0; i < 6; i++)
+    for (uint32_t i = 0; i < 6 && !errorFlag; i++)
     {
         const char *filename = filenames[i];
 
         SysFile textureFile(filename, FileOpen_Read);
         if (textureFile.IsValid())
         {
-            DEBUG_LOG_TEXT("Loading image from file %s [hash 0x%x]...", filename, CalculateMurmurHash(filename, strlen(filename)));
+            DebugPrintf("Loading image from file %s [hash 0x%x]...\n", filename, CalculateMurmurHash(filename, strlen(filename)));
 
             const size_t textureBufferSize = textureFile.GetLength();
             const stbi_uc *rawTextureBuffer = new stbi_uc[textureBufferSize];
@@ -116,20 +118,28 @@ std::shared_ptr<ITextureCube> TextureCache::LoadTextureCubeFromFiles(const char 
             
             if (!imageBuffers[i])
             {
-                DEBUG_LOG_TEXT("Failed to load image %s: %s", filename, stbi_failure_reason());
-                throw FatalException(std::string("Failed to load texture ") + filename);
+                Sys_ErrorPrintf("Failed to load image %s: %s\n", filename, stbi_failure_reason());
+                errorFlag = true;
             }
+        }
+        else
+        {
+            errorFlag = true;
         }
     }
 
-    auto textureCube = device->CreateTextureCube(cubeWidth, cubeHeight, PixelFormat_R8G8B8A8, (const void **)imageBuffers);
+    std::shared_ptr<ITextureCube> cubeTexture;
+    if (!errorFlag)
+    {
+        cubeTexture = device->CreateTextureCube(cubeWidth, cubeHeight, PixelFormat_R8G8B8A8, (const void **)imageBuffers);
+    }
 
     for (uint32_t i = 0; i < 6; i++)
     {
         stbi_image_free(imageBuffers[i]);
     }
 
-    return textureCube;
+    return cubeTexture;
 }
 
 std::shared_ptr<ITexture2D> TextureCache::FindImage(uint32_t hashKey)

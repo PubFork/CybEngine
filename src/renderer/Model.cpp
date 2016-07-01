@@ -1,61 +1,58 @@
 #include "Precompiled.h"
-#include "Definitions.h"
-#include "Model.h"
+#include "Renderer/Definitions.h"
+#include "Renderer/Model.h"
+#include "Renderer/Texture.h"
+#include "Renderer/Model_obj.h"
 #include "Base/Debug.h"
 #include "Base/Algorithm.h"
-#include "Texture.h"
-#include "Model_obj.h"
 
 namespace renderer
 {
 
-Model::Model()
+Model::Model(const std::string &inName)
 {
-    InitEmpty("<unknown>");
-} 
-
-Model::Model(const std::string &modelName)
-{
-    InitEmpty(modelName);
+    InitEmpty(inName);
 }
 
 Model::~Model()
 {
 }
 
-void Model::InitEmpty(const std::string &modelName)
+void Model::InitEmpty(const std::string &inName)
 {
-    surfaces.clear();
-    name = modelName;
+    name = inName;
+    surfaceList.clear();
 }
 
 void Model::AddSurface(renderer::Surface surf)
 {
-    surfaces.push_back(surf);
+    surfaceList.push_back(surf);
 }
 
 void Model::Render(std::shared_ptr<renderer::IRenderDevice> device, const ICamera *camera)
 {
-    for (const auto &surf : surfaces) 
+    for (const auto &surf : surfaceList)
     {
         device->Render(&surf, camera);
     }
 }
 
-std::shared_ptr<Model> Model::LoadOBJ(std::shared_ptr<renderer::IRenderDevice> device, const std::string &filename)
+std::shared_ptr<Model> LoadOBJModel(std::shared_ptr<renderer::IRenderDevice> device, const std::string &filename)
 {
     static const renderer::VertexElementList vertexElements = 
     {
-        { VertexElement(VertexElementUsage_Position,  VertexElementFormat_Float3, offsetof(OBJ_Vertex, position), sizeof(OBJ_Vertex)) },
-        { VertexElement(VertexElementUsage_Normal,    VertexElementFormat_Float3, offsetof(OBJ_Vertex, normal),   sizeof(OBJ_Vertex)) },
-        { VertexElement(VertexElementUsage_Tangent,   VertexElementFormat_Float3, offsetof(OBJ_Vertex, tangent),  sizeof(OBJ_Vertex)) },
-        { VertexElement(VertexElementUsage_TexCoord0, VertexElementFormat_Float2, offsetof(OBJ_Vertex, texCoord), sizeof(OBJ_Vertex)) }
+        { VertexElement(VertexElementUsage_Position,  VertexElementFormat_Float3, offsetof(OBJ_Vertex, position)) },
+        { VertexElement(VertexElementUsage_Normal,    VertexElementFormat_Float3, offsetof(OBJ_Vertex, normal))   },
+        { VertexElement(VertexElementUsage_Tangent,   VertexElementFormat_Float3, offsetof(OBJ_Vertex, tangent))  },
+        { VertexElement(VertexElementUsage_TexCoord0, VertexElementFormat_Float2, offsetof(OBJ_Vertex, texCoord)) }
     };
-    auto vertexDeclaration = device->CreateVertexDelclaration(vertexElements);
+    auto vertexDeclaration = device->CreateVertexDelclaration(vertexElements, sizeof(OBJ_Vertex));
 
-    auto objModel = OBJ_CompileRawModel(OBJ_LoadModel(filename.c_str()));
-    //THROW_FATAL_COND(!objModel, std::string("Failed to read model " + filename));
-    auto model = std::make_shared<Model>(objModel->name.empty() ? "<unknown>" : objModel->name);
+    auto rawObjModel = OBJ_LoadModel(filename);
+    RETURN_NULL_IF(!rawObjModel);
+
+    auto objModel = OBJ_CompileRawModel(rawObjModel);
+    auto model = std::make_shared<Model>(objModel->name);
 
     for (auto &objSurface : objModel->surfaces)
     {

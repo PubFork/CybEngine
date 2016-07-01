@@ -1,20 +1,16 @@
 #include "Precompiled.h"
-#include "Debug.h"
-#include "Algorithm.h"
-#include "File.h"
-#include <windows.h>
+#include "Base/Debug.h"
+#include "Base/Algorithm.h"
+#include "Base/File.h"
+#include "Base/Sys.h"
 
-#define DEBUG_MESSAGE_BUFFER_SIZE   4096
+DebugPerformenceRecord *DebugPerformenceRecord::staticRecords = NULL;
 
 std::ostrstream logStream;
 
 FatalException::FatalException(const std::string &message) :
     errorMessage(message)
 {
-#ifdef _DEBUG
-    if (IsDebuggerPresent())
-        _CrtDbgBreak();
-#endif
 }
 
 const char *FatalException::what() const
@@ -22,35 +18,67 @@ const char *FatalException::what() const
     return errorMessage.c_str();
 }
 
-void DebugLogText(const char *fmt, ...)
+void DebugAddMessageToBuffer(const char *msg)
+{
+    // TODO: Use something better than a stream buffer to save messages
+    logStream << msg;
+}
+
+#define PRINT_BUFFER_SIZE       4096
+void DebugPrintf(const char *fmt, ...)
 {
     assert(fmt);
-    static char buffer[DEBUG_MESSAGE_BUFFER_SIZE];
-    va_list args;
+    static char msg[PRINT_BUFFER_SIZE];
 
+    va_list args;
     va_start(args, fmt);
-    int result = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, fmt, args);
+    _vsnprintf_s(msg, PRINT_BUFFER_SIZE, fmt, args);
     va_end(args);
 
-    // append a newline to the message
-    size_t messageLength = std::min<size_t>(strlen(buffer), sizeof(buffer) - 2);
-    buffer[messageLength + 0] = '\n';
-    buffer[messageLength + 1] = '\0';
-
-    OutputDebugStringA(buffer);
-    logStream << buffer;
-
-    // append a message to the logger is text was truncated
-    if (result == -1)
-    {
-        snprintf(buffer, sizeof(buffer), "[[Message truncated]]\n");
-        OutputDebugStringA(buffer);
-        logStream << buffer;
-    }
+    Sys_Printf(msg);
+    DebugAddMessageToBuffer(msg);
 }
 
 void SaveDebugLogToFile(const char *filename)
 {
     SysFile logFile(filename, FileOpen_WriteTruncate);
     logFile.Write((uint8_t *)logStream.str(), logStream.pcount());
+    logStream.clear();
+}
+
+DebugPerformenceRecord::DebugPerformenceRecord(const char *inFunctionName, const char *inFileName, uint32_t inLineNumber) :
+    functionName(inFunctionName),
+    fileName(inFileName),
+    lineNumber(inLineNumber),
+    cycleCount(0),
+    hitCount(0)
+{
+    next = DebugPerformenceRecord::staticRecords;
+    DebugPerformenceRecord::staticRecords = this;
+}
+
+ScoopedTimedBlock::ScoopedTimedBlock(DebugPerformenceRecord *inRecord)
+{
+    record = inRecord;
+    ++(record->hitCount);
+    record->cycleCount -= Sys_GetClockTicks();
+}
+
+ScoopedTimedBlock::~ScoopedTimedBlock()
+{
+    record->cycleCount += Sys_GetClockTicks();
+}
+
+void DebugLogPerformanceCounters(const DebugPerformenceRecord *record)
+{
+    DebugPrintf("--------< Performance Counters >-----------------------------------------------------------\n");
+
+    for (; record != NULL; record = record->next)
+    {
+        DebugPrintf("%s: CycleCount=%llu HitCount=%d AvgCycleCount=%d\n",
+                    record->functionName,
+                    record->cycleCount,
+                    record->hitCount,
+                    record->cycleCount / record->hitCount);
+    }
 }

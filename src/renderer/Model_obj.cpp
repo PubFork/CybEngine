@@ -1,13 +1,13 @@
 #include "Precompiled.h"
-#include "Model_obj.h"
+#include "Renderer/Model_obj.h"
 #include "Base/Debug.h"
 #include "Base/File.h"
 #include "Base/MurmurHash.h"
 
 #define LINEBUFFER_SIZE         1024
 #define DEFAULT_MODEL_NAME      "<unknown>"
-#define DEFAULT_FACEGROUP_NAME  "default"
-#define DEFAULT_MATERIAL_NAME   "_default"
+#define DEFAULT_FACEGROUP_NAME  "Default"
+#define DEFAULT_MATERIAL_NAME   "_Default"
 
 /*
  * Some parts are based of syoyo's tinyobjloader:
@@ -45,11 +45,11 @@ glm::vec2 ReadVec2(const char *&buffer)
     return glm::vec2(x, y);
 } 
 
-glm::vec3 ReadVec3(const char *&buffer)
+Vec3f ReadVec3(const char *&buffer)
 {
     const glm::vec2 xy(ReadVec2(buffer));
     const float z = ReadFloat(buffer);
-    return glm::vec3(xy, z);
+    return Vec3f(xy.x, xy.y, z);
 }
 
 bool ReadToken(const char *&buffer, const char *token)
@@ -128,9 +128,9 @@ OBJ_Material CreateDefaultMaterial(const std::string &name)
 {
     OBJ_Material material;
     material.name = name;
-    material.ambientColor = glm::vec3(0.0f, 0.0f, 0.0f);
-    material.diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    material.specularColor = glm::vec3(0.0f, 0.0f, 0.0f);
+    material.ambientColor = Vec3f(0.0f, 0.0f, 0.0f);
+    material.diffuseColor = Vec3f(1.0f, 1.0f, 1.0f);
+    material.specularColor = Vec3f(0.0f, 0.0f, 0.0f);
     material.ambientTexture.clear();
     material.diffuseTexture.clear();
     material.specularTexture.clear();
@@ -160,7 +160,7 @@ bool MTL_Load(const char *filename, OBJ_MaterialMap &outMaterials)
     if (!mtlFile.IsValid())
         return false;
 
-    DEBUG_LOG_TEXT("Loading %s...", filename);
+    DebugPrintf("Loading %s...\n", filename);
     OBJ_Material material = CreateDefaultMaterial(DEFAULT_MATERIAL_NAME);
 
     char buffer[LINEBUFFER_SIZE];
@@ -225,7 +225,7 @@ bool MTL_Load(const char *filename, OBJ_MaterialMap &outMaterials)
         }
     }
 
-    DEBUG_LOG_TEXT_COND(outMaterials.empty(), "Warning: Parsed material %s without finding any materials (falling back to default)", filename);
+    CondititionalDebugPrintf(outMaterials.empty(), "Warning: Parsed material %s without finding any materials (falling back to default)\n", filename);
     outMaterials[material.name] = material;
     return true;
 }
@@ -240,9 +240,9 @@ void CalculateNormalsAndTangents(std::shared_ptr<OBJ_RawModel> rawModel)
             const OBJ_PosNormalTangentVertex &a = rawModel->vertices[face.edges[0].vertexIndex - 1];
             const OBJ_PosNormalTangentVertex &b = rawModel->vertices[face.edges[1].vertexIndex - 1];
             const OBJ_PosNormalTangentVertex &c = rawModel->vertices[face.edges[2].vertexIndex - 1];
-            const glm::vec3 v1 = b.pos - a.pos;
-            const glm::vec3 v2 = c.pos - a.pos;
-            face.normal = glm::cross(v1, v2);
+            const Vec3f v1 = b.pos - a.pos;
+            const Vec3f v2 = c.pos - a.pos;
+            face.normal = CrossProduct(v1, v2);
 
             glm::vec2 st1 = glm::vec2(0, 1) - glm::vec2(0, 0);
             glm::vec2 st2 = glm::vec2(1, 1) - glm::vec2(0, 0);
@@ -258,7 +258,7 @@ void CalculateNormalsAndTangents(std::shared_ptr<OBJ_RawModel> rawModel)
             }
   
             const float tangentCoef = 1.0f / (st1.s * st2.t - st2.s * st1.t);
-            const glm::vec3 tangent = (v1 * st2.y - v2 * st1.y) * tangentCoef;
+            const Vec3f tangent = (v1 * st2.y - v2 * st1.y) * tangentCoef;
 
             for (const auto &edge : face.edges)
             {
@@ -270,19 +270,18 @@ void CalculateNormalsAndTangents(std::shared_ptr<OBJ_RawModel> rawModel)
 
     for (auto &vertex : rawModel->vertices)
     {
-        vertex.normal = glm::normalize(vertex.normal);
-        vertex.tangent = glm::normalize(vertex.tangent);
+        vertex.normal = Normalize(vertex.normal);
+        vertex.tangent = Normalize(vertex.tangent);
     }
 }
 
 // TODO: Clean up material handling code
-std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
+std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const std::string &filename)
 {
     SysFile objFile(filename, FileOpen_Read);
-    if (!objFile.IsValid())
-        return nullptr;
+    RETURN_NULL_IF(!objFile.IsValid());
 
-    DEBUG_LOG_TEXT("Loading %s...", filename);
+    DebugPrintf("Loading %s...\n", filename.c_str());
     auto rawModel = std::make_shared<OBJ_RawModel>(DEFAULT_MODEL_NAME);
     OBJ_FaceGroup *rawFaceGroup = rawModel->AddEmptyFaceGroup(DEFAULT_FACEGROUP_NAME);
     std::string mtllibPath("");
@@ -302,10 +301,10 @@ std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
         // parse all tokens
         if (ReadToken(linebuf, "v "))
         {
-            const glm::vec3 pos(ReadVec3(linebuf));
+            const Vec3f pos(ReadVec3(linebuf));
 
             // add vertex with pos and a zero normal and tangent
-            rawModel->vertices.push_back(OBJ_PosNormalTangentVertex(pos, glm::vec3(0.0f), glm::vec3(0.0f)));    
+            rawModel->vertices.push_back(OBJ_PosNormalTangentVertex(pos, Vec3f(0.0f, 0.0f, 0.0f), Vec3f(0.0f, 0.0f, 0.0f)));
         } 
         else if (ReadToken(linebuf, "vn "))
         {
@@ -348,7 +347,7 @@ std::shared_ptr<OBJ_RawModel> OBJ_LoadModel(const char *filename)
     const bool succeededToMTLLoad = MTL_Load(mtllibPath.c_str(), rawModel->materials);
     if (!succeededToMTLLoad)
     {
-        DEBUG_LOG_TEXT_COND(true, "Failed to read MTL file %s (Using default material)", mtllibPath.c_str());
+        DebugPrintf("Failed to read MTL file %s (Using default material)\n", mtllibPath.c_str());
         rawModel->materials[DEFAULT_MATERIAL_NAME] = CreateDefaultMaterial(DEFAULT_MATERIAL_NAME);
     }
 

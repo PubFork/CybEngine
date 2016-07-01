@@ -1,9 +1,10 @@
 ﻿#include "Precompiled.h"
-#include "Definitions.h"
-#include "RenderDevice.h"
-#include "RenderDeviceOpenGL.h"
+#include "Renderer/Definitions.h"
+#include "Renderer/RenderDevice.h"
+#include "Renderer/RenderDeviceOpenGL.h"
 #include "Base/Debug.h"
 #include "Base/Algorithm.h"
+#include "Base/Sys.h"
 
 namespace renderer
 {
@@ -100,7 +101,10 @@ void OpenGLBuffer::Unmap()
 //
 OpenGLShaderCompiler::~OpenGLShaderCompiler()
 {
-    std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glDeleteShader(shader); });
+    for (auto shaderID : compiledShaderStages)
+    {
+        glDeleteShader(shaderID);
+    }
 }
 
 bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode)
@@ -120,7 +124,7 @@ bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode
     {
         GLchar infoLog[InfoLogSize];
         glGetShaderInfoLog(shader, (GLsizei)InfoLogSize, 0, infoLog);
-        DEBUG_LOG_TEXT_COND(infoLog[0], "Compiling shader:\n\n%s\nFailed: %s", bytecode.source, infoLog);
+        DebugPrintf("Compiling shader:\n\n%s\nFailed: %s", bytecode.source, infoLog);
         compileErrorFlag = true;
         return false;
     }
@@ -137,16 +141,24 @@ bool OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
     }
 
     GLuint program = glCreateProgram();
-    std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glAttachShader(program, shader); });
-
-    for (uint32_t i = 0; i < VertexElementUsage_Count; i++)
+    for (auto shaderID : compiledShaderStages)
     {
-        const OpenGLVertexElementUsageInfo *usageInfo = &vertexElementUsageInfo[i];
+        glAttachShader(program, shaderID);
+    }
+
+    for (uint32_t elementIndex = 0; elementIndex < VertexElementUsage_Count; ++elementIndex)
+    {
+        const OpenGLVertexElementUsageInfo *usageInfo = vertexElementUsageInfo + elementIndex;
         glBindAttribLocation(program, usageInfo->attribLocation, usageInfo->attribName);
     }
 
     glLinkProgram(program);
-    std::for_each(std::begin(compiledShaderStages), std::end(compiledShaderStages), [&](auto &shader) { glDetachShader(program, shader); glDeleteShader(shader); });
+
+    for (auto shaderID : compiledShaderStages)
+    {
+        glDetachShader(program, shaderID);
+        glDeleteShader(shaderID);
+    }
     compiledShaderStages.clear();
 
     GLint linked = 0;
@@ -155,7 +167,7 @@ bool OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
     {
         GLchar infoLog[InfoLogSize];
         glGetProgramInfoLog(program, InfoLogSize, 0, infoLog);
-        DEBUG_LOG_TEXT_COND(infoLog[0], "Linking shaders failed: %s", infoLog);
+        DebugPrintf("Linking shaders failed: %s", infoLog);
         return false;
     }
 
@@ -261,21 +273,26 @@ void GLAPIENTRY DebugOutputCallback(GLenum source, GLenum type, GLuint id, GLenu
         { GL_DEBUG_SEVERITY_NOTIFICATION,           "Notification"          }
     };
 
-    DEBUG_LOG_TEXT("[driver] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
+    DebugPrintf("[driver] %s %s %#x %s: %s", toString[source], toString[type], id, toString[severity], message);
 }
 
-void OpenGLRenderDevice::Init()
+bool OpenGLRenderDevice::Init()
 {
+    TIMED_FUNCTION();
     assert(isInitialized == false);
 
     glewExperimental = true;
     const GLenum err = glewInit();
-    THROW_FATAL_COND(err != GLEW_OK, std::string("glew init: ") + (char *)glewGetErrorString(err));
+    if (err != GLEW_OK)
+    {
+        Sys_ErrorPrintf("glewInit: %s\n", glewGetErrorString(err));
+        return false;
+    }
 
     // show driver and library versions
-    DEBUG_LOG_TEXT("Using OpenGL version %s", glGetString(GL_VERSION));
-    DEBUG_LOG_TEXT("Shader language %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-    DEBUG_LOG_TEXT("GLEW %s", glewGetString(GLEW_VERSION));
+    DebugPrintf("Using OpenGL version %s\n", glGetString(GL_VERSION));
+    DebugPrintf("Shader language %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    DebugPrintf("GLEW %s\n", glewGetString(GLEW_VERSION));
 
     // show GPU memory on supported devices
     if (GL_NVX_gpu_memory_info)
@@ -284,7 +301,7 @@ void OpenGLRenderDevice::Init()
         GLint avialableMemKb = 0;
         glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &totalMemKb);
         glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &avialableMemKb);
-        DEBUG_LOG_TEXT("Total / Available GPU memory: %dKb / %dKb", totalMemKb, avialableMemKb);
+        DebugPrintf("Total / Available GPU memory: %dKb / %dKb\n", totalMemKb, avialableMemKb);
     }
    
     // enable opengl debug output
@@ -295,7 +312,7 @@ void OpenGLRenderDevice::Init()
     // initialize gl context state
     GLint maxTextureUnits = 0;
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
-    DEBUG_LOG_TEXT("Max texture units: %d", maxTextureUnits);
+    DebugPrintf("Max texture units: %d\n", maxTextureUnits);
 
     glGenVertexArrays(1, &vaoId);
 
@@ -306,7 +323,7 @@ void OpenGLRenderDevice::Init()
 
     // set default filter mode to anisotropic with max anisotropy
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, (GLint *)&imageFilterMaxAnisotropy);
-    DEBUG_LOG_TEXT("Max texture anisotropy: %d", imageFilterMaxAnisotropy);
+    DebugPrintf("Max texture anisotropy: %d\n", imageFilterMaxAnisotropy);
     const SamplerStateInitializer initializer(SamplerFilter_Anisotropic, SamplerWrap_Repeat, SamplerWrap_Repeat, SamplerWrap_Repeat, imageFilterMaxAnisotropy);
     const std::shared_ptr<ISamplerState> samplerState = CreateSamplerState(initializer);
     SetSamplerState(0, samplerState);
@@ -315,6 +332,7 @@ void OpenGLRenderDevice::Init()
     SetSamplerState(3, samplerState);
 
     isInitialized = true;
+    return true;
 }
 
 void OpenGLRenderDevice::Shutdown()
@@ -345,7 +363,7 @@ std::shared_ptr<IBuffer> OpenGLRenderDevice::CreateBuffer(int usageFlags, const 
     return std::make_shared<OpenGLBuffer>(usageFlags, resource, target, usage, size);
 }
 
-std::shared_ptr<IVertexDeclaration> OpenGLRenderDevice::CreateVertexDelclaration(const VertexElementList &vertexElements)
+std::shared_ptr<IVertexDeclaration> OpenGLRenderDevice::CreateVertexDelclaration(const VertexElementList &vertexElements, size_t stride)
 {
     const auto searchResult = vertexDeclarationCache.find(vertexElements);
     if (searchResult != vertexDeclarationCache.end())
@@ -363,11 +381,10 @@ std::shared_ptr<IVertexDeclaration> OpenGLRenderDevice::CreateVertexDelclaration
             typeInfo->numComponents,
             typeInfo->elementType,
             typeInfo->normalized ? GL_TRUE : GL_FALSE,
-            static_cast<GLsizei>(element.stride),
             static_cast<GLuint>(element.alignedOffset));
     }
 
-    auto vertexDeclaration =  std::make_shared<OpenGLVertexDeclaration>(openGLVertexElements);
+    auto vertexDeclaration =  std::make_shared<OpenGLVertexDeclaration>(openGLVertexElements, static_cast<GLsizei>(stride));
     vertexDeclarationCache[vertexElements] = vertexDeclaration;
 
     return vertexDeclaration;
@@ -583,6 +600,8 @@ void OpenGLUpdateDrawState(uint32_t state)
 
 void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
 {
+    TIMED_FUNCTION();
+
     assert(surf);
     assert(camera);
     assert(currentShaderProgram);
@@ -598,25 +617,25 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     int32_t skyboxViewMatrixLoc = currentShaderProgram->GetParameterLocation("skyboxViewMatrix");
     if (skyboxViewMatrixLoc != -1)
     {
-        glm::mat4 skyboxViewMatrix = glm::mat4(glm::mat3(glm::make_mat4(camera->GetViewMatrix())));
+        glm::mat4 skyboxViewMatrix = glm::mat4(glm::mat3(camera->GetViewMatrix()));
         currentShaderProgram->SetMat4(skyboxViewMatrixLoc, glm::value_ptr(skyboxViewMatrix));
     }
 
-    currentShaderProgram->SetMat4(projMatrixLoc, camera->GetProjMatrix());
-    currentShaderProgram->SetMat4(viewMatrixLoc, camera->GetViewMatrix());
-    currentShaderProgram->SetMat4(modelViewMatrixLoc, camera->GetViewMatrix());
+    currentShaderProgram->SetMat4(projMatrixLoc, glm::value_ptr(camera->GetProjMatrix()));
+    currentShaderProgram->SetMat4(viewMatrixLoc, glm::value_ptr(camera->GetViewMatrix()));
+    currentShaderProgram->SetMat4(modelViewMatrixLoc, glm::value_ptr(camera->GetViewMatrix()));
 
     int32_t viewPosLoc = currentShaderProgram->GetParameterLocation("u_viewPos");
-    currentShaderProgram->SetVec3(viewPosLoc, camera->GetViewPositionVector());
+    currentShaderProgram->SetVec3(viewPosLoc, glm::value_ptr(camera->GetViewPositionVector()));
 
     // setup states
     OpenGLUpdateDrawState(surf->drawStateFlags);
 
     // setup materials
     const SurfaceMaterial *material = &surf->material;
-    currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Ka"), glm::value_ptr(material->ambient));
-    currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Kd"), glm::value_ptr(material->diffuse));
-    currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Ks"), glm::value_ptr(material->specular));
+    currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Ka"), material->ambient.valuePtr);
+    currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Kd"), material->diffuse.valuePtr);
+    currentShaderProgram->SetVec3(currentShaderProgram->GetParameterLocation("Ks"), material->specular.valuePtr);
     currentShaderProgram->SetFloat(currentShaderProgram->GetParameterLocation("Ns"), material->shininess);
 
     if (material->texture[0])
@@ -667,7 +686,7 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
     for (const auto &element : vertexDeclaration->vertexElements)
     {
         glEnableVertexAttribArray(element.attributeLocation);
-        glVertexAttribPointer(element.attributeLocation, element.numComponents, element.type, element.normalized, element.stride, (const GLvoid *)element.offset);
+        glVertexAttribPointer(element.attributeLocation, element.numComponents, element.type, element.normalized, vertexDeclaration->stride, (const GLvoid *)element.offset);
     }
 
     const uint32_t primIndex = (surf->drawStateFlags & DrawState_Primitive_Mask) >> DrawState_Primitive_Shift;
@@ -693,7 +712,7 @@ void OpenGLRenderDevice::Render(const Surface *surf, const ICamera *camera)
         int32_t numVertices = surf->numVertices;
         if (numVertices == UINT32_MAX)
         {
-            numVertices = VBO->size / vertexDeclaration->vertexElements[0].stride;
+            numVertices = VBO->size / vertexDeclaration->stride;
         }
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

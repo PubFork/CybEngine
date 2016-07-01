@@ -1,5 +1,5 @@
 #include "Precompiled.h"
-#include "RenderDevice.h"
+#include "Renderer/RenderDevice.h"
 #include "Base/Debug.h"
 #include "Base/File.h"
 #include "Base/MurmurHash.h"
@@ -12,8 +12,7 @@ bool VertexElement::operator==(const VertexElement &element) const
 {
     return (usage == element.usage) &&
         (format == element.format) &&
-        (alignedOffset == element.alignedOffset) &&
-        (stride == element.stride);
+        (alignedOffset == element.alignedOffset);
 }
 
 bool SamplerStateInitializer::operator==(const SamplerStateInitializer &initializer) const

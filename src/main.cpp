@@ -1,6 +1,5 @@
 #include "Precompiled.h"
 #include "Base/Timer.h"
-#include "Base/Profiler.h"
 #include "Base/Debug.h"
 #include "Base/File.h"
 #include "Renderer/Model.h"
@@ -10,6 +9,9 @@
 #include "Game/SkyBox.h"
 #include <GLFW/glfw3.h>
 
+#include "Base/Memory.h"
+#include "Base/Sys.h"
+
 class GameApp : public GameAppBase
 {
 public:
@@ -17,6 +19,7 @@ public:
    
     virtual bool Init();
     virtual void Shutdown() {}
+    virtual void UpdateGameLogic();
     virtual void Render();
 
 private:
@@ -35,15 +38,15 @@ private:
 bool GameApp::Init()
 {
     program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/blinn-phong-bump.vert", "assets/shaders/blinn-phong-bump.frag");
-    THROW_FATAL_COND(!program, "Fatal: Failed to create shader program!");
+    RETURN_FALSE_IF(!program);
     skyboxProgram = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/skybox.vert", "assets/shaders/skybox.frag");
-    THROW_FATAL_COND(!skyboxProgram, "Fatal: Failed to create shader program!");
+    RETURN_FALSE_IF(!skyboxProgram);
     debugNormalProgram = renderer::CreateShaderProgramFromFiles(renderDevice,
                                                                 "assets/shaders/debug-normals.vert",
                                                                 "assets/shaders/debug-normals.geom",
                                                                 "assets/shaders/debug-normals.frag");
+    RETURN_FALSE_IF(!debugNormalProgram);
     debugNormalProgram->SetFloat(debugNormalProgram->GetParameterLocation("debugLineLength"), 0.2f);
-    THROW_FATAL_COND(!debugNormalProgram, "Fatal: Failed to create shader program!");
     renderDevice->SetShaderProgram(program);
 
     const char *skyboxFilenames[] = 
@@ -56,12 +59,13 @@ bool GameApp::Init()
         "assets/nv_sky/front.jpg",
     };
 
-    CreateSkyBoxSurface(renderDevice, skyboxSurface, skyboxFilenames);
+    RETURN_FALSE_IF(!CreateSkyBoxSurface(renderDevice, skyboxSurface, skyboxFilenames));
 
     camera.SetPerspectiveMatrix(45.0f, 16.0f / 10.0f, 0.1f, 1000.0f);
-    model = renderer::Model::LoadOBJ(renderDevice, "assets/crytek-sponza/sponza.obj");
-    //cameraControl.SetWalkSpeed(5.5f);
-    //model = renderer::Model::LoadOBJ(renderDevice, "assets/Street environment_V01.obj");
+    //model = renderer::LoadOBJModel(renderDevice, "assets/crytek-sponza/sponza.obj");
+    cameraControl.SetWalkSpeed(8.5f);
+    model = renderer::LoadOBJModel(renderDevice, "assets/Street environment_V01.obj");
+    RETURN_FALSE_IF(!model);
 
     // move controls
     BindKey(GLFW_KEY_W,     [=](void) { cameraControl.MoveForward((float)frameTimer); });
@@ -83,47 +87,39 @@ bool GameApp::Init()
     return true;
 }
 
+void GameApp::UpdateGameLogic()
+{
+    static char titleBuffer[64] = {};
+    _snprintf_s(titleBuffer, sizeof(titleBuffer), "CybEngine | FrameTime: %.0fms", frameTimer * HiPerformanceTimer::MsPerSecond);
+    UpdateWindowTitle(titleBuffer);
+
+    cameraControl.UpdateCameraView(&camera);
+}
+
 void GameApp::Render()
 {
+    renderDevice->Clear(Clear_Color | Clear_Depth, glm::vec4(0.125f, 0.188f, 0.250f, 1.0f));
+
+    if (modelSampler)
     {
-        SCOOPED_PROFILE_EVENT("Update");
-        static char titleBuffer[64] = {};
-        _snprintf_s(titleBuffer, sizeof(titleBuffer), "CybEngine | FrameTime: %.0fms", frameTimer * HiPerformanceTimer::MsPerSecond);
-        UpdateWindowTitle(titleBuffer);
-        cameraControl.UpdateCameraView(&camera);
+        renderDevice->SetSamplerState(0, modelSampler);
     }
 
-    {
-        SCOOPED_PROFILE_EVENT("Clear");
-        renderDevice->Clear(Clear_Color | Clear_Depth, glm::vec4(0.125f, 0.188f, 0.250f, 1.0f));
-    }
+    // render model
+    renderDevice->SetShaderProgram(program);
+    model->Render(renderDevice, &camera);
 
-    {
-        SCOOPED_PROFILE_EVENT("Draw");
-        
-        if (modelSampler)
-        {
-            renderDevice->SetSamplerState(0, modelSampler);
-        }
+    // render model tangent-space vectors
+    //renderDevice->SetShaderProgram(debugNormalProgram);
+    //model->Render(renderDevice, &camera);
 
-        // render model
-        renderDevice->SetShaderProgram(program);
-        model->Render(renderDevice, &camera);
-
-        // render model tangent-space vectors
-        //renderDevice->SetShaderProgram(debugNormalProgram);
-        //model->Render(renderDevice, &camera);
-
-        // render skybox
-        renderDevice->SetShaderProgram(skyboxProgram);
-        renderDevice->Render(&skyboxSurface, &camera);
-    }
+    // render skybox
+    renderDevice->SetShaderProgram(skyboxProgram);
+    renderDevice->Render(&skyboxSurface, &camera);
 }
 
 int main()
 {
-#ifdef _DEBUG
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-    return RunGameApplication(std::make_unique<GameApp>(), 1280, 720, "CybEngine");
+    return RunGameApplication(new GameApp, 1280, 720, "CybEngine");
 }

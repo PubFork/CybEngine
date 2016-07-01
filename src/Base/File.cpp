@@ -1,6 +1,7 @@
 #include "Precompiled.h"
-#include "File.h"
+#include "Base/File.h"
 #include "Base/Debug.h"
+#include "Base/Sys.h"
 
 class Win32File : public IFile
 {
@@ -185,7 +186,7 @@ SysFile::SysFile(const std::string &path, int mode)
     filePointer = std::make_shared<Win32File>(path, mode);
     if (!filePointer->IsValid())
     {
-        DEBUG_LOG_TEXT("Failed to open file: %s (%s)", path.c_str(), strerror(filePointer->GetErrorCode()));
+        Sys_ErrorPrintf("Failed to open file: %s (%s)\n", path.c_str(), strerror(filePointer->GetErrorCode()));
         filePointer = std::make_shared<UnopenedFile>();
     }
 }

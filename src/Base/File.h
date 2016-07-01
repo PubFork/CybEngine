@@ -2,9 +2,9 @@
 
 enum FileOpenMode
 {
-    FileOpen_Read = 1,
-    FileOpen_WriteAppend = 2,
-    FileOpen_WriteTruncate = 3
+    FileOpen_Read               = 0x01,
+    FileOpen_WriteAppend        = 0x02,
+    FileOpen_WriteTruncate      = 0x03
 };
 
 enum FileSeekOrigin

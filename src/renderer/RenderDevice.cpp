@@ -53,8 +53,8 @@ std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRe
     ShaderBytecodeFromFile VS(VSFilename);
     ShaderBytecodeFromFile FS(FSFilename);
 
-    const bool validShaders = (VS.IsValid() && FS.IsValid());
-    return validShaders ? device->CreateShaderProgram(VS, FS) : nullptr;
+    RETURN_NULL_IF(!VS.IsValid() || !FS.IsValid());
+    return device->CreateShaderProgram(VS, FS);
 }
 
 std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRenderDevice> device, const char *VSFilename, const char *GSFilename, const char *FSFilename)
@@ -63,8 +63,8 @@ std::shared_ptr<IShaderProgram> CreateShaderProgramFromFiles(std::shared_ptr<IRe
     ShaderBytecodeFromFile GS(GSFilename);
     ShaderBytecodeFromFile FS(FSFilename);
 
-    const bool validShaders = (VS.IsValid() && GS.IsValid() && FS.IsValid());
-    return validShaders ? device->CreateShaderProgram(VS, GS, FS) : nullptr;
+    RETURN_NULL_IF(!VS.IsValid() || !GS.IsValid() || !FS.IsValid());
+    return device->CreateShaderProgram(VS, GS, FS);
 }
 
 int CalculateNumMipLevels(uint32_t width, uint32_t height)

@@ -85,8 +85,7 @@ private:
     size_t size;
 };
 
-template <class T>
-uint32_t CalculateMurmurHash(const T data, size_t length)
+inline uint32_t CalculateMurmurHash(const void *data, size_t length)
 {
     MurmurHash2A murmur;
     murmur.Begin();

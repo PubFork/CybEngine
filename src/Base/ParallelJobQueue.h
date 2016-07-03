@@ -7,13 +7,17 @@ struct ParallelJobEntry
 {
     JobEntryCallback *callback;
     void *userData;
+    bool executed;
 };
 
 struct ParallelJobQueue
 {
-    volatile uint32_t currentJob;
-    ParallelJobEntry jobQueue[256];
-    uint32_t numThreadsExecuting;
+    volatile uint32_t completionGoal;
+    volatile uint32_t completionCount;
+    volatile uint32_t nextEntryWrite;
+    volatile uint32_t nextEntryRead;
+
+    ParallelJobEntry jobEntries[256];
     void *semaphoreHandle;
 };
 

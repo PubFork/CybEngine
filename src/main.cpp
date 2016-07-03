@@ -11,6 +11,7 @@
 
 #include "Base/Memory.h"
 #include "Base/Sys.h"
+#include "Base/ParallelJobQueue.h"
 
 class GameApp : public GameAppBase
 {
@@ -35,8 +36,29 @@ private:
     std::shared_ptr<renderer::IShaderProgram> debugNormalProgram;
 };
 
+JOB_ENTRY_CALLBACK(PrintStringJob)
+{
+    const char *str = (const char *)userData;
+    Sys_Printf("%s\n", str);
+}
+
 bool GameApp::Init()
 {
+    ParallelJobQueue queue;
+    CreateParallelJobQueue(&queue, 4);
+
+    SubmitJob(&queue, &PrintStringJob, "String00");
+    SubmitJob(&queue, &PrintStringJob, "String01");
+    SubmitJob(&queue, &PrintStringJob, "String02");
+    SubmitJob(&queue, &PrintStringJob, "String03");
+    SubmitJob(&queue, &PrintStringJob, "String04");
+    SubmitJob(&queue, &PrintStringJob, "String05");
+    SubmitJob(&queue, &PrintStringJob, "String06");
+    SubmitJob(&queue, &PrintStringJob, "String07");
+    SubmitJob(&queue, &PrintStringJob, "String08");
+    SubmitJob(&queue, &PrintStringJob, "String09");
+    WaitForQueueToFinish(&queue);
+
     program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/blinn-phong-bump.vert", "assets/shaders/blinn-phong-bump.frag");
     RETURN_FALSE_IF(!program);
     skyboxProgram = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/skybox.vert", "assets/shaders/skybox.frag");

@@ -52,7 +52,7 @@ std::shared_ptr<ITexture2D> TextureCache::LoadTexture2DFromFile(const char *file
         SysFile textureFile(filename, FileOpen_Read);
         if (textureFile.IsValid())
         {
-            DebugPrintf("Loading image from file %s [hash 0x%x]...\n", filename, CalculateMurmurHash(filename, strlen(filename)));
+            DebugPrintf("Loading image from file %s [hash 0x%x]...\n", filename, hashKey);
 
             const size_t textureBufferSize = textureFile.GetLength();
             const stbi_uc *rawTextureBuffer = new stbi_uc[textureBufferSize];

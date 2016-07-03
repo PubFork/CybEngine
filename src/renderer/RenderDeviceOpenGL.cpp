@@ -109,10 +109,7 @@ OpenGLShaderCompiler::~OpenGLShaderCompiler()
 
 bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode &bytecode)
 {
-    if (compileErrorFlag)
-    {
-        return false;
-    }
+    RETURN_FALSE_IF(compileErrorFlag);
 
     GLuint shader = glCreateShader(stage);
     glShaderSource(shader, 1, (const GLchar **)&bytecode.source, (const GLint *)&bytecode.length);
@@ -135,10 +132,7 @@ bool OpenGLShaderCompiler::CompileShaderStage(GLenum stage, const ShaderBytecode
 
 bool OpenGLShaderCompiler::LinkAndClearShaderStages(GLuint &outProgram)
 {
-    if (compileErrorFlag || compiledShaderStages.empty())
-    {
-        return false;
-    }
+    RETURN_FALSE_IF(compileErrorFlag || compiledShaderStages.empty());
 
     GLuint program = glCreateProgram();
     for (auto shaderID : compiledShaderStages)

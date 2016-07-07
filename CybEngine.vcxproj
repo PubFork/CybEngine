@@ -25,6 +25,7 @@
     <ClCompile Include="src\Base\Sys_Win32.cpp" />
     <ClCompile Include="src\Base\Timer.cpp" />
     <ClCompile Include="src\Game\Camera.cpp" />
+    <ClCompile Include="src\Game\Entry.cpp" />
     <ClCompile Include="src\Game\GameApp.cpp" />
     <ClCompile Include="src\Game\SkyBox.cpp" />
     <ClCompile Include="src\GUI\imgui.cpp" />
@@ -35,6 +36,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Precompiled.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="src\Renderer\Backend.cpp" />
+    <ClCompile Include="src\Renderer\CommandBuffer.cpp" />
     <ClCompile Include="src\Renderer\Model.cpp" />
     <ClCompile Include="src\Renderer\Model_obj.cpp" />
     <ClCompile Include="src\Renderer\RenderDevice.cpp" />
@@ -55,6 +58,7 @@
     <ClInclude Include="src\Base\Sys.h" />
     <ClInclude Include="src\Base\Timer.h" />
     <ClInclude Include="src\Game\Camera.h" />
+    <ClInclude Include="src\Game\Entry.h" />
     <ClInclude Include="src\Game\GameApp.h" />
     <ClInclude Include="src\Game\SkyBox.h" />
     <ClInclude Include="src\GUI\imconfig.h" />
@@ -63,6 +67,8 @@
     <ClInclude Include="src\GUI\stb_rect_pack.h" />
     <ClInclude Include="src\GUI\stb_textedit.h" />
     <ClInclude Include="src\GUI\stb_truetype.h" />
+    <ClInclude Include="src\Renderer\Backend.h" />
+    <ClInclude Include="src\Renderer\CommandBuffer.h" />
     <ClInclude Include="src\Renderer\Definitions.h" />
     <ClInclude Include="src\Renderer\Model.h" />
     <ClInclude Include="src\Renderer\Model_obj.h" />

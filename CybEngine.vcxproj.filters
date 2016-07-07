@@ -83,6 +83,15 @@
     <ClCompile Include="src\Base\Sys_Win32.cpp">
       <Filter>Source Files\Base</Filter>
     </ClCompile>
+    <ClCompile Include="src\Game\Entry.cpp">
+      <Filter>Source Files\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\CommandBuffer.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\Backend.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Base\Container\TempArray.h">
@@ -171,6 +180,15 @@
     </ClInclude>
     <ClInclude Include="src\Base\Algorithm.h">
       <Filter>Source Files\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Game\Entry.h">
+      <Filter>Source Files\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\Backend.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\CommandBuffer.h">
+      <Filter>Source Files\Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

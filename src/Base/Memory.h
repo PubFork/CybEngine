@@ -7,7 +7,7 @@
 #define Gigabytes(value)                (Megabytes(value)*UINT64_C(1024))
 #define Terabytes(value)                (Gigabytes(value)*UINT64_C(1024))
 
-enum MemoryAllocationFlags
+enum memory_allocation_flags
 {
     MemoryAllocation_Align4     = 0x00,
     MemoryAllocation_Align8     = 0x01,
@@ -20,24 +20,24 @@ enum MemoryAllocationFlags
     MemoryAllocation_Default    = MemoryAllocation_Align4 | MemoryAllocation_Clear
 };
 
-typedef size_t MemoryIndex;
+typedef size_t memory_index;
 
-struct MemoryPool
+struct memory_pool
 {
-    MemoryIndex size;
-    uint8_t *base;
-    MemoryIndex used;
+    memory_index Size;
+    uint8_t *Base;
+    memory_index Used;
 
-    int32_t tempCount;
+    int32_t TempCount;
 };
 
-struct TemporaryMemory
+struct temporaty_memory
 {
-    MemoryPool *pool;
-    MemoryIndex used;
+    memory_pool *Pool;
+    memory_index Used;
 };
 
-inline void ClearMemory(void *ptr, MemoryIndex size)
+inline void ClearMemory(void *Address, memory_index Length)
 {
 #if 0
     // TODO: Check performance
@@ -47,87 +47,87 @@ inline void ClearMemory(void *ptr, MemoryIndex size)
         *byte++ = 0;
     }
 #else
-    memset(ptr, 0, size);
+    memset(Address, 0, Length);
 #endif
 }
 
-inline void InitializeMemoryPool(MemoryPool *pool, MemoryIndex size, void *base)
+inline void InitializeMemoryPool(memory_pool *Pool, memory_index Size, void *Base)
 {
-    assert(size > 0);
-    assert(base > 0);
+    assert(Size > 0);
+    assert(Base > 0);
     
-    pool->size = size;
-    pool->base = (uint8_t *)base;
-    pool->used = 0;
-    pool->tempCount = 0;
+    Pool->Size = Size;
+    Pool->Base = (uint8_t *)Base;
+    Pool->Used = 0;
+    Pool->TempCount = 0;
 }
 
-inline MemoryIndex GetAlignmentFromFlags(uint32_t flag)
+inline memory_index GetAlignmentFromFlags(uint32_t AllocationFlags)
 {
-    uint32_t alignFlag = flag & MemoryAllocation_AlignMask;
-    uint32_t alignment = 1 << (alignFlag+2);
-    return alignment;
+    uint32_t AlignFlag = AllocationFlags & MemoryAllocation_AlignMask;
+    uint32_t Alignment = 1 << (AlignFlag+2);
+    return Alignment;
 }
 
-inline MemoryIndex GetAlignmentOffset(const MemoryPool *pool, const MemoryIndex alignment)
+inline memory_index GetAlignmentOffset(const memory_pool *Pool, const memory_index Alignment)
 {
-    MemoryIndex alignmentOffset = 0;
-    MemoryIndex resultPointer = (MemoryIndex)pool->base + pool->used;
-    MemoryIndex alignmentMask = alignment - 1;
-    if (resultPointer & alignmentMask)
+    memory_index AlignmentOffset = 0;
+    memory_index ResultPointer = (memory_index)Pool->Base + Pool->Used;
+    memory_index AlignmentMask = Alignment - 1;
+    if (ResultPointer & AlignmentMask)
     {
-        alignmentOffset = alignment - (resultPointer & alignmentMask);
+        AlignmentOffset = Alignment - (ResultPointer & AlignmentMask);
     }
 
-    return alignmentOffset;
+    return AlignmentOffset;
 }
 
-inline MemoryIndex GetAlignedSizeFor(const MemoryPool *pool, const MemoryIndex size, const MemoryIndex alignment)
+inline memory_index GetAlignedSizeFor(const memory_pool *Pool, const memory_index Size, const memory_index Alignment)
 {
-    MemoryIndex alignmentOffset = GetAlignmentOffset(pool, alignment);
-    MemoryIndex alignedSize = size + alignmentOffset;
+    memory_index AlignmentOffset = GetAlignmentOffset(Pool, Alignment);
+    memory_index AlignedSize = Size + AlignmentOffset;
 
-    return alignedSize;
+    return AlignedSize;
 }
 
-#define PushStruct(pool, type, ...)          (type *)PushSize(pool, sizeof(type), ## __VA_ARGS__)
-#define PushArray(pool, count, type, ...)    (type *)PushSize(pool, count*sizeof(type), ## __VA_ARGS__)
-inline void *PushSize(MemoryPool *pool, MemoryIndex size, uint32_t flags = MemoryAllocation_Default)
+#define PushStruct(Pool, Type, ...)          (Type *)PushSize(Pool, sizeof(Type), ## __VA_ARGS__)
+#define PushArray(Pool, Count, Type, ...)    (Type *)PushSize(Pool, Count*sizeof(Type), ## __VA_ARGS__)
+inline void *PushSize(memory_pool *Pool, memory_index Size, uint32_t AllocationFlags = MemoryAllocation_Default)
 {
-    MemoryIndex alignment = GetAlignmentFromFlags(flags);
-    MemoryIndex alignedSize = GetAlignedSizeFor(pool, size, alignment);
-    assert((pool->used + alignedSize) <= pool->size);
-    MemoryIndex alignmentOffset = GetAlignmentOffset(pool, alignment);
-    void *result = pool->base + pool->used + alignmentOffset;
-    pool->used += alignedSize;
+    memory_index Alignment = GetAlignmentFromFlags(AllocationFlags);
+    memory_index AlignedSize = GetAlignedSizeFor(Pool, Size, Alignment);
+    assert((Pool->Used + AlignedSize) <= Pool->Size);
+    memory_index AlignmentOffset = GetAlignmentOffset(Pool, Alignment);
+    void *Result = Pool->Base + Pool->Used + AlignmentOffset;
+    Pool->Used += AlignedSize;
 
-    if (flags & MemoryAllocation_ClearMask)
+    if (AllocationFlags & MemoryAllocation_ClearMask)
     {
-        ClearMemory(result, alignedSize);
+        ClearMemory(Result, AlignedSize);
     }
 
-    return result;
+    return Result;
 }
 
-inline TemporaryMemory *PushTemporaryMemory(MemoryPool *pool)
+inline temporaty_memory *PushTemporaryMemory(memory_pool *Pool)
 {
-    TemporaryMemory result = {};
+    temporaty_memory Result = {};
 
-    result.pool = pool;
-    result.used = pool->used;
-    ++pool->tempCount;
+    Result.Pool = Pool;
+    Result.Used = Pool->Used;
+    ++Pool->TempCount;
 }
 
-inline void PopTemporaryMemory(TemporaryMemory *tempMem)
+inline void PopTemporaryMemory(temporaty_memory *TemporaryMemory)
 {
-    MemoryPool *pool = tempMem->pool;
-    assert(pool->used >= tempMem->used);
-    pool->used = tempMem->used;
-    assert(pool->tempCount > 0);
-    --pool->tempCount;
+    memory_pool *Pool = TemporaryMemory->Pool;
+    assert(Pool->Used >= TemporaryMemory->Used);
+    Pool->Used = TemporaryMemory->Used;
+    assert(Pool->TempCount > 0);
+    --Pool->TempCount;
 }
 
-inline void CheckMemoryPool(const MemoryPool *pool)
+inline void CheckMemoryPool(const memory_pool *Pool)
 {
-    assert(pool->tempCount == 0);
+    assert(Pool->TempCount == 0);
 }

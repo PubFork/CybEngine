@@ -396,7 +396,7 @@ std::shared_ptr<OBJ_CompiledModel> OBJ_CompileRawModel(const std::shared_ptr<OBJ
 
             // Polygon -> triangle fan conversion
             const size_t numEdges = face.edges.size();
-            for (size_t k = 2; k < numEdges; k++)
+            for (size_t k = 2; k < numEdges; ++k)
             {
                 triangleEdges[1] = triangleEdges[2];
                 triangleEdges[2] = face.edges[k];

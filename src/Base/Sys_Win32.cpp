@@ -5,6 +5,17 @@
 
 #define PRINT_BUFFER_LENGTH     4096
 
+void *Sys_Alloc(uint64_t size)
+{
+    void *result = VirtualAlloc(0, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    return result;
+}
+
+void Sys_Free(void *address)
+{
+    VirtualFree(address, 0, MEM_RELEASE);
+}
+
 std::vector<std::string> Sys_GetGraphicCardList()
 {
     std::vector<std::string> gpus;
@@ -109,4 +120,33 @@ uint64_t Sys_GetClockTicksPerSecond()
     }
 
     return frequency;
+}
+
+void Sys_Sleep(uint32_t milliseconds)
+{
+    Sleep(milliseconds);
+}
+
+uint32_t AtomicCompareExchangeUInt32(uint32_t volatile *value, uint32_t exchange, uint32_t compareand)
+{
+    uint32_t result = _InterlockedCompareExchange((long volatile *)value, exchange, compareand);
+    return result;
+}
+
+uint64_t AtomicCompareExchangeUInt64(uint64_t volatile *value, uint64_t exchange, uint64_t compareand)
+{
+    uint64_t result = _InterlockedCompareExchange64((__int64 volatile *)value, exchange, compareand);
+    return result;
+}
+
+uint32_t AtomicAddUint32(uint32_t volatile *value, uint32_t addend)
+{
+    uint32_t result = _InterlockedExchangeAdd((long volatile *)value, addend);
+    return result;
+}
+
+uint64_t AtomicAddUint64(uint64_t volatile *value, uint64_t addend)
+{
+    uint64_t result = _InterlockedExchange64((__int64 volatile *)value, addend);
+    return result;
 }

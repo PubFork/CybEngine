@@ -95,7 +95,7 @@ std::shared_ptr<ITextureCube> TextureCache::LoadTextureCubeFromFiles(const char 
     int32_t cubeHeight = 0;
     bool errorFlag = false;
 
-    for (uint32_t i = 0; i < 6 && !errorFlag; i++)
+    for (uint32_t i = 0; i < 6 && !errorFlag; ++i)
     {
         const char *filename = filenames[i];
 

@@ -13,6 +13,10 @@
 #include "Base/Sys.h"
 #include "Base/ParallelJobQueue.h"
 
+#include "Renderer/CommandBuffer.h"
+#include "Game/Entry.h"
+
+
 class GameApp : public GameAppBase
 {
 public:
@@ -36,28 +40,40 @@ private:
     std::shared_ptr<renderer::IShaderProgram> debugNormalProgram;
 };
 
-JOB_ENTRY_CALLBACK(PrintStringJob)
+void PrintStringJob(void *data)
 {
-    const char *str = (const char *)userData;
-    Sys_Printf("%s\n", str);
+    const char *str = (const char *)data;
+    Sys_Printf("Thread %u: %s\n", GetThreadID(), str);
 }
 
 bool GameApp::Init()
 {
-    ParallelJobQueue queue;
-    CreateParallelJobQueue(&queue, 4);
+    parallel_job_queue Queue;
+    CreateParallelJobQueue(&Queue, 8);
+    Sys_Sleep(1);
 
-    SubmitJob(&queue, &PrintStringJob, "String00");
-    SubmitJob(&queue, &PrintStringJob, "String01");
-    SubmitJob(&queue, &PrintStringJob, "String02");
-    SubmitJob(&queue, &PrintStringJob, "String03");
-    SubmitJob(&queue, &PrintStringJob, "String04");
-    SubmitJob(&queue, &PrintStringJob, "String05");
-    SubmitJob(&queue, &PrintStringJob, "String06");
-    SubmitJob(&queue, &PrintStringJob, "String07");
-    SubmitJob(&queue, &PrintStringJob, "String08");
-    SubmitJob(&queue, &PrintStringJob, "String09");
-    WaitForQueueToFinish(&queue);
+    SubmitJob(&Queue, &PrintStringJob, "String00");
+    SubmitJob(&Queue, &PrintStringJob, "String01");
+    SubmitJob(&Queue, &PrintStringJob, "String02");
+    SubmitJob(&Queue, &PrintStringJob, "String03");
+    SubmitJob(&Queue, &PrintStringJob, "String04");
+    SubmitJob(&Queue, &PrintStringJob, "String05");
+    SubmitJob(&Queue, &PrintStringJob, "String07");
+    SubmitJob(&Queue, &PrintStringJob, "String08");
+    SubmitJob(&Queue, &PrintStringJob, "String09");
+
+    SubmitJob(&Queue, &PrintStringJob, "String10");
+    SubmitJob(&Queue, &PrintStringJob, "String11");
+    SubmitJob(&Queue, &PrintStringJob, "String12");
+    SubmitJob(&Queue, &PrintStringJob, "String13");
+    SubmitJob(&Queue, &PrintStringJob, "String14");
+    SubmitJob(&Queue, &PrintStringJob, "String15");
+    SubmitJob(&Queue, &PrintStringJob, "String16");
+    SubmitJob(&Queue, &PrintStringJob, "String17");
+    SubmitJob(&Queue, &PrintStringJob, "String18");
+    SubmitJob(&Queue, &PrintStringJob, "String19");
+    
+    WaitForQueueToFinish(&Queue);
 
     program = renderer::CreateShaderProgramFromFiles(renderDevice, "assets/shaders/blinn-phong-bump.vert", "assets/shaders/blinn-phong-bump.frag");
     RETURN_FALSE_IF(!program);
@@ -140,8 +156,31 @@ void GameApp::Render()
     renderDevice->Render(&skyboxSurface, &camera);
 }
 
+void GameTestRender(render_command_buffer *RenderCommands)
+{
+    command_entry_test1 *test1 = PushRenderCommand(RenderCommands, command_entry_test1);
+    test1->A = 1;
+    test1->B = 2;
+    test1->C = 3;
+    test1->D = 4;
+
+    command_entry_test2 *test2 = PushRenderCommand(RenderCommands, command_entry_test2);
+    test2->A = 5.5f;
+    test2->B = 6.6f;
+    test2->C = 7.7f;
+    test2->D = 8.8f;
+}
+
 int main()
 {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+    game_entry_params Params = {};
+    Params.PermanentStorageSize = Megabytes(256);
+    Params.RenderCommandStorageSize = Megabytes(64);
+    Params.TransientStorageSize = Gigabytes(1);
+    Params.RenderCallback = GameTestRender;
+    GameEntryFunction(&Params);
+
     return RunGameApplication(new GameApp, 1280, 720, "CybEngine");
 }

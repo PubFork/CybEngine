@@ -1,86 +1,85 @@
 #include "Precompiled.h"
 #include "Base/ParallelJobQueue.h"
-#include "Sys.h"
+#include "Base/Sys.h"
 #include <Windows.h>
-
-inline uint32_t GetThreadID(void)
-{
-    uint8_t *ThreadLocalStorage = (uint8_t *)__readgsqword(0x30);
-    uint32_t ThreadID = *(uint32_t *)(ThreadLocalStorage + 0x48);
-
-    return ThreadID;
-}
 
 static DWORD WINAPI ThreadEntryProc(LPVOID lpParameter)
 {
-    ParallelJobQueue *queue = (ParallelJobQueue *)lpParameter;
+    parallel_job_queue *Queue = (parallel_job_queue *)lpParameter;
 //    uint32_t threadIndex = GetThreadID();
 
     for (;;)
     {
-        uint32_t originalNextEntryRead = queue->nextEntryRead;
-        uint32_t newNextEntryRead = (originalNextEntryRead + 1) % _countof(queue->jobEntries);
+        uint32_t OriginalNextEntryRead = Queue->NextEntryRead;
+        uint32_t NewNextEntryRead = (OriginalNextEntryRead + 1) % _countof(Queue->JobEntries);
         
-        if (originalNextEntryRead != queue->nextEntryWrite)
+        if (OriginalNextEntryRead != Queue->NextEntryWrite)
         {
-            uint32_t index = InterlockedCompareExchange((LONG volatile *)&queue->nextEntryRead,
-                                                        newNextEntryRead,
-                                                        originalNextEntryRead);
-            if (index == originalNextEntryRead)
+            uint32_t Index = AtomicCompareExchangeUInt32(&Queue->NextEntryRead,
+                                                         NewNextEntryRead,
+                                                         OriginalNextEntryRead);
+            if (Index == OriginalNextEntryRead)
             {
-                ParallelJobEntry entry = queue->jobEntries[index];
-                entry.callback(entry.userData);
-                InterlockedIncrement((LONG volatile *)&queue->completionCount);
+                job_entry Entry = Queue->JobEntries[Index];
+                Entry.Callback(Entry.Data);
+                AtomicAddUint32(&Queue->CompletionCount, 1);
             }
         } 
         else
         {
-            WaitForSingleObjectEx(queue->semaphoreHandle, INFINITE, FALSE);
+            WaitForSingleObjectEx(Queue->SemaphoreHandle, INFINITE, FALSE);
         }
     }
 
 //    return 0;
 }
 
-void CreateParallelJobQueue(ParallelJobQueue *queue, uint32_t numThreads)
+void CreateParallelJobQueue(parallel_job_queue *Queue, uint32_t numThreads)
 {
-    queue->completionGoal = 0;
-    queue->completionCount = 0;
-    queue->nextEntryWrite = 0;
-    queue->nextEntryRead = 0;
+    Queue->CompletionGoal = 0;
+    Queue->CompletionCount = 0;
+    Queue->NextEntryWrite = 0;
+    Queue->NextEntryRead = 0;
+    for (uint32_t i = 0; i < _countof(Queue->JobEntries); ++i)
+    {
+        Queue->JobEntries[i].Executed = true;
+    }
 
-    queue->semaphoreHandle = CreateSemaphoreEx(0, 0, numThreads, 0, 0, SEMAPHORE_ALL_ACCESS);
+
+    Queue->SemaphoreHandle = CreateSemaphoreEx(0, 0, numThreads, 0, 0, SEMAPHORE_ALL_ACCESS);
 
     for (uint32_t threadIndex = 0; threadIndex < numThreads; ++threadIndex)
     {
         DWORD threadId = 0;
-        HANDLE threadHandle = CreateThread(0, 0, ThreadEntryProc, queue, 0, &threadId);
+        HANDLE threadHandle = CreateThread(0, 0, ThreadEntryProc, Queue, 0, &threadId);
         CloseHandle(threadHandle);
     }
 }
 
-void SubmitJob(ParallelJobQueue *queue, JobEntryCallback *callback, void *userData)
+void SubmitJob(parallel_job_queue *Queue, job_callback Callback, void *Data)
 {
-    uint32_t newNextEntryWrite = (queue->nextEntryWrite + 1) % _countof(queue->jobEntries);
-    assert(newNextEntryWrite != queue->nextEntryRead);
+    uint32_t NewNextEntryWrite = (Queue->NextEntryWrite + 1) % _countof(Queue->JobEntries);
+    assert(NewNextEntryWrite != Queue->NextEntryRead);
 
-    ParallelJobEntry *entry = queue->jobEntries + queue->nextEntryWrite;
-    entry->callback = callback;
-    entry->userData = userData;
-    entry->executed = false;
-    ++queue->completionGoal;
+    job_entry *Entry = Queue->JobEntries + Queue->NextEntryWrite;
+    assert(Entry->Executed != false);       // Need bigger NUM_ENTRIES_PER_QUEUE if this failes
+
+    Entry->Callback = Callback;
+    Entry->Data = Data;
+    Entry->Executed = false;
+    ++Queue->CompletionGoal;
 
     _WriteBarrier();
-    queue->nextEntryWrite = newNextEntryWrite;
-    ReleaseSemaphore(queue->semaphoreHandle, 1, 0);
+    Queue->NextEntryWrite = NewNextEntryWrite;
+    ReleaseSemaphore(Queue->SemaphoreHandle, 1, 0);
 }
 
-void WaitForQueueToFinish(ParallelJobQueue *queue)
+void WaitForQueueToFinish(parallel_job_queue *Queue)
 {
-    while (queue->completionGoal != queue->completionCount)
+    while (Queue->CompletionGoal != Queue->CompletionCount)
     {
     }
 
-    queue->completionGoal = 0;
-    queue->completionCount = 0;
+    Queue->CompletionGoal = 0;
+    Queue->CompletionCount = 0;
 }
